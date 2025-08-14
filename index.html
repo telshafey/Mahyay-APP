@@ -1,0 +1,66 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>مَحيّاي - رفيقك الروحي اليومي</title>
+    
+    <!-- ****************************************************** -->
+    <!-- ** ACTION REQUIRED: REPLACE WITH YOUR GOOGLE CLIENT ID ** -->
+    <!-- ****************************************************** -->
+    <meta name="google-signin-client_id" content="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+      body {
+        font-family: 'Cairo', sans-serif;
+        background: linear-gradient(135deg, #1e4d3b 0%, #2d5a47 100%);
+      }
+      .font-amiri {
+        font-family: 'Amiri', serif;
+      }
+      @keyframes fadeIn { 
+        from { opacity: 0; transform: translateY(10px); } 
+        to { opacity: 1; transform: translateY(0); } 
+      }
+      .animate-fade-in { 
+        animation: fadeIn 0.5s ease-in-out; 
+      }
+    </style>
+  <script>
+    // In a no-bundler environment, process.env is not available.
+    // We define it on the window object so the Gemini service can access the API key.
+    // ****************************************************
+    // ** ACTION REQUIRED: REPLACE WITH YOUR GEMINI API KEY **
+    // ****************************************************
+    window.process = {
+      env: {
+        API_KEY: 'YOUR_GEMINI_API_KEY'
+      }
+    };
+  </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.1.1/",
+    "react": "https://esm.sh/react@^19.1.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.12.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.7.1",
+    "jwt-decode": "https://esm.sh/jwt-decode@4.0.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
