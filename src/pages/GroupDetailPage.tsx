@@ -1,12 +1,17 @@
-
-import React, { useContext, useState, useMemo } from 'react';
+import React, { useContext, useState, useMemo, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { AppContext } from '../contexts/AppContext.ts';
 import { AuthContext } from '../contexts/AuthContext.tsx';
 import GlassCard from '../components/GlassCard.tsx';
 import SharingSettingsModal from '../components/modals/SharingSettingsModal.tsx';
 import { timeAgo } from '../utils.ts';
+import { GroupActivity, UserChallenge, UserStats } from '../types.ts';
 
+
+interface MemberProgressData {
+    stats: UserStats | null;
+    challenges: UserChallenge[] | null;
+}
 
 const GroupDetailPage: React.FC = () => {
     const { groupId } = useParams<{ groupId: string }>();
@@ -15,29 +20,75 @@ const GroupDetailPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'feed' | 'members' | 'progress'>('feed');
     const [isSettingsOpen, setSettingsOpen] = useState(false);
 
+    const [feed, setFeed] = useState<GroupActivity[]>([]);
+    const [isFeedLoading, setFeedLoading] = useState(true);
+    const [memberProgress, setMemberProgress] = useState<Record<string, MemberProgressData>>({});
+    const [isProgressLoading, setProgressLoading] = useState(false);
+
     const group = useMemo(() => context?.groups.find(g => g.id === groupId), [context?.groups, groupId]);
-    const feed = useMemo(() => group && context ? context.getGroupFeed(group) : [], [group, context]);
+    
+    useEffect(() => {
+        let isMounted = true;
+        if (group && context && activeTab === 'feed') {
+            setFeedLoading(true);
+            context.getGroupFeed(group).then(data => {
+                if (isMounted) {
+                    setFeed(data);
+                    setFeedLoading(false);
+                }
+            });
+        }
+        return () => { isMounted = false; };
+    }, [group, context, activeTab]);
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchProgressData = async () => {
+            if (activeTab === 'progress' && group && context && groupId) {
+                setProgressLoading(true);
+                const progressDataPromises = group.members.map(async (member) => {
+                    const [stats, challenges] = await Promise.all([
+                        context.getGroupMemberStats(member.id, groupId),
+                        context.getGroupMemberChallenges(member.id, groupId)
+                    ]);
+                    return { userId: member.id, stats, challenges };
+                });
+                
+                const progressData = await Promise.all(progressDataPromises);
+                
+                if (isMounted) {
+                    const progressMap = progressData.reduce((acc, data) => {
+                        acc[data.userId] = { stats: data.stats, challenges: data.challenges };
+                        return acc;
+                    }, {} as Record<string, MemberProgressData>);
+
+                    setMemberProgress(progressMap);
+                    setProgressLoading(false);
+                }
+            }
+        };
+        fetchProgressData();
+        return () => { isMounted = false; };
+    }, [activeTab, group, context, groupId]);
 
     if (!context || !auth?.user || !group) {
         return <div className="text-center text-white p-8">جاري تحميل المجموعة...</div>;
     }
     
-    const userSharingSettings = (userId: string) => context.sharingSettings[group.id] || { activity: true, stats: true, challenges: true };
-
     const renderContent = () => {
         switch (activeTab) {
             case 'feed':
-                const filteredFeed = feed.filter(activity => userSharingSettings(activity.user.id).activity || activity.user.id === auth.user?.id);
-                if (filteredFeed.length === 0) {
-                    return <p className="text-center text-white/70 py-4">لا يوجد نشاط لعرضه. قد يكون الأعضاء قد قاموا بتعطيل مشاركة النشاط.</p>;
+                if (isFeedLoading) return <p className="text-center text-white/70 py-4">جاري تحميل الأنشطة...</p>;
+                if (feed.length === 0) {
+                    return <p className="text-center text-white/70 py-4">لا يوجد نشاط لعرضه بعد.</p>;
                 }
                 return (
                     <div className="space-y-4">
-                        {filteredFeed.map(activity => (
+                        {feed.map(activity => (
                              <div key={activity.id} className="flex items-start gap-3 p-3 bg-black/20 rounded-lg">
                                 <div className="bg-white/10 p-2 rounded-full text-xl">{activity.icon}</div>
                                 <div className="flex-1">
-                                    <p className="text-white text-sm" dangerouslySetInnerHTML={{ __html: activity.message.replace(activity.user.name, `<strong>${activity.user.name}</strong>`) }}></p>
+                                    <p className="text-white text-sm" dangerouslySetInnerHTML={{ __html: activity.message.replace(activity.user.name ?? '', `<strong>${activity.user.name}</strong>`) }}></p>
                                     <p className="text-xs text-white/60">{timeAgo(activity.timestamp)}</p>
                                 </div>
                             </div>
@@ -49,13 +100,14 @@ const GroupDetailPage: React.FC = () => {
                     <div className="space-y-3">
                         {group.members.map(member => (
                             <div key={member.id} className="flex items-center gap-3 p-3 bg-black/20 rounded-lg">
-                                <img src={member.picture} alt={member.name} className="w-10 h-10 rounded-full" />
-                                <span className="text-white font-semibold">{member.name}</span>
+                                <img src={member.picture || `https://i.pravatar.cc/150?u=${member.id}`} alt={member.name || 'User'} className="w-10 h-10 rounded-full" />
+                                <span className="text-white font-semibold">{member.name || 'مستخدم'}</span>
                             </div>
                         ))}
                     </div>
                 );
             case 'progress':
+                if (isProgressLoading) return <p className="text-center text-white/70 py-4">جاري تحميل تقدم الأعضاء...</p>;
                 return (
                     <div className="space-y-6">
                         <div>
@@ -72,14 +124,14 @@ const GroupDetailPage: React.FC = () => {
                                     </thead>
                                     <tbody>
                                         {group.members.map(m => {
-                                            const stats = context.getGroupMemberStats(m.id);
-                                            const canShow = userSharingSettings(group.id).stats || m.id === auth.user?.id;
+                                            const progress = memberProgress[m.id];
+                                            const canShow = progress && progress.stats !== null;
                                             return (
                                                 <tr key={m.id} className="bg-black/10 border-b border-gray-700">
-                                                    <th scope="row" className="px-4 py-2 font-medium whitespace-nowrap">{m.name}</th>
-                                                    <td className="px-2 py-2">{canShow ? stats.totalPoints : '🔒'}</td>
-                                                    <td className="px-2 py-2">{canShow ? stats.streak : '🔒'}</td>
-                                                    <td className="px-2 py-2">{canShow ? stats.monthlyPrayers : '🔒'}</td>
+                                                    <th scope="row" className="px-4 py-2 font-medium whitespace-nowrap">{m.name || 'مستخدم'}</th>
+                                                    <td className="px-2 py-2">{canShow ? progress.stats?.totalPoints : '🔒'}</td>
+                                                    <td className="px-2 py-2">{canShow ? progress.stats?.streak : '🔒'}</td>
+                                                    <td className="px-2 py-2">{canShow ? progress.stats?.monthlyPrayers : '🔒'}</td>
                                                 </tr>
                                             );
                                         })}
@@ -90,12 +142,13 @@ const GroupDetailPage: React.FC = () => {
                         <div>
                             <h4 className="text-lg font-bold text-white mb-2">🏆 التحديات</h4>
                              {group.members.map(m => {
-                                const challenges = context.getGroupMemberChallenges(m.id);
-                                const canShow = userSharingSettings(group.id).challenges || m.id === auth.user?.id;
+                                const progress = memberProgress[m.id];
+                                const challenges = progress?.challenges;
+                                const canShow = challenges !== null;
                                 return (
                                     <div key={m.id} className="p-3 bg-black/20 rounded-lg mb-3">
-                                        <p className="font-semibold text-white mb-2">{m.name}</p>
-                                        {canShow ? (
+                                        <p className="font-semibold text-white mb-2">{m.name || 'مستخدم'}</p>
+                                        {canShow && challenges ? (
                                             challenges.length > 0 ? (
                                                 <div className="space-y-2">
                                                     {challenges.map(c => (

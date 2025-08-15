@@ -1,28 +1,26 @@
-import type { Dispatch, SetStateAction } from 'react';
 
-export interface User {
+
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+
+export interface UserProfile {
   id: string;
   name: string;
-  email?: string;
-  picture?: string;
+  email: string;
+  picture: string;
 }
 
 export interface AuthContextType {
-  user: User | null;
+  user: SupabaseUser | null;
+  profile: UserProfile | null;
   isLoading: boolean;
-  isConfigured: boolean;
   isAdmin: boolean;
-  logout: () => void;
-  loginAsGuest: () => void;
+  logout: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signUpWithEmail: (name: string, email: string, password: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  renderGoogleButton: (element: HTMLElement) => void;
-  updateUserProfile: (name: string) => void;
-  updateUserProfilePicture: () => void;
-  deleteAccount: () => void;
-  getAllUsersForAdmin: () => (User & { id: string; email?: string | undefined; })[];
-  updateUserForAdmin: (userId: string, newName: string, newEmail?: string) => void;
-  deleteUserForAdmin: (userId: string) => void;
+  updateUserProfile: (name: string, picture?: string) => Promise<void>;
+  updateUserProfilePicture: (file: File) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 export interface SunnahInfo {
@@ -107,6 +105,7 @@ export interface Settings {
   };
   azkarMorningStart: string; // e.g., "04:00"
   azkarEveningStart: string; // e.g., "16:00"
+  prayerMethod: number;
 }
 
 export interface DailyData {
@@ -132,6 +131,10 @@ export interface UserStats {
   monthlyPrayers: number;
   quranPages: number;
   completedAzkar: number;
+  khatmaProgress: {
+    pagesReadInCurrent: number;
+    percentage: number;
+  };
 }
 
 export interface UserChallenge {
@@ -151,6 +154,11 @@ export interface CommunityUser {
   picture: string;
 }
 
+export interface Friend extends CommunityUser {
+    status: 'pending' | 'accepted';
+    action_by_user_id: string;
+}
+
 export type GroupType = 'family' | 'friends';
 
 export interface Group {
@@ -158,15 +166,15 @@ export interface Group {
   name: string;
   type: GroupType;
   members: CommunityUser[];
-  createdBy: string;
+  created_by: string;
 }
 
 export interface Invitation {
   id: string;
-  fromUser: CommunityUser;
-  toUserId: string;
-  groupId: string;
-  groupName: string;
+  group_id: string;
+  group_name: string;
+  inviter_id: string;
+  inviter_name: string;
   status: 'pending' | 'accepted' | 'declined';
 }
 
@@ -219,6 +227,8 @@ export interface HijriYearInfo {
 export interface AppContextType {
   dailyData: DailyData;
   settings: Settings;
+  isDataLoading: boolean;
+  dataError: string | null;
   prayerTimes: Record<string, string>;
   updatePrayerStatus: (prayerName: string, status: PrayerFardStatus) => void;
   updateSunnahStatus: (prayerName: string, sunnahType: 'sunnahBefore' | 'sunnahAfter') => void;
@@ -235,34 +245,37 @@ export interface AppContextType {
   dailyDua: { text: string; source: string; };
   nextPrayer: { prayer: Prayer | null, countdown: string, isNextDay: boolean };
   stats: UserStats;
-
-  // Wisdom & Hijri Year
+  weeklyPrayerCounts: { day: string; count: number; }[];
   dailyWisdom: Wisdom | null;
   hijriYearInfo: HijriYearInfo | null;
-
-  // Islamic Calendar
   currentHijriMonthInfo: HijriMonthInfo | null;
   nextIslamicOccasion: IslamicOccasion | null;
+  
+  // Location
+  coordinates: { lat: number; lon: number } | null;
+  locationError: string | null;
+  detectLocation: () => void;
+
+  // Notifications
+  notification: { message: string; icon: string } | null;
 
   // Community Features
-  friends: CommunityUser[];
+  isCommunityLoading: boolean;
+  friends: Friend[];
+  friendRequests: Friend[];
   groups: Group[];
   invitations: Invitation[];
   discoverableUsers: CommunityUser[];
   sharingSettings: Record<string, GroupSharingSettings>;
-  addFriend: (friendId: string) => void;
-  createGroup: (name: string, type: GroupType, memberIds: string[]) => void;
-  respondToInvitation: (invitationId: string, response: 'accepted' | 'declined') => void;
-  updateSharingSettings: (groupId: string, settings: GroupSharingSettings) => void;
-  getGroupFeed: (group: Group) => GroupActivity[];
-  getGroupMemberStats: (userId: string) => UserStats;
-  getGroupMemberChallenges: (userId: string) => UserChallenge[];
-
+  addFriend: (friendId: string) => Promise<void>;
+  respondToFriendRequest: (friendId: string, response: 'accepted' | 'declined') => Promise<void>;
+  createGroup: (name: string, type: GroupType, memberIds: string[]) => Promise<void>;
+  respondToInvitation: (invitationId: string, response: 'accepted' | 'declined') => Promise<void>;
+  updateSharingSettings: (groupId: string, settings: GroupSharingSettings) => Promise<void>;
+  getGroupFeed: (group: Group) => Promise<GroupActivity[]>;
+  getGroupMemberStats: (userId: string, groupId: string) => Promise<UserStats | null>;
+  getGroupMemberChallenges: (userId: string, groupId: string) => Promise<UserChallenge[] | null>;
+  
   // Data Management
-  exportData: () => void;
-  importData: (file: File) => void;
-  resetAllData: () => void;
+  resetAllData: () => Promise<void>;
 }
-
-// A generic state action for useReducer
-export type Action<T> = { type: 'SET'; payload: T };

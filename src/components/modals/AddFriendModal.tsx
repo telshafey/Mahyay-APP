@@ -1,4 +1,3 @@
-
 import React, { useContext } from 'react';
 import { AppContext } from '../../contexts/AppContext.ts';
 
@@ -15,7 +14,7 @@ const AddFriendModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     {discoverableUsers.length > 0 ? discoverableUsers.map(user => (
                         <div key={user.id} className="flex items-center justify-between p-2 bg-black/20 rounded-lg">
                             <div className="flex items-center gap-3">
-                                <img src={user.picture} alt={user.name} className="w-10 h-10 rounded-full" />
+                                <img src={user.picture || `https://i.pravatar.cc/150?u=${user.id}`} alt={user.name} className="w-10 h-10 rounded-full" />
                                 <span className="text-white font-semibold">{user.name}</span>
                             </div>
                             <button onClick={() => addFriend(user.id)} className="bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-1 rounded-full text-sm">إضافة</button>

@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
   <head>
@@ -7,16 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>مَحيّاي - رفيقك الروحي اليومي</title>
     
-    <!-- ****************************************************** -->
-    <!-- ** ACTION REQUIRED: REPLACE WITH YOUR GOOGLE CLIENT ID ** -->
-    <!-- ****************************************************** -->
-    <meta name="google-signin-client_id" content="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com">
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
       body {
         font-family: 'Cairo', sans-serif;
@@ -37,11 +30,13 @@
     // In a no-bundler environment, process.env is not available.
     // We define it on the window object so the Gemini service can access the API key.
     // ****************************************************
+    // ** SECURITY WARNING: THIS KEY IS EXPOSED CLIENT-SIDE **
+    // ** For production, use a backend proxy or serverless function to secure your API key.
     // ** ACTION REQUIRED: REPLACE WITH YOUR GEMINI API KEY **
     // ****************************************************
     window.process = {
       env: {
-        API_KEY: 'YOUR_GEMINI_API_KEY'
+        API_KEY: 'AIzaSyBzo22hsMXbYmS0saMHDBQLEaNhq6WEGg0'
       }
     };
   </script>
@@ -53,7 +48,7 @@
     "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
     "@google/genai": "https://esm.sh/@google/genai@^1.12.0",
     "react-router-dom": "https://esm.sh/react-router-dom@^7.7.1",
-    "jwt-decode": "https://esm.sh/jwt-decode@4.0.0"
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.44.4"
   }
 }
 </script>

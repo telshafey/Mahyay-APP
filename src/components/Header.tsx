@@ -20,13 +20,15 @@ const Header: React.FC = () => {
     }, []);
     
     const renderUserAvatar = () => {
-      if (authContext?.user?.picture) {
-        return <img src={authContext.user.picture} alt={authContext.user.name} className="w-10 h-10 rounded-full border-2 border-white/50" />
+      if (authContext?.profile?.picture) {
+        return <img src={authContext.profile.picture} alt={authContext.profile.name || 'User'} className="w-10 h-10 rounded-full border-2 border-white/50 object-cover" />
       }
+
+      const nameInitial = authContext?.profile?.name ? authContext.profile.name.charAt(0).toUpperCase() : '؟';
 
       return (
         <div className="w-10 h-10 rounded-full border-2 border-white/50 bg-yellow-500 flex items-center justify-center text-xl font-bold text-white">
-            {authContext?.user?.name.charAt(0).toUpperCase()}
+            {nameInitial}
         </div>
       )
     }
@@ -41,8 +43,8 @@ const Header: React.FC = () => {
                     {dropdownOpen && (
                         <div className="absolute top-full mt-2 w-64 bg-white/95 backdrop-blur-lg rounded-xl shadow-2xl border border-white/20 overflow-hidden text-gray-800 animate-fade-in">
                            <div className="p-4 border-b border-gray-200">
-                             <p className="font-bold">{authContext?.user?.name}</p>
-                             {authContext?.user?.email && <p className="text-sm text-gray-500">{authContext?.user?.email}</p>}
+                             <p className="font-bold">{authContext?.profile?.name}</p>
+                             {authContext?.profile?.email && <p className="text-sm text-gray-500">{authContext?.profile?.email}</p>}
                            </div>
                            <NavLink to="/more/stats" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>📊</span><span>الإحصائيات والتحديات</span></NavLink>
                            <NavLink to="/more/about" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>ℹ️</span><span>عن التطبيق</span></NavLink>
@@ -59,6 +61,13 @@ const Header: React.FC = () => {
                         </div>
                     )}
                  </div>
+                 <button
+                    onClick={() => alert('سجل الإشعارات قيد التطوير وسيتوفر قريباً!')}
+                    className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                    aria-label="الإشعارات"
+                 >
+                    <span className="text-xl">🔔</span>
+                 </button>
             </div>
 
             <div className="flex flex-col items-center w-1/3">

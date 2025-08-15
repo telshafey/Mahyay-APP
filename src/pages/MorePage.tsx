@@ -1,9 +1,9 @@
-import React, { useContext, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { MorePage as MorePageType, Settings, UserChallenge } from '../types.ts';
+import React, { useContext, useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+import { MorePage as MorePageType, UserChallenge, Settings } from '../types.ts';
 import { AppContext } from '../contexts/AppContext.ts';
 import { AuthContext } from '../contexts/AuthContext.tsx';
-import { CHALLENGES } from '../constants.ts';
+import { CHALLENGES, PRAYER_METHODS, QURAN_TOTAL_PAGES } from '../constants.ts';
 import GlassCard from '../components/GlassCard.tsx';
 import ChallengeCard from '../components/ChallengeCard.tsx';
 
@@ -28,6 +28,99 @@ const StatCard: React.FC<{ icon: string; label: string; value: string | number; 
     </GlassCard>
 );
 
+const WeeklyPrayerChart: React.FC = () => {
+    const context = useContext(AppContext);
+    if (!context) return null;
+    const { weeklyPrayerCounts } = context;
+
+    const maxCount = 5; // Max 5 prayers
+
+    return (
+        <GlassCard>
+            <h4 className="text-lg font-bold mb-4 text-white flex items-center gap-2">
+                <span className="text-2xl">📊</span> صلوات الأسبوع الماضي
+            </h4>
+            <div className="flex justify-around items-end h-40 gap-2 p-2">
+                {weeklyPrayerCounts.map((dayData, index) => (
+                    <div key={index} className="flex-1 flex flex-col items-center justify-end h-full animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                        <div className="w-full h-full flex items-end justify-center group relative">
+                             <div className="absolute -top-6 text-xs bg-black/50 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                {dayData.count}
+                            </div>
+                            <div
+                                className="w-4/5 bg-gradient-to-t from-yellow-400 to-amber-500 rounded-t-md transition-all duration-500 ease-out"
+                                style={{ height: `${(dayData.count / maxCount) * 100}%` }}
+                                title={`${dayData.day}: ${dayData.count} صلوات`}
+                            ></div>
+                        </div>
+                        <span className="text-xs text-white/80 mt-2">{dayData.day}</span>
+                    </div>
+                ))}
+            </div>
+        </GlassCard>
+    );
+};
+
+const KhatmaProgressChart: React.FC = () => {
+    const context = useContext(AppContext);
+    if (!context?.stats.khatmaProgress) return null;
+
+    const { pagesReadInCurrent, percentage } = context.stats.khatmaProgress;
+    
+    const radius = 50;
+    const stroke = 8;
+    const normalizedRadius = radius - stroke / 2;
+    const circumference = normalizedRadius * 2 * Math.PI;
+    const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+    return (
+        <GlassCard className="!bg-sky-500 !bg-opacity-20 flex flex-col items-center justify-center">
+             <h4 className="text-lg font-bold mb-4 text-white flex items-center gap-2">
+                <span className="text-2xl">📖</span> تقدم الختمة الحالية
+            </h4>
+            <div className="relative w-40 h-40">
+                <svg
+                    height="100%"
+                    width="100%"
+                    viewBox={`0 0 ${radius * 2} ${radius * 2}`}
+                    className="transform -rotate-90"
+                >
+                    <circle
+                        stroke="#00000033"
+                        fill="transparent"
+                        strokeWidth={stroke}
+                        r={normalizedRadius}
+                        cx={radius}
+                        cy={radius}
+                    />
+                    <circle
+                        stroke="url(#progressGradient)"
+                        fill="transparent"
+                        strokeWidth={stroke}
+                        strokeDasharray={circumference + ' ' + circumference}
+                        style={{ strokeDashoffset, strokeLinecap: 'round', transition: 'stroke-dashoffset 0.5s ease-out' }}
+                        r={normalizedRadius}
+                        cx={radius}
+                        cy={radius}
+                    />
+                    <defs>
+                        <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#38bdf8" />
+                            <stop offset="100%" stopColor="#0ea5e9" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-3xl font-bold text-white">{Math.round(percentage)}%</span>
+                </div>
+            </div>
+             <p className="mt-4 text-white text-lg font-bold">{pagesReadInCurrent} / {QURAN_TOTAL_PAGES}</p>
+             <p className="text-sm text-white/80">صفحة</p>
+        </GlassCard>
+    );
+};
+
+
 const StatsAndChallengesPage: React.FC = () => {
     const context = useContext(AppContext);
     const [activeTab, setActiveTab] = useState<'active' | 'available' | 'completed'>('active');
@@ -40,9 +133,7 @@ const StatsAndChallengesPage: React.FC = () => {
     const statItems = [
         { label: "نقاط الإنجاز", value: stats.totalPoints, icon: "🌟", color: "bg-yellow-500" },
         { label: "أيام متتالية", value: stats.streak, icon: "🔥", color: "bg-orange-500" },
-        { label: "صلوات هذا الأسبوع", value: stats.weeklyPrayers, icon: "🕌", color: "bg-green-500" },
         { label: "صلوات هذا الشهر", value: stats.monthlyPrayers, icon: "🗓️", color: "bg-teal-500" },
-        { label: "إجمالي الصفحات المقروؤة", value: stats.quranPages, icon: "📖", color: "bg-sky-500" },
         { label: "مجموعات الأذكار المكتملة", value: stats.completedAzkar, icon: "📿", color: "bg-purple-500" },
     ];
 
@@ -51,6 +142,8 @@ const StatsAndChallengesPage: React.FC = () => {
             <section id="stats">
                 <h3 className="text-2xl font-bold text-white text-center mb-4">الإحصائيات</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <WeeklyPrayerChart />
+                    <KhatmaProgressChart />
                     {statItems.map(item => (
                         <StatCard key={item.label} icon={item.icon} label={item.label} value={item.value} colorClass={item.color} />
                     ))}
@@ -101,13 +194,13 @@ const Section: React.FC<{ title: string; icon?: string; children: React.ReactNod
 
 const AboutPage: React.FC = () => {
     const features = [
+        "مزامنة سحابية: بياناتك محفوظة ومتزامنة على جميع أجهزتك.",
         "متابعة شاملة للصلوات: أوقات الصلوات الخمس مع السنن والنوافل",
         "أذكار مع الأدلة: أذكار يومية كاملة مع النصوص الشرعية والأحاديث",
         "تتبع القرآن الكريم: متابعة قراءة القرآن مع إمكانية تحديد الأهداف",
         "نظام التحديات: تحديات إيمانية محفزة لبناء عادات قوية",
         "إحصائيات متقدمة: تتبع مفصل للتقدم مع نظام نقاط تحفيزي",
         "تصميم عربي أصيل: واجهة جميلة تحترم الهوية الإسلامية",
-        "يعمل بدون إنترنت: جميع الميزات متاحة محلياً على جهازك"
     ];
 
     return (
@@ -193,8 +286,12 @@ const SupportPage: React.FC = () => {
             a: "يمكنك بسهولة إنشاء حساب جديد باستخدام بريدك الإلكتروني وكلمة مرور من خلال صفحة تسجيل الدخول. اختر 'أنشئ حساباً' وأدخل بياناتك للبدء."
         },
         {
+            q: "هل بياناتي متزامنة عبر الأجهزة؟",
+            a: "نعم! بفضل الربط مع قاعدة بيانات سحابية، يتم حفظ جميع بياناتك (صلواتك، أذكارك، إعداداتك) في حسابك. يمكنك تسجيل الدخول من أي جهاز ومتابعة تقدمك."
+        },
+        {
             q: "هل يمكنني تغيير اسمي أو صورتي الشخصية؟",
-            a: "نعم. يمكنك تغيير صورتك الرمزية في أي وقت من صفحة 'الإعدادات'. أما تغيير الاسم، فهو متاح حاليًا للحسابات التي تم إنشاؤها باستخدام البريد الإلكتروني فقط."
+            a: "نعم. يمكنك تغيير صورتك الرمزية واسمك في أي وقت من صفحة 'الإعدادات'. يتم حفظ التغييرات مباشرة في حسابك السحابي."
         },
         {
             q: "كيف تعمل أوقات الأذكار؟ وهل يمكنني تخصيصها؟",
@@ -205,24 +302,12 @@ const SupportPage: React.FC = () => {
             a: "يتم جلب أوقات الصلاة تلقائيًا بناءً على موقع جهازك التقريبي عبر واجهة برمجية موثوقة (api.aladhan.com) باستخدام طريقة حساب الهيئة المصرية العامة للمساحة. يمكنك التأكد من دقتها مع مسجدك المحلي."
         },
         {
-            q: "هل يمكنني استخدام التطبيق بدون انترنت؟",
-            a: "نعم! يمكنك تسجيل جميع عباداتك اليومية بدون الحاجة لاتصال بالإنترنت. يتم حفظ بياناتك محليًا على جهازك. ستحتاج إلى اتصال بالإنترنت فقط لتحديث أوقات الصلاة."
-        },
-        {
             q: "كيف يتم تخزين بياناتي؟ وهل هي آمنة؟",
-            a: "بياناتك الشخصية وبيانات عبادتك تُحفظ بشكل آمن ومشفر على جهازك فقط. نحن لا نجمع أو نطلع على أي من بياناتك الخاصة. خصوصيتك هي أولويتنا القصوى."
+            a: "بياناتك الشخصية وبيانات عبادتك تُحفظ بشكل آمن في قاعدة بيانات Supabase السحابية. تم وضع قواعد أمان صارمة تضمن أنك وحدك من يمكنه الوصول إلى بياناته وتعديلها."
         },
         {
             q: "كيف تعمل الإحصائيات والنقاط؟",
             a: "تُحسب نقاطك بناءً على إنجازاتك اليومية: 10 نقاط لكل صلاة في وقتها، 15 نقطة لكل مجموعة أذكار مكتملة، ونقطتان لكل صفحة تقرأها من القرآن. 'الأيام المتتالية' تزداد كل يوم تكمل فيه 3 صلوات على الأقل. يتم تحديث باقي الإحصائيات تلقائيًا بناءً على أدائك."
-        },
-        {
-            q: "ما هي التحديات وكيف أشارك فيها؟",
-            a: "التحديات هي أهداف إيمانية مصممة لتحفيزك على بناء عادات إيجابية. يمكنك متابعة التحديات النشطة من الصفحة الرئيسية ومن صفحة 'الإحصائيات والتحديات'. عند إكمال تحدٍ ما، ستحصل على نقاط إنجاز."
-        },
-        {
-            q: "ما هي ميزة المجتمع وكيف تعمل؟",
-            a: "ميزة المجتمع تتيح لك التواصل مع الأصدقاء والعائلة لمشاركة تقدمكم الروحي وتحفيز بعضكم البعض. يمكنك إنشاء مجموعات، دعوة الأصدقاء، ورؤية أنشطة وإحصائيات أعضاء المجموعة (بعد موافقتهم عبر إعدادات المشاركة). هذه الميزة تهدف إلى خلق بيئة إيجابية ومشجعة على الطاعة."
         },
         {
             q: "وجدت خطأ في محتوى التطبيق، كيف أبلغ عنه؟",
@@ -253,15 +338,28 @@ const SupportPage: React.FC = () => {
 const SettingsPage: React.FC = () => {
     const context = useContext(AppContext);
     const authContext = useContext(AuthContext);
-    
-    if(!context || !authContext?.user) return null;
 
-    const { settings, updateSettings, resetAllData, importData } = context;
-    const { user, updateUserProfile, deleteAccount, updateUserProfilePicture } = authContext;
-    const [userName, setUserName] = useState(user.name || '');
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    if (!context || !authContext) {
+        return (
+            <GlassCard>
+                <p className="text-center text-white">جاري تحميل الإعدادات...</p>
+            </GlassCard>
+        );
+    }
     
-    const isEmailUser = user.id.startsWith('email_');
+    const { settings, updateSettings, resetAllData, coordinates, locationError, detectLocation } = context;
+    const { profile, updateUserProfile, deleteAccount, updateUserProfilePicture } = authContext;
+
+    const [userName, setUserName] = useState(profile?.name || '');
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+      if (profile?.name) {
+        setUserName(profile.name);
+      }
+    }, [profile?.name]);
+
 
     const handleSettingsChange = (key: keyof Settings, value: any) => {
         updateSettings({ [key]: value });
@@ -271,43 +369,59 @@ const SettingsPage: React.FC = () => {
         const newGoal = Math.max(1, (settings.quranGoal || 10) + change);
         handleSettingsChange('quranGoal', newGoal);
     }
-
-    const handleReset = () => {
-        const confirmMsg = "⚠️ تحذير! هل أنت متأكد من أنك تريد مسح جميع بياناتك؟ لا يمكن التراجع عن هذا الإجراء.";
-        if(window.confirm(confirmMsg)) {
-            resetAllData();
-            alert("تم مسح البيانات بنجاح.");
-        }
-    }
-
-    const handleDeleteAccount = () => {
-        const confirmMsg = "⚠️ تحذير! هل أنت متأكد من حذف حسابك؟ سيتم حذف جميع بياناتك نهائياً ولا يمكن استعادتها.";
-        if(window.confirm(confirmMsg)) {
-            deleteAccount();
-        }
-    }
     
     const handleProfileUpdate = (e: React.FormEvent) => {
         e.preventDefault();
-        if (userName.trim() === user.name) return;
+        if (!profile || userName.trim() === profile.name || !userName.trim()) return;
         updateUserProfile(userName.trim());
     }
 
-    const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePictureClick = () => {
+        if (!isUploading) {
+            fileInputRef.current?.click();
+        }
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            importData(file);
+            setIsUploading(true);
+            try {
+                await updateUserProfilePicture(file);
+            } catch (error: any) {
+                alert(error.message || "فشل تحديث الصورة.");
+            } finally {
+                setIsUploading(false);
+            }
         }
     };
 
     return (
         <div className="space-y-6 text-white">
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+                accept="image/png, image/jpeg, image/webp"
+            />
             <GlassCard>
                  <div className="flex flex-col items-center text-center gap-4">
-                     <button onClick={updateUserProfilePicture} className="relative group cursor-pointer" aria-label="تغيير الصورة الرمزية">
-                         <img src={user.picture || `https://i.pravatar.cc/150?u=${user.id}`} alt={user.name} className="w-24 h-24 rounded-full border-4 border-white/50 object-cover shadow-lg"/>
-                         <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                             <span className="text-white text-3xl">✏️</span>
+                     <button onClick={handlePictureClick} className="relative group cursor-pointer" aria-label="تغيير الصورة الرمزية" disabled={!profile || isUploading}>
+                         <img 
+                            src={profile?.picture || `https://api.dicebear.com/8.x/initials/svg?seed=${profile?.name || 'User'}`} 
+                            alt={profile?.name || 'User'} 
+                            className={`w-24 h-24 rounded-full border-4 border-white/50 object-cover shadow-lg transition-opacity ${isUploading ? 'opacity-50' : ''}`}
+                         />
+                         <div className={`absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isUploading ? '!opacity-100' : ''}`}>
+                            {isUploading ? (
+                                 <svg className="animate-spin h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                 </svg>
+                            ) : (
+                                <span className="text-white text-3xl">✏️</span>
+                            )}
                          </div>
                      </button>
                     <form onSubmit={handleProfileUpdate} className="w-full max-w-sm space-y-4">
@@ -318,22 +432,38 @@ const SettingsPage: React.FC = () => {
                                 type="text" 
                                 value={userName}
                                 onChange={(e) => setUserName(e.target.value)}
+                                placeholder={!profile ? "جاري تحميل الاسم..." : "اكتب اسمك"}
                                 className="w-full text-center text-xl font-bold bg-transparent border-0 focus:ring-0" 
-                                disabled={!isEmailUser} 
+                                disabled={!profile}
                             />
                         </div>
                         <div>
                             <label htmlFor="useremail" className="text-sm opacity-80 sr-only">البريد الإلكتروني</label>
-                            <input id="useremail" type="email" value={user.email || 'غير متوفر (زائر)'} className="w-full text-center text-sm bg-transparent border-0 opacity-60 focus:ring-0" disabled />
+                            <input id="useremail" type="email" value={profile?.email || '...'} className="w-full text-center text-sm bg-transparent border-0 opacity-60 focus:ring-0" disabled />
                         </div>
-                        {isEmailUser && (
-                            <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50" disabled={userName.trim() === user.name}>
-                                حفظ التعديلات
-                            </button>
-                        )}
+                        <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50" disabled={!profile || isUploading || userName.trim() === profile?.name || !userName.trim()}>
+                            {isUploading ? 'جاري رفع الصورة...' : 'حفظ التعديلات'}
+                        </button>
                     </form>
                  </div>
             </GlassCard>
+
+            <SettingsCard title="إعدادات الموقع" icon="📍">
+                <div className="text-center space-y-2">
+                    {coordinates && !locationError && (
+                        <p className="text-green-300">✅ يتم استخدام موقعك الحالي لدقة المواقيت.</p>
+                    )}
+                    {locationError && (
+                        <p className="text-yellow-300 text-sm">{locationError}</p>
+                    )}
+                    <button
+                        onClick={detectLocation}
+                        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                    >
+                        إعادة تحديد الموقع
+                    </button>
+                </div>
+            </SettingsCard>
             
             <SettingsCard title="إعدادات التطبيق" icon="📱">
                 <div className="flex items-center justify-between">
@@ -343,6 +473,22 @@ const SettingsPage: React.FC = () => {
                         <span className="text-xl font-bold text-white w-8 text-center">{settings.quranGoal}</span>
                         <button onClick={() => handleGoalChange(1)} className="w-8 h-8 rounded-full bg-white/10 text-white font-bold hover:bg-white/20">+</button>
                     </div>
+                </div>
+
+                <div className="pt-4 border-t border-white/10">
+                    <label htmlFor="prayer_method" className="text-sm font-semibold mb-2 block">طريقة حساب مواقيت الصلاة</label>
+                    <select 
+                        id="prayer_method" 
+                        value={settings.prayerMethod} 
+                        onChange={e => handleSettingsChange('prayerMethod', Number(e.target.value))} 
+                        className="w-full mt-1 bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white"
+                    >
+                        {PRAYER_METHODS.map(method => (
+                            <option key={method.id} value={method.id} style={{ backgroundColor: '#2d5a47' }}>
+                                {method.name}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 <div className="pt-4 border-t border-white/10">
@@ -371,25 +517,12 @@ const SettingsPage: React.FC = () => {
                 </label>
             </SettingsCard>
 
-             <SettingsCard title="إدارة البيانات" icon="💾">
-                <p className="text-sm opacity-80">يمكنك حفظ نسخة احتياطية من بياناتك أو استيرادها.</p>
-                <div className="grid grid-cols-2 gap-4">
-                    <button disabled className="w-full bg-gray-500 text-white/70 font-bold py-2 px-4 rounded-lg cursor-not-allowed">
-                        📥 تصدير البيانات
-                    </button>
-                    <button disabled className="w-full bg-gray-500 text-white/70 font-bold py-2 px-4 rounded-lg cursor-not-allowed">
-                        📤 استيراد البيانات
-                    </button>
-                </div>
-                <p className="text-xs text-center text-yellow-300/80 mt-2">ميزة تصدير واستيراد البيانات قيد التطوير حالياً.</p>
-            </SettingsCard>
-
              <div className="border-2 border-red-500/50 rounded-2xl p-4 space-y-4">
                 <h4 className="text-lg font-bold text-center text-red-300">منطقة الخطر</h4>
-                <button onClick={handleReset} className="w-full bg-red-800/80 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                    🗑️ إعادة تعيين كل البيانات
+                <button onClick={resetAllData} className="w-full bg-red-800/80 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                    🗑️ إعادة تعيين بيانات العبادة
                 </button>
-                <button onClick={handleDeleteAccount} className="w-full bg-red-900 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                <button onClick={deleteAccount} className="w-full bg-red-900 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                     🔥 حذف الحساب
                 </button>
                  <p className="text-xs text-center text-red-300/80">هذه الإجراءات نهائية ولا يمكن التراجع عنها.</p>

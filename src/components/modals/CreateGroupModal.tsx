@@ -1,4 +1,3 @@
-
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../../contexts/AppContext.ts';
 import { GroupType } from '../../types.ts';
@@ -11,6 +10,8 @@ const CreateGroupModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     if (!context) return null;
     const { friends, createGroup } = context;
+    const acceptedFriends = friends.filter(f => (f as any).status === 'accepted' || f.hasOwnProperty('status') === false);
+
 
     const handleSelectFriend = (friendId: string) => {
         setSelectedFriends(prev => 
@@ -21,10 +22,6 @@ const CreateGroupModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const handleCreateGroup = () => {
         if (!groupName.trim()) {
             alert("يرجى إدخال اسم للمجموعة.");
-            return;
-        }
-        if (selectedFriends.length === 0) {
-            alert("يرجى اختيار صديق واحد على الأقل لدعوته.");
             return;
         }
         createGroup(groupName, groupType, selectedFriends);
@@ -43,11 +40,11 @@ const CreateGroupModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     </div>
                     <div>
                         <h4 className="text-white mb-2">دعوة أصدقاء:</h4>
-                         {friends.length > 0 ? (
+                         {acceptedFriends.length > 0 ? (
                             <div className="space-y-2 max-h-48 overflow-y-auto">
-                                {friends.map(friend => (
+                                {acceptedFriends.map(friend => (
                                     <div key={friend.id} onClick={() => handleSelectFriend(friend.id)} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${selectedFriends.includes(friend.id) ? 'bg-yellow-400/30' : 'bg-black/20'}`}>
-                                        <img src={friend.picture} alt={friend.name} className="w-8 h-8 rounded-full" />
+                                        <img src={friend.picture || `https://i.pravatar.cc/150?u=${friend.id}`} alt={friend.name} className="w-8 h-8 rounded-full" />
                                         <span className="text-white">{friend.name}</span>
                                     </div>
                                 ))}
@@ -58,7 +55,7 @@ const CreateGroupModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     </div>
                 </div>
                 <div className="p-4 border-t border-white/10 flex justify-center gap-4">
-                    <button onClick={handleCreateGroup} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full transition-colors">إنشاء</button>
+                    <button onClick={handleCreateGroup} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full transition-colors">إنشاء وإرسال الدعوات</button>
                     <button onClick={onClose} className="bg-white/10 hover:bg-white/20 text-white font-bold py-2 px-6 rounded-full transition-colors">إلغاء</button>
                 </div>
             </div>

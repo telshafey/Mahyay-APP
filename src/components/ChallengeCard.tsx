@@ -36,7 +36,9 @@ const ChallengeCard: React.FC<{ challenge: UserChallenge }> = ({ challenge }) =>
              )}
              {challenge.status === 'available' && (
                  <div className="mt-4 text-center">
-                    <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full transition-colors">
+                    <button 
+                        onClick={() => alert('ميزة بدء التحديات قيد التطوير!')}
+                        className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full transition-colors">
                         ابدأ التحدي
                     </button>
                  </div>

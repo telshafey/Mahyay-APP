@@ -1,4 +1,3 @@
-
 import React, { useContext, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppContext } from '../contexts/AppContext.ts';
@@ -11,32 +10,58 @@ const CommunityHubPage: React.FC = () => {
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const [isAddFriendModalOpen, setAddFriendModalOpen] = useState(false);
 
-    if (!context) return <div className="text-center text-white p-8">جاري تحميل المجتمع...</div>;
+    if (context?.isCommunityLoading) {
+      return <div className="text-center text-white p-8">جاري تحميل المجتمع...</div>;
+    }
 
-    const { groups, invitations, respondToInvitation, friends } = context;
+    if (!context) return <div className="text-center text-white p-8">حدث خطأ أثناء تحميل بيانات المجتمع.</div>;
+
+    const { groups, invitations, respondToInvitation, friends, friendRequests, respondToFriendRequest } = context;
+
+    const ActionableCard: React.FC<{title: string, children: React.ReactNode, count: number}> = ({title, children, count}) => {
+        if(count === 0) return null;
+        return (
+             <GlassCard className="!bg-yellow-400/20 !border-yellow-300/30 animate-fade-in">
+                <h3 className="text-xl font-semibold text-white mb-3">{title} ({count})</h3>
+                <div className="space-y-3">
+                    {children}
+                </div>
+            </GlassCard>
+        )
+    }
 
     return (
         <div className="space-y-6">
             <h2 className="text-3xl font-bold text-white text-center font-amiri">🤝 مجتمع مَحيّاي</h2>
 
-            {invitations.filter(inv => inv.status === 'pending').length > 0 && (
-                <GlassCard className="!bg-yellow-400/20 !border-yellow-300/30">
-                    <h3 className="text-xl font-semibold text-white mb-3">دعوات معلقة</h3>
-                    <div className="space-y-3">
-                        {invitations.filter(inv => inv.status === 'pending').map(inv => (
-                            <div key={inv.id} className="p-3 bg-black/20 rounded-lg text-white">
-                                <p className="mb-2">
-                                    <span className="font-bold">{inv.fromUser.name}</span> دعاك للانضمام إلى مجموعة <span className="font-bold">"{inv.groupName}"</span>.
-                                </p>
-                                <div className="flex gap-3">
-                                    <button onClick={() => respondToInvitation(inv.id, 'accepted')} className="bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-1 rounded-full text-sm">قبول</button>
-                                    <button onClick={() => respondToInvitation(inv.id, 'declined')} className="bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-1 rounded-full text-sm">رفض</button>
-                                </div>
-                            </div>
-                        ))}
+            <ActionableCard title="طلبات الصداقة" count={friendRequests.length}>
+                {friendRequests.map(req => (
+                    <div key={req.id} className="p-3 bg-black/20 rounded-lg text-white flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                             <img src={req.picture || `https://i.pravatar.cc/150?u=${req.id}`} alt={req.name} className="w-10 h-10 rounded-full" />
+                            <p><span className="font-bold">{req.name}</span> يريد إضافتك كصديق.</p>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => respondToFriendRequest(req.id, 'accepted')} className="bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-1 rounded-full text-sm">قبول</button>
+                            <button onClick={() => respondToFriendRequest(req.id, 'declined')} className="bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-1 rounded-full text-sm">رفض</button>
+                        </div>
                     </div>
-                </GlassCard>
-            )}
+                ))}
+            </ActionableCard>
+            
+            <ActionableCard title="دعوات المجموعات" count={invitations.length}>
+                {invitations.map(inv => (
+                    <div key={inv.id} className="p-3 bg-black/20 rounded-lg text-white">
+                        <p className="mb-2">
+                            <span className="font-bold">{inv.inviter_name}</span> دعاك للانضمام إلى مجموعة <span className="font-bold">"{inv.group_name}"</span>.
+                        </p>
+                        <div className="flex gap-3">
+                            <button onClick={() => respondToInvitation(inv.id, 'accepted')} className="bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-1 rounded-full text-sm">قبول</button>
+                            <button onClick={() => respondToInvitation(inv.id, 'declined')} className="bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-1 rounded-full text-sm">رفض</button>
+                        </div>
+                    </div>
+                ))}
+            </ActionableCard>
 
             <GlassCard>
                 <div className="flex justify-between items-center mb-3">
@@ -77,7 +102,7 @@ const CommunityHubPage: React.FC = () => {
                     <div className="flex flex-wrap gap-4">
                         {friends.map(friend => (
                              <div key={friend.id} className="flex flex-col items-center gap-1">
-                                <img src={friend.picture} alt={friend.name} className="w-12 h-12 rounded-full border-2 border-white/30" />
+                                <img src={friend.picture || `https://i.pravatar.cc/150?u=${friend.id}`} alt={friend.name} className="w-12 h-12 rounded-full border-2 border-white/30" />
                                 <span className="text-xs text-white/80">{friend.name.split(' ')[0]}</span>
                             </div>
                         ))}

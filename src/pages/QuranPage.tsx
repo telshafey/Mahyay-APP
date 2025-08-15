@@ -1,7 +1,8 @@
-
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../contexts/AppContext.ts';
 import GlassCard from '../components/GlassCard.tsx';
+import { getVerseReflection } from '../services/geminiService.ts';
+import { REFLECTION_VERSES } from '../constants.ts';
 
 const QuranPage: React.FC = () => {
     const context = useContext(AppContext);
@@ -10,8 +11,33 @@ const QuranPage: React.FC = () => {
 
     const read = dailyData.quranRead || 0;
     const goal = settings.quranGoal || 10;
-    const progress = Math.min((read / goal) * 100, 100);
+    const progress = goal > 0 ? Math.min((read / goal) * 100, 100) : 0;
     const khatmat = dailyData.quranKhatmat || 0;
+
+    const [reflectionVerse, setReflectionVerse] = useState<{ text: string; source: string; } | null>(null);
+    const [reflectionText, setReflectionText] = useState<string | null>(null);
+    const [isReflectionLoading, setIsReflectionLoading] = useState(false);
+
+    useEffect(() => {
+        if (progress >= 100 && !reflectionVerse) {
+            const randomIndex = Math.floor(Math.random() * REFLECTION_VERSES.length);
+            setReflectionVerse(REFLECTION_VERSES[randomIndex]);
+            setReflectionText(null); 
+        } else if (progress < 100 && reflectionVerse) {
+            setReflectionVerse(null);
+            setReflectionText(null);
+        }
+    }, [progress, reflectionVerse]);
+
+    const handleGetReflection = async () => {
+        if (!reflectionVerse) return;
+        setIsReflectionLoading(true);
+        setReflectionText(null);
+        const reflection = await getVerseReflection(reflectionVerse.text);
+        setReflectionText(reflection);
+        setIsReflectionLoading(false);
+    };
+
 
     const motivationalMessages = {
         0: 'ابدأ رحلتك مع القرآن الكريم اليوم، فكل حرف بحسنة.',
@@ -80,6 +106,41 @@ const QuranPage: React.FC = () => {
                      <p className="text-sm text-white/70 mt-2">رواه الترمذي</p>
                 </div>
             </GlassCard>
+
+            {reflectionVerse && (
+            <GlassCard className="animate-fade-in !bg-gradient-to-br from-indigo-500/10 to-purple-500/20 !border-purple-400/50">
+                <h3 className="text-xl font-bold text-center mb-4 text-purple-300">✨ تأملات روحية</h3>
+                <div className="text-center mb-6 p-4 bg-black/20 rounded-lg border-r-4 border-purple-400">
+                    <p className="font-amiri text-xl md:text-2xl text-white">"{reflectionVerse.text}"</p>
+                    <p className="text-sm text-purple-300 mt-2">{reflectionVerse.source}</p>
+                </div>
+                
+                {!reflectionText && (
+                    <div className="text-center">
+                        <button 
+                            onClick={handleGetReflection} 
+                            disabled={isReflectionLoading}
+                            className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-full transition-colors disabled:opacity-50"
+                        >
+                            {isReflectionLoading ? 'جاري التفكر...' : '💡 تدبّر الآية مع Gemini'}
+                        </button>
+                    </div>
+                )}
+
+                {reflectionText && (
+                    <div className="p-4 bg-black/20 rounded-lg text-center animate-fade-in space-y-4">
+                        <p className="text-white/90 leading-relaxed font-amiri text-lg">{reflectionText}</p>
+                        <button 
+                            onClick={handleGetReflection}
+                            disabled={isReflectionLoading} 
+                            className="text-sm bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-4 rounded-full transition-colors"
+                        >
+                            {isReflectionLoading ? '...' : '🔄 إعادة التأمل'}
+                        </button>
+                    </div>
+                )}
+            </GlassCard>
+        )}
 
         </div>
     );

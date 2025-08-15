@@ -1,10 +1,23 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppContext } from '../contexts/AppContext.ts';
 import { PRAYERS, AZKAR_TYPES, CHALLENGES } from '../constants.ts';
 import type { PrayerStatus, UserChallenge } from '../types.ts';
 import GlassCard from '../components/GlassCard.tsx';
 import ChallengeCard from '../components/ChallengeCard.tsx';
+
+const LocationBanner: React.FC<{ message: string }> = ({ message }) => {
+    const [isVisible, setIsVisible] = useState(true);
+    if (!isVisible) return null;
+    return (
+        <GlassCard className="!bg-red-900/50 !border-red-400/50 flex items-center justify-between gap-4">
+            <p className="text-white text-sm">
+                <span className="font-bold">⚠️ تنبيه:</span> {message}
+            </p>
+            <button onClick={() => setIsVisible(false)} className="text-white font-bold text-xl">&times;</button>
+        </GlassCard>
+    );
+}
 
 const SectionHeader: React.FC<{ title: string; linkTo: string; }> = ({ title, linkTo }) => (
     <div className="flex justify-between items-center mb-4">
@@ -109,7 +122,7 @@ const HomePage: React.FC = () => {
 
   if (!context) return <div>Loading...</div>;
 
-  const { dailyData, nextPrayer, stats, prayerTimes } = context;
+  const { dailyData, nextPrayer, stats, prayerTimes, locationError } = context;
   
   const todayPrayers = Object.values(dailyData.prayerData).filter((p: PrayerStatus) => p.fard !== 'not_prayed' && p.fard !== 'missed').length;
   const todayAzkar = Object.values(dailyData.azkarStatus).filter(s => s === true).length;
@@ -126,6 +139,8 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="space-y-8">
+        {locationError && <LocationBanner message={locationError} />}
+
         <VerseCard />
 
         <section>
