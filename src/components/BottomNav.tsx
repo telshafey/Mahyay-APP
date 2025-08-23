@@ -1,10 +1,12 @@
 
+
 import React, { useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext.tsx';
 
 const BottomNav: React.FC = () => {
     const authContext = useContext(AuthContext);
+    const isGuest = authContext?.user?.id === 'guest';
 
     let navItems = [
         { path: '/', icon: '🏠', label: 'الرئيسية' },
@@ -14,8 +16,8 @@ const BottomNav: React.FC = () => {
         { path: '/community', icon: '🤝', label: 'المجتمع' }
     ];
 
-    // Hide community tab for guests (users without an email are considered guests)
-    if (authContext?.user && !authContext.user.email) {
+    // Hide community tab for guests
+    if (isGuest) {
         navItems = navItems.filter(item => item.path !== '/community');
     }
     

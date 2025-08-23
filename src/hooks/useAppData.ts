@@ -37,6 +37,7 @@ const defaultSettings: Settings = {
 export const useAppData = () => {
   const authContext = useContext(AuthContext);
   const user = authContext?.user;
+  const isGuest = user?.id === 'guest';
 
   const [appData, setAppData] = useState<AppData>({});
   const [settings, setSettings] = useState<Settings>(defaultSettings);
@@ -73,7 +74,7 @@ export const useAppData = () => {
 
 
   const loadEssentialData = useCallback(async () => {
-    if (!user) {
+    if (!user || isGuest) {
         setIsDataLoading(false);
         return;
     }
@@ -104,10 +105,10 @@ export const useAppData = () => {
     } finally {
         setIsDataLoading(false);
     }
-  }, [user]);
+  }, [user, isGuest]);
 
   const loadCommunityData = useCallback(async () => {
-    if (!user) {
+    if (!user || isGuest) {
         setIsCommunityLoading(false);
         return;
     }
@@ -141,7 +142,7 @@ export const useAppData = () => {
     } finally {
         setIsCommunityLoading(false);
     }
-  }, [user]);
+  }, [user, isGuest]);
 
   useEffect(() => {
     loadEssentialData();
@@ -154,8 +155,6 @@ export const useAppData = () => {
 
 
   const saveData = useCallback(async (newDailyData: Partial<DailyData>) => {
-    if (!user) return;
-
     const newAppData = {
         ...appData,
         [todayKey]: {
@@ -164,6 +163,8 @@ export const useAppData = () => {
         }
     };
     setAppData(newAppData);
+
+    if (!user || isGuest) return;
 
     const upsertData: Database['public']['Tables']['user_data']['Insert'] = {
       user_id: user.id,
@@ -176,14 +177,14 @@ export const useAppData = () => {
     if (error) {
         console.error("Error saving app data:", error);
     }
-  }, [user, appData, todayKey]);
+  }, [user, appData, todayKey, isGuest]);
 
   const updateSettings = useCallback(async (newSettings: Partial<Settings>) => {
-    if(!user) return;
-    
     const updatedSettings = { ...settings, ...newSettings };
     setSettings(updatedSettings);
 
+    if(!user || isGuest) return;
+    
     const upsertSettings: Database['public']['Tables']['user_data']['Insert'] = {
       user_id: user.id,
       settings: updatedSettings as unknown as Json,
@@ -195,10 +196,13 @@ export const useAppData = () => {
     if (error) {
         console.error("Error saving settings:", error);
     }
-  }, [user, settings]);
+  }, [user, settings, isGuest]);
 
   const resetAllData = async () => {
-      if(!user) return;
+      if(!user || isGuest) {
+          alert("لا يمكن إعادة تعيين البيانات في وضع الضيف.");
+          return;
+      }
       if (!window.confirm("⚠️ تحذير! هل أنت متأكد من أنك تريد مسح جميع بياناتك؟ لا يمكن التراجع عن هذا الإجراء.")) return;
 
       const resetPayload: Database['public']['Tables']['user_data']['Insert'] = {
@@ -331,39 +335,31 @@ export const useAppData = () => {
             lon: position.coords.longitude,
           });
         },
-        (error: unknown) => {
-            console.error("Geolocation error:", error);
-            let errorMessage = "حدث خطأ غير متوقع أثناء محاولة تحديد موقعك.";
-
-            if (error && typeof error === 'object' && 'code' in error) {
-                const geoError = error as GeolocationPositionError;
-                switch (geoError.code) {
-                    case 1:
-                        errorMessage = "لقد رفضت الإذن بالوصول إلى الموقع. للحصول على أوقات دقيقة، يرجى تفعيل الإذن من إعدادات المتصفح.";
-                        break;
-                    case 2:
-                        errorMessage = "معلومات الموقع غير متاحة حاليًا. حاول مرة أخرى.";
-                        break;
-                    case 3:
-                        errorMessage = "انتهت مهلة طلب الموقع. حاول مرة أخرى.";
-                        break;
-                    default:
-                        if ('message' in geoError && typeof geoError.message === 'string' && geoError.message) {
-                            errorMessage = geoError.message;
-                        } else {
-                            errorMessage = "حدث خطأ غير معروف.";
-                        }
-                        break;
-                }
-            } else if (error instanceof Error) {
-                errorMessage = error.message;
-            } else if (typeof error === 'string' && error) {
-                errorMessage = error;
+        (error: GeolocationPositionError) => {
+            console.error("Geolocation error object:", error);
+            let errorMessage: string;
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = "لقد رفضت الإذن بالوصول إلى الموقع. للحصول على أوقات دقيقة، يرجى تفعيل الإذن من إعدادات المتصفح وإعادة تحميل الصفحة.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = "معلومات الموقع غير متاحة حاليًا. يرجى التأكد من تشغيل خدمات الموقع (GPS) والمحاولة مرة أخرى.";
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = "انتهت مهلة طلب الموقع. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+                    break;
+                default:
+                    errorMessage = `حدث خطأ غير متوقع: ${error.message}`;
+                    break;
             }
-            
             const finalMessage = `لم نتمكن من تحديد موقعك. ${errorMessage} سيتم الآن عرض مواقيت الصلاة للقاهرة.`;
             setLocationError(finalMessage);
             setCoordinates(null);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000, // 15 seconds
+          maximumAge: 60000 // Accept a cached position up to 1 minute old
         }
       );
     } else {
@@ -592,7 +588,7 @@ export const useAppData = () => {
   // --- COMMUNITY FEATURES ---
   
   const addFriend = async (friendId: string) => {
-    if(!user) return;
+    if(!user || isGuest) return;
     const currentUserId = user.id;
     const [user_id_1, user_id_2] = [currentUserId, friendId].sort();
 
@@ -614,7 +610,7 @@ export const useAppData = () => {
   };
 
   const respondToFriendRequest = async (friendId: string, response: 'accepted' | 'declined') => {
-    if (!user) return;
+    if (!user || isGuest) return;
     const currentUserId = user.id;
     const [user_id_1, user_id_2] = [currentUserId, friendId].sort();
 
@@ -643,7 +639,7 @@ export const useAppData = () => {
   };
 
   const createGroup = async (name: string, type: GroupType, memberIds: string[]) => {
-      if(!user) return;
+      if(!user || isGuest) return;
       
       const newGroup: Database['public']['Tables']['groups']['Insert'] = {
         name,
@@ -693,7 +689,7 @@ export const useAppData = () => {
   };
   
   const respondToInvitation = async (invitationId: string, response: 'accepted' | 'declined') => {
-      if(!user) return;
+      if(!user || isGuest) return;
       const invitation = invitations.find(inv => inv.id === invitationId);
       if(!invitation) return;
 
@@ -728,7 +724,7 @@ export const useAppData = () => {
   };
   
   const updateSharingSettings = async (groupId: string, newSettings: GroupSharingSettings) => {
-      if(!user) return;
+      if(!user || isGuest) return;
       const settingsUpdate: Database['public']['Tables']['group_members']['Update'] = {
         sharing_settings: newSettings as unknown as Json,
       };
@@ -749,6 +745,7 @@ export const useAppData = () => {
   };
   
   const getGroupFeed = async (group: Group): Promise<GroupActivity[]> => {
+      if(isGuest) return [];
       const { data, error } = await supabase
         .from('group_activity')
         .select(`id, message, icon, created_at, user:profiles (id, name, picture)`)
@@ -772,6 +769,7 @@ export const useAppData = () => {
   };
 
   const getSharedUserData = async (userId: string, groupId: string): Promise<AppData | null> => {
+    if(isGuest) return null;
     const { data, error } = await supabase.rpc('get_shared_user_data', {
       target_user_id: userId,
       group_id_context: groupId
@@ -784,12 +782,14 @@ export const useAppData = () => {
   };
 
   const getGroupMemberStats = async (userId: string, groupId: string): Promise<UserStats | null> => {
+    if(isGuest) return null;
     const memberAppData = await getSharedUserData(userId, groupId);
     if (!memberAppData) return null; // User has disabled sharing
     return calculateStats(memberAppData);
   };
 
   const getGroupMemberChallenges = async (userId: string, groupId: string): Promise<UserChallenge[] | null> => {
+    if(isGuest) return null;
     const memberAppData = await getSharedUserData(userId, groupId);
     if (!memberAppData) return null; // User has disabled sharing
     return calculateUserChallenges(memberAppData);

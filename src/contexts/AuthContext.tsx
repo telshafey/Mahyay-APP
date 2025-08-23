@@ -98,6 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             options: {
                 data: {
                     full_name: name,
+                    avatar_url: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(name)}`,
                 }
             }
         });
@@ -125,6 +126,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             throw error;
         }
+    };
+    
+    const signInAsGuest = () => {
+        const guestUser = {
+            id: 'guest',
+            app_metadata: { provider: 'guest' },
+            user_metadata: {
+                name: 'ضيف',
+                picture: `https://api.dicebear.com/8.x/initials/svg?seed=ضيف`,
+            },
+            aud: 'authenticated',
+            created_at: new Date().toISOString(),
+            email: '',
+        } as unknown as SupabaseUser;
+
+        const guestProfile: UserProfile = {
+            id: 'guest',
+            name: 'ضيف',
+            email: '',
+            picture: `https://api.dicebear.com/8.x/initials/svg?seed=ضيف`,
+        };
+        
+        setUser(guestUser);
+        setProfile(guestProfile);
+        setIsAdmin(false);
+        setIsLoading(false);
     };
 
     const logout = async () => {
@@ -165,24 +192,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!user || !profile) {
             throw new Error("يجب أن تكون مسجلاً للدخول لتحديث صورتك.");
         }
+
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
+        if (!fileExtension || !['png', 'jpg', 'jpeg', 'webp'].includes(fileExtension)) {
+            throw new Error("يرجى اختيار ملف صورة صالح (png, jpg, jpeg, webp).");
+        }
         
-        const fileExtension = file.name.split('.').pop();
-        // The filePath MUST start with the user's ID to comply with standard RLS policies.
-        // Removed the incorrect 'public/' prefix which was causing the RLS error.
         const filePath = `${user.id}/avatar.${fileExtension}`;
 
         const { error: uploadError } = await supabase.storage
             .from('avatars')
             .upload(filePath, file, {
-                upsert: true, // This will overwrite the file if it already exists
+                upsert: true,
             });
 
         if (uploadError) {
-            console.error('Error uploading avatar:', uploadError);
-            if (uploadError.message.toLowerCase().includes('security policy')) {
-                throw new Error("فشل رفع الصورة بسبب سياسات الأمان. يرجى التأكد من إعداد صلاحيات مخزن 'avatars' بشكل صحيح في لوحة تحكم Supabase للسماح للمستخدمين بالرفع في مجلداتهم الخاصة.");
+            console.error('Error uploading avatar:', JSON.stringify(uploadError, null, 2));
+            if (uploadError.message.includes('syntax error')) {
+                 throw new Error("فشل رفع الصورة بسبب خطأ في إعدادات قاعدة البيانات. يرجى التواصل مع الدعم الفني وتزويدهم بالخطأ: 'Storage RLS syntax error'.");
             }
-            throw new Error("حدث خطأ أثناء رفع الصورة. تأكد من أن حجم الصورة أقل من 5 ميجابايت.");
+            if (uploadError.message.includes('policy') || uploadError.message.includes('RLS')) {
+                throw new Error("فشل رفع الصورة بسبب سياسات الأمان. هذا يعني أن إعدادات الصلاحيات في قاعدة البيانات غير صحيحة. يرجى التأكد من تشغيل أحدث نص برمجي SQL لإصلاحها.");
+            }
+            throw new Error("حدث خطأ غير متوقع أثناء رفع الصورة.");
         }
 
         const { data } = supabase.storage
@@ -212,6 +244,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase.auth.signOut();
         alert("تم حذف الحساب وجميع البيانات بنجاح.");
     };
+    
+    const sendPasswordResetEmail = async (email: string) => {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin, // Redirect to the app's base URL
+        });
+        if (error) {
+            console.error('Error sending password reset email:', error);
+            throw new Error("حدث خطأ أثناء إرسال رابط إعادة التعيين.");
+        }
+    };
+
 
     return (
         <AuthContext.Provider value={{
@@ -223,9 +266,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             signInWithGoogle,
             signUpWithEmail,
             signInWithEmail,
+            signInAsGuest,
             updateUserProfile,
             updateUserProfilePicture,
-            deleteAccount
+            deleteAccount,
+            sendPasswordResetEmail
         }}>
             {children}
         </AuthContext.Provider>

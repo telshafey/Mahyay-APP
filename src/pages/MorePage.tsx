@@ -348,11 +348,12 @@ const SettingsPage: React.FC = () => {
     }
     
     const { settings, updateSettings, resetAllData, coordinates, locationError, detectLocation } = context;
-    const { profile, updateUserProfile, deleteAccount, updateUserProfilePicture } = authContext;
+    const { profile, updateUserProfile, deleteAccount, updateUserProfilePicture, logout } = authContext;
 
     const [userName, setUserName] = useState(profile?.name || '');
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const isGuest = authContext?.user?.id === 'guest';
 
     useEffect(() => {
       if (profile?.name) {
@@ -395,6 +396,23 @@ const SettingsPage: React.FC = () => {
             }
         }
     };
+    
+    if (isGuest) {
+        return (
+            <GlassCard className="text-center text-white p-6 space-y-4">
+                <h3 className="text-xl font-bold">👤 وضع الضيف</h3>
+                <p>
+                    للوصول إلى الإعدادات وحفظ بياناتك وتخصيص تجربتك، يرجى إنشاء حساب جديد أو تسجيل الدخول.
+                </p>
+                <button 
+                    onClick={() => logout()}
+                    className="w-full max-w-xs mx-auto bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors"
+                >
+                    تسجيل الدخول / إنشاء حساب
+                </button>
+            </GlassCard>
+        )
+    }
 
     return (
         <div className="space-y-6 text-white">

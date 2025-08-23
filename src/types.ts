@@ -18,9 +18,11 @@ export interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signUpWithEmail: (name: string, email: string, password: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
+  signInAsGuest: () => void;
   updateUserProfile: (name: string, picture?: string) => Promise<void>;
   updateUserProfilePicture: (file: File) => Promise<void>;
   deleteAccount: () => Promise<void>;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
 }
 
 export interface SunnahInfo {
