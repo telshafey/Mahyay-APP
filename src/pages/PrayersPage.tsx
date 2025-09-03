@@ -1,4 +1,5 @@
 
+
 import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../contexts/AppContext.ts';
 import { PRAYERS, ADDITIONAL_PRAYERS } from '../constants.ts';
@@ -34,7 +35,7 @@ const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
     return (
         <div className="text-white text-center space-y-6">
             <h3 className="text-4xl font-amiri">{prayer.emoji} {prayer.name}</h3>
-            <p className="text-2xl font-semibold opacity-90">{prayerTimeStr || '...'}</p>
+            <p className="text-2xl font-semibold">{prayerTimeStr || '...'}</p>
             
             {!isTimeActive && (
                 <div className="p-3 bg-yellow-900/50 border border-yellow-400/50 rounded-lg text-yellow-300 font-semibold">
@@ -57,28 +58,28 @@ const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-right">
                 {prayer.sunnahBefore && (
-                    <GlassCard className={`!bg-black/10 transition-opacity ${!isTimeActive ? 'opacity-50' : ''}`}>
+                    <GlassCard className={`!bg-black/20 transition-opacity ${!isTimeActive ? 'opacity-50' : ''}`}>
                         <label className={`flex items-center justify-between ${isTimeActive ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                             <span className="font-semibold">سنة قبلية ({prayer.sunnahBefore.count} ركعات)</span>
                              <input type="checkbox" checked={status.sunnahBefore} onChange={() => updateSunnahStatus(prayer.name, 'sunnahBefore')} disabled={!isTimeActive} className="w-5 h-5 rounded accent-yellow-400 disabled:cursor-not-allowed"/>
                         </label>
-                        <p className="text-xs text-white/70 mt-2 font-amiri pr-2 border-r-2 border-yellow-400/50">{prayer.sunnahBefore.evidence}</p>
+                        <p className="text-xs text-white mt-2 font-amiri pr-2 border-r-2 border-yellow-400/50">{prayer.sunnahBefore.evidence}</p>
                     </GlassCard>
                 )}
                  {prayer.sunnahAfter && (
-                    <GlassCard className={`!bg-black/10 transition-opacity ${!isTimeActive ? 'opacity-50' : ''}`}>
+                    <GlassCard className={`!bg-black/20 transition-opacity ${!isTimeActive ? 'opacity-50' : ''}`}>
                         <label className={`flex items-center justify-between ${isTimeActive ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                             <span className="font-semibold">سنة بعدية ({prayer.sunnahAfter.count} ركعات)</span>
                              <input type="checkbox" checked={status.sunnahAfter} onChange={() => updateSunnahStatus(prayer.name, 'sunnahAfter')} disabled={!isTimeActive} className="w-5 h-5 rounded accent-yellow-400 disabled:cursor-not-allowed"/>
                         </label>
-                        <p className="text-xs text-white/70 mt-2 font-amiri pr-2 border-r-2 border-yellow-400/50">{prayer.sunnahAfter.evidence}</p>
+                        <p className="text-xs text-white mt-2 font-amiri pr-2 border-r-2 border-yellow-400/50">{prayer.sunnahAfter.evidence}</p>
                     </GlassCard>
                 )}
             </div>
 
-             <GlassCard className="!bg-black/10 text-right">
+             <GlassCard className="!bg-black/20 text-right">
                 <h4 className="font-semibold mb-2 text-yellow-300">✨ فضل الصلاة</h4>
-                <p className="font-amiri text-sm leading-relaxed text-white/90">{prayer.virtue}</p>
+                <p className="font-amiri text-sm leading-relaxed text-white">{prayer.virtue}</p>
             </GlassCard>
         </div>
     );
@@ -93,7 +94,7 @@ const NawafilCard: React.FC<{ nawafil: Nawafil }> = ({ nawafil }) => {
     const status: NawafilStatus = dailyData.nawafilData[nawafil.name] || {};
 
     return(
-        <GlassCard className="!bg-gradient-to-br from-purple-500/10 to-blue-500/10">
+        <GlassCard className="!bg-black/30">
             <h3 className="text-xl font-bold text-white text-center mb-4">{nawafil.emoji} {nawafil.name}</h3>
             {nawafil.isCustom ? (
                 <div className="text-center">
@@ -103,14 +104,14 @@ const NawafilCard: React.FC<{ nawafil: Nawafil }> = ({ nawafil }) => {
                         <span className="text-2xl font-bold text-white w-16 text-center">{status.count || 0}</span>
                         <button onClick={() => updateQiyamCount(nawafil.name, 2)} className="w-10 h-10 rounded-full bg-white/10 text-white text-xl font-bold hover:bg-white/20">+</button>
                     </div>
-                     <p className="font-amiri text-xs text-white/70 mt-4">{nawafil.evidence}</p>
+                     <p className="font-amiri text-xs text-white mt-4">{nawafil.evidence}</p>
                 </div>
             ) : (
                 <div className="space-y-3">
                     {nawafil.options?.map((opt, index) => (
                         <div key={index} onClick={() => updateNawafilOption(nawafil.name, index)} className={`p-3 rounded-lg cursor-pointer transition-all ${status.selectedOption === index ? 'bg-yellow-400/30 border border-yellow-300' : 'bg-white/5 hover:bg-white/10'}`}>
                             <p className="font-semibold text-white">{opt.count} ركعات</p>
-                            <p className="font-amiri text-xs text-white/70">{opt.evidence}</p>
+                            <p className="font-amiri text-xs text-white">{opt.evidence}</p>
                         </div>
                     ))}
                 </div>

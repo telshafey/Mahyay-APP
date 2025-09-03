@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
-// Fix: Corrected react-router-dom import to use namespace import to resolve module export errors.
-import * as ReactRouterDOM from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { AppContext } from '../contexts/AppContext.ts';
 import { AuthContext } from '../contexts/AuthContext.tsx';
 
@@ -46,10 +45,15 @@ const Header: React.FC = () => {
                            <div className="p-4 border-b border-gray-200">
                              <p className="font-bold">{authContext?.profile?.name}</p>
                            </div>
-                           <ReactRouterDOM.NavLink to="/more/stats" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>📊</span><span>الإحصائيات والتحديات</span></ReactRouterDOM.NavLink>
-                           <ReactRouterDOM.NavLink to="/more/about" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>ℹ️</span><span>عن التطبيق</span></ReactRouterDOM.NavLink>
-                           <ReactRouterDOM.NavLink to="/more/support" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>🆘</span><span>الدعم والأسئلة</span></ReactRouterDOM.NavLink>
-                           <ReactRouterDOM.NavLink to="/more/settings" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>⚙️</span><span>الإعدادات</span></ReactRouterDOM.NavLink>
+                           {authContext?.profile?.role === 'admin' && (
+                               <NavLink to="/admin" className="flex items-center gap-3 px-4 py-3 font-bold bg-yellow-100/50 hover:bg-yellow-200/50 transition-colors" onClick={() => setDropdownOpen(false)}>
+                                   <span>👑</span><span>لوحة التحكم</span>
+                               </NavLink>
+                           )}
+                           <NavLink to="/more/stats" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>📊</span><span>الإحصائيات والتحديات</span></NavLink>
+                           <NavLink to="/more/about" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>ℹ️</span><span>عن التطبيق</span></NavLink>
+                           <NavLink to="/more/support" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>🆘</span><span>الدعم والأسئلة</span></NavLink>
+                           <NavLink to="/more/settings" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>⚙️</span><span>الإعدادات</span></NavLink>
                         </div>
                     )}
                  </div>
@@ -69,7 +73,7 @@ const Header: React.FC = () => {
             <div className="flex items-center justify-end w-1/3 text-right">
                 <div>
                     <p className="font-amiri font-semibold text-sm md:text-base text-[#d4af37]">{appContext?.hijriDate}</p>
-                    <p className="text-xs opacity-80">{appContext?.gregorianDate}</p>
+                    <p className="text-xs opacity-90">{appContext?.gregorianDate}</p>
                 </div>
             </div>
         </header>

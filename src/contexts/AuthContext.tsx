@@ -5,10 +5,11 @@ const PROFILE_KEY = 'mahyay_userProfile';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
-const getDefaultProfile = (name = 'زائر'): UserProfile => ({
+const getDefaultProfile = (name = 'مشرف'): UserProfile => ({
     id: 'localUser',
     name: name,
-    picture: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(name)}`
+    picture: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=d4af37`,
+    role: 'admin'
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -19,7 +20,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             const storedProfile = localStorage.getItem(PROFILE_KEY);
             if (storedProfile) {
-                setProfile(JSON.parse(storedProfile));
+                const parsedProfile = JSON.parse(storedProfile);
+                // Ensure role is set for older profiles
+                if (!parsedProfile.role) {
+                    parsedProfile.role = 'admin';
+                }
+                setProfile(parsedProfile);
             } else {
                 const defaultProfile = getDefaultProfile();
                 setProfile(defaultProfile);

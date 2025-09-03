@@ -57,7 +57,7 @@ const QuranPage: React.FC = () => {
 
     return (
         <div className="space-y-6 text-white">
-            <GlassCard className="text-center !bg-gradient-to-br !from-yellow-400/10 !to-yellow-500/20">
+            <GlassCard className="text-center !bg-gradient-to-br !from-yellow-400/20 !to-yellow-500/30">
                  <p className="font-amiri text-2xl md:text-3xl leading-relaxed font-bold mb-2">"وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا"</p>
                  <p className="text-yellow-300 font-semibold">سورة المزمل - آية 4</p>
             </GlassCard>
@@ -65,9 +65,9 @@ const QuranPage: React.FC = () => {
             <GlassCard>
                 <h3 className="text-xl font-bold text-center mb-4">📖 قراءة اليوم</h3>
                 <div className="text-center mb-6">
-                    <p className="text-white/80">الهدف اليومي</p>
+                    <p className="text-white">الهدف اليومي</p>
                     <p className="text-4xl font-bold text-yellow-300">{goal}</p>
-                    <p className="text-white/80">صفحات</p>
+                    <p className="text-white">صفحات</p>
                 </div>
 
                 <div className="flex items-center justify-center gap-4 my-6">
@@ -81,7 +81,7 @@ const QuranPage: React.FC = () => {
                 </div>
                  <p className="text-center font-semibold text-yellow-300 mb-4">{Math.round(progress)}% من الهدف</p>
 
-                <div className="p-3 bg-black/20 rounded-lg text-center text-white/90 text-sm">
+                <div className="p-3 bg-black/20 rounded-lg text-center text-white text-sm">
                     {getMotivationalMessage()}
                 </div>
             </GlassCard>
@@ -91,7 +91,7 @@ const QuranPage: React.FC = () => {
                 <div className="flex items-center justify-around">
                      <div className="text-center">
                         <p className="text-4xl font-bold text-yellow-300">{khatmat}</p>
-                        <p className="text-white/80">ختمة مكتملة</p>
+                        <p className="text-white">ختمة مكتملة</p>
                     </div>
                     <button onClick={completeKhatma} className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full transition-colors">
                         🎉 ختمة جديدة
@@ -99,18 +99,18 @@ const QuranPage: React.FC = () => {
                 </div>
             </GlassCard>
 
-             <GlassCard className="!bg-black/10">
+             <GlassCard className="!bg-black/20">
                 <h3 className="text-xl font-bold text-center mb-4 text-yellow-300">✨ فضل قراءة القرآن</h3>
                 <div className="font-amiri text-center">
-                     <p className="text-lg text-white/90">"مَن قَرَأَ حَرْفًا مِن كِتَابِ اللَّهِ فَلَهُ بِهِ حَسَنَةٌ، وَالْحَسَنَةُ بِعَشْرِ أَمْثَالِهَا"</p>
-                     <p className="text-sm text-white/70 mt-2">رواه الترمذي</p>
+                     <p className="text-lg text-white">"مَن قَرَأَ حَرْفًا مِن كِتَابِ اللَّهِ فَلَهُ بِهِ حَسَنَةٌ، وَالْحَسَنَةُ بِعَشْرِ أَمْثَالِهَا"</p>
+                     <p className="text-sm text-white/90 mt-2">رواه الترمذي</p>
                 </div>
             </GlassCard>
 
             {reflectionVerse && (
-            <GlassCard className="animate-fade-in !bg-gradient-to-br from-indigo-500/10 to-purple-500/20 !border-purple-400/50">
+            <GlassCard className="animate-fade-in !bg-gradient-to-br from-indigo-500/20 to-purple-500/30 !border-purple-400/50">
                 <h3 className="text-xl font-bold text-center mb-4 text-purple-300">✨ تأملات روحية</h3>
-                <div className="text-center mb-6 p-4 bg-black/20 rounded-lg border-r-4 border-purple-400">
+                <div className="text-center mb-6 p-4 bg-black/25 rounded-lg border-r-4 border-purple-400">
                     <p className="font-amiri text-xl md:text-2xl text-white">"{reflectionVerse.text}"</p>
                     <p className="text-sm text-purple-300 mt-2">{reflectionVerse.source}</p>
                 </div>
@@ -129,7 +129,7 @@ const QuranPage: React.FC = () => {
 
                 {reflectionText && (
                     <div className="p-4 bg-black/20 rounded-lg text-center animate-fade-in space-y-4">
-                        <p className="text-white/90 leading-relaxed font-amiri text-lg">{reflectionText}</p>
+                        <p className="text-white leading-relaxed font-amiri text-lg">{reflectionText}</p>
                         <button 
                             onClick={handleGetReflection}
                             disabled={isReflectionLoading} 

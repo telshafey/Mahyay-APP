@@ -1,6 +1,7 @@
 
 import { GoogleGenAI } from "@google/genai";
 
+// Fix: Use `process.env.API_KEY` as per @google/genai coding guidelines. This resolves the error on `import.meta.env`.
 const API_KEY = process.env.API_KEY;
 
 if (!API_KEY) {

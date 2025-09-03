@@ -15,7 +15,7 @@ const ChallengeCard: React.FC<{ challenge: UserChallenge }> = ({ challenge }) =>
                         <span>{challenge.title}</span>
                         {isCompleted && <span className="text-yellow-400 text-lg">🏆</span>}
                     </h4>
-                    <p className={`text-sm opacity-80 ${isCompleted ? 'line-through' : ''}`}>{challenge.desc}</p>
+                    <p className={`text-sm opacity-90 ${isCompleted ? 'line-through' : ''}`}>{challenge.desc}</p>
                     <div className="mt-4">
                         <div className="flex justify-between items-center text-white text-sm mb-1">
                             <span>

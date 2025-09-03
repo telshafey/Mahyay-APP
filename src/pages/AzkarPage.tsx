@@ -20,7 +20,7 @@ const AzkarItemCard: React.FC<{
     const isCompleted = currentCount >= maxCount;
 
     return (
-        <GlassCard className={`transition-all duration-300 ${isCompleted ? '!bg-green-500/20 border-green-400/30' : 'bg-black/10'}`}>
+        <GlassCard className={`transition-all duration-300 ${isCompleted ? '!bg-green-500/20 border-green-400/30' : 'bg-black/20'}`}>
             <p className="font-amiri text-xl md:text-2xl leading-relaxed text-white mb-6 text-center">{item.text}</p>
             
             <div className="flex flex-col items-center justify-center gap-4">
@@ -31,11 +31,11 @@ const AzkarItemCard: React.FC<{
                 >
                     {isCompleted ? '✅ تم' : `اضغط للإتمام (${currentCount}/${maxCount})`}
                 </button>
-                <p className="text-white/80 font-semibold">{item.repeat}</p>
+                <p className="text-white font-semibold">{item.repeat}</p>
             </div>
 
             <div className="mt-4 pt-3 border-t border-white/10 text-center">
-                <p className="font-amiri text-sm text-white/70">
+                <p className="font-amiri text-sm text-white">
                     <span className="font-bold text-yellow-300">📖 الدليل:</span> {item.evidence}
                 </p>
             </div>
@@ -49,7 +49,7 @@ const AccordionItem: React.FC<{
 }> = ({ title, children }) => {
     const [isOpen, setIsOpen] = useState(false);
     return (
-        <div className="bg-black/20 rounded-lg overflow-hidden transition-all duration-300">
+        <div className="bg-black/30 rounded-lg overflow-hidden transition-all duration-300">
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full text-right p-4 flex justify-between items-center text-white"
@@ -60,7 +60,7 @@ const AccordionItem: React.FC<{
             <div
                 className={`transition-all duration-500 ease-in-out overflow-hidden ${isOpen ? 'max-h-screen' : 'max-h-0'}`}
             >
-                <div className="p-4 pt-0 text-white/90 space-y-3">
+                <div className="p-4 pt-0 text-white space-y-3">
                     {children}
                 </div>
             </div>
@@ -106,7 +106,7 @@ const AzkarPage: React.FC = () => {
                         <button
                             key={type.name}
                             onClick={() => setActiveTab(type)}
-                            className={`py-2 px-4 rounded-lg font-semibold transition-colors text-sm md:text-base ${activeTab.name === type.name ? 'bg-yellow-400/80 text-green-900' : 'text-white/70 hover:bg-white/10'}`}
+                            className={`py-2 px-4 rounded-lg font-semibold transition-colors text-sm md:text-base ${activeTab.name === type.name ? 'bg-yellow-400/80 text-green-900' : 'text-white/80 hover:bg-white/10'}`}
                         >
                             {type.emoji} {type.name}
                         </button>
@@ -135,7 +135,7 @@ const AzkarPage: React.FC = () => {
                     {MISCELLANEOUS_AZKAR.map(category => (
                         <AccordionItem key={category.title} title={category.title}>
                             {category.items.map((item, index) => (
-                                <div key={index} className="p-3 bg-black/20 rounded-lg border-r-4 border-yellow-400/50">
+                                <div key={index} className="p-3 bg-black/30 rounded-lg border-r-4 border-yellow-400/50">
                                     <p className="font-amiri text-lg mb-2">{item.text}</p>
                                     <p className="text-xs text-yellow-300">الدليل: {item.evidence}</p>
                                 </div>

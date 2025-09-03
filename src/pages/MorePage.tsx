@@ -1,6 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-// Fix: Corrected react-router-dom import to use namespace import to resolve module export errors.
-import * as ReactRouterDOM from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { MorePage as MorePageType, Settings } from '../types.ts';
 import { AppContext } from '../contexts/AppContext.ts';
 import { AuthContext } from '../contexts/AuthContext.tsx';
@@ -18,7 +17,7 @@ const SettingsCard: React.FC<{ title: string; icon: string; children: React.Reac
 );
 
 const StatCard: React.FC<{ icon: string; label: string; value: string | number; colorClass: string }> = ({ icon, label, value, colorClass }) => (
-    <GlassCard className={`!bg-opacity-20 ${colorClass}`}>
+    <GlassCard className={`!bg-opacity-25 ${colorClass}`}>
         <div className="flex items-center gap-4">
             <div className={`p-3 rounded-full bg-black/20 text-3xl`}>{icon}</div>
             <div>
@@ -54,7 +53,7 @@ const WeeklyPrayerChart: React.FC = () => {
                                 title={`${dayData.day}: ${dayData.count} صلوات`}
                             ></div>
                         </div>
-                        <span className="text-xs text-white/80 mt-2">{dayData.day}</span>
+                        <span className="text-xs font-medium text-white mt-2">{dayData.day}</span>
                     </div>
                 ))}
             </div>
@@ -116,7 +115,7 @@ const KhatmaProgressChart: React.FC = () => {
                 </div>
             </div>
              <p className="mt-4 text-white text-lg font-bold">{pagesReadInCurrent} / {QURAN_TOTAL_PAGES}</p>
-             <p className="text-sm text-white/80">صفحة</p>
+             <p className="text-sm text-white">صفحة</p>
         </GlassCard>
     );
 };
@@ -155,13 +154,13 @@ const StatsAndChallengesPage: React.FC = () => {
                 <div className="space-y-4">
                     <GlassCard className="!p-2">
                         <div className="flex justify-around items-center">
-                            <button onClick={() => setActiveTab('active')} className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${activeTab === 'active' ? 'bg-yellow-400/80 text-green-900' : 'text-white/70 hover:bg-white/10'}`}>
+                            <button onClick={() => setActiveTab('active')} className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${activeTab === 'active' ? 'bg-yellow-400/80 text-green-900' : 'text-white/80 hover:bg-white/10'}`}>
                                 نشطة
                             </button>
-                            <button onClick={() => setActiveTab('available')} className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${activeTab === 'available' ? 'bg-yellow-400/80 text-green-900' : 'text-white/70 hover:bg-white/10'}`}>
+                            <button onClick={() => setActiveTab('available')} className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${activeTab === 'available' ? 'bg-yellow-400/80 text-green-900' : 'text-white/80 hover:bg-white/10'}`}>
                                 متاحة
                             </button>
-                            <button onClick={() => setActiveTab('completed')} className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${activeTab === 'completed' ? 'bg-yellow-400/80 text-green-900' : 'text-white/70 hover:bg-white/10'}`}>
+                            <button onClick={() => setActiveTab('completed')} className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${activeTab === 'completed' ? 'bg-yellow-400/80 text-green-900' : 'text-white/80 hover:bg-white/10'}`}>
                                 مكتملة
                             </button>
                         </div>
@@ -170,7 +169,7 @@ const StatsAndChallengesPage: React.FC = () => {
                     {filteredChallenges.length > 0 ? (
                         filteredChallenges.map(c => <ChallengeCard key={c.id} challenge={c} />)
                     ) : (
-                        <GlassCard className="text-center text-white/70">
+                        <GlassCard className="text-center text-white/80">
                             لا توجد تحديات في هذا القسم حالياً.
                         </GlassCard>
                     )}
@@ -182,12 +181,12 @@ const StatsAndChallengesPage: React.FC = () => {
 
 
 const Section: React.FC<{ title: string; icon?: string; children: React.ReactNode; className?: string }> = ({ title, icon, children, className }) => (
-    <div className={`p-4 bg-black/10 rounded-lg ${className}`}>
+    <div className={`p-4 bg-black/20 rounded-lg ${className}`}>
         <h4 className="text-xl font-bold mb-3 text-yellow-300 flex items-center gap-2">
             {icon && <span className="text-2xl">{icon}</span>}
             <span>{title}</span>
         </h4>
-        <div className="text-white/90 leading-relaxed space-y-2">
+        <div className="text-white leading-relaxed space-y-2">
             {children}
         </div>
     </div>
@@ -208,8 +207,8 @@ const AboutPage: React.FC = () => {
         <GlassCard className="text-white !p-4 md:!p-6 space-y-6">
             <div className="text-center p-4 rounded-lg bg-gradient-to-br from-yellow-400/20 to-transparent">
                 <h3 className="font-amiri text-4xl font-bold bg-gradient-to-r from-white to-[#d4af37] bg-clip-text text-transparent">مَحيّاي</h3>
-                <p className="font-semibold text-lg mt-1 text-white/90">رفيقك الروحي اليومي</p>
-                <p className="mt-4 max-w-2xl mx-auto text-white/80">
+                <p className="font-semibold text-lg mt-1 text-white">رفيقك الروحي اليومي</p>
+                <p className="mt-4 max-w-2xl mx-auto text-white">
                     مَحيّاي هو تطبيق إسلامي شامل مطور بعناية فائقة ليكون رفيقك الروحي اليومي، يساعدك على تنظيم عباداتك وتقوية علاقتك بالله سبحانه وتعالى من خلال واجهة عربية جميلة وميزات متقدمة.
                 </p>
             </div>
@@ -243,7 +242,7 @@ const AboutPage: React.FC = () => {
                      <div className="text-center">
                         <p className="text-5xl">👨‍👧‍👦</p>
                         <p className="mt-2">إلى أغلى ما في الوجود <br/> <strong className="text-yellow-300">عمر وحبيبة</strong></p>
-                        <p className="text-xs mt-2 opacity-80">هذا التطبيق مُهدى إليكما بكل الحب والدعاء أن يكون في ميزان حسناتنا جميعاً</p>
+                        <p className="text-xs mt-2 text-white/90">هذا التطبيق مُهدى إليكما بكل الحب والدعاء أن يكون في ميزان حسناتنا جميعاً</p>
                      </div>
                  </Section>
                  <Section title="فريق العمل" icon="👥">
@@ -255,7 +254,7 @@ const AboutPage: React.FC = () => {
                  <div className="text-center">
                      <p>📧 للدعم والاستفسارات:</p>
                      <a href="mailto:support@tech-bokra.com" className="font-bold text-lg text-yellow-300 tracking-wider">support@tech-bokra.com</a>
-                     <p className="mt-2 text-sm opacity-80">نحن نقدر تواصلكم ونسعد بالرد على استفساراتكم واقتراحاتكم.</p>
+                     <p className="mt-2 text-sm text-white">نحن نقدر تواصلكم ونسعد بالرد على استفساراتكم واقتراحاتكم.</p>
                  </div>
             </Section>
         </GlassCard>
@@ -271,7 +270,7 @@ const FAQItem: React.FC<{q: string, a: string}> = ({q, a}) => {
                 <span className={`transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
             </button>
             {isOpen && (
-                <div className="p-4 pt-0 text-white/80">
+                <div className="p-4 pt-0 text-white">
                     <p>{a}</p>
                 </div>
             )}
@@ -392,14 +391,14 @@ const SettingsPage: React.FC = () => {
                      </div>
                     <form onSubmit={handleProfileUpdate} className="w-full max-w-sm space-y-4">
                         <div>
-                            <label htmlFor="username" className="text-sm opacity-80 sr-only">الاسم</label>
+                            <label htmlFor="username" className="text-sm sr-only">الاسم</label>
                             <input 
                                 id="username"
                                 type="text" 
                                 value={userName}
                                 onChange={(e) => setUserName(e.target.value)}
                                 placeholder={"اكتب اسمك"}
-                                className="w-full text-center text-xl font-bold bg-transparent border-0 focus:ring-0" 
+                                className="w-full text-center text-xl font-bold bg-white/10 rounded-md py-1 border border-transparent focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder:text-white/70" 
                             />
                         </div>
                         <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50" disabled={!profile || userName.trim() === profile?.name || !userName.trim()}>
@@ -412,10 +411,10 @@ const SettingsPage: React.FC = () => {
             <SettingsCard title="إعدادات الموقع" icon="📍">
                 <div className="text-center space-y-2">
                     {coordinates && !locationError && (
-                        <p className="text-green-300">✅ يتم استخدام موقعك الحالي لدقة المواقيت.</p>
+                        <p className="text-green-300 font-semibold">✅ يتم استخدام موقعك الحالي لدقة المواقيت.</p>
                     )}
                     {locationError && (
-                        <p className="text-yellow-300 text-sm">{locationError}</p>
+                        <p className="text-yellow-300 text-sm font-semibold">{locationError}</p>
                     )}
                     <button
                         onClick={detectLocation}
@@ -428,7 +427,7 @@ const SettingsPage: React.FC = () => {
             
             <SettingsCard title="إعدادات التطبيق" icon="📱">
                 <div className="flex items-center justify-between">
-                    <label>هدف القرآن اليومي (صفحات)</label>
+                    <label className="font-semibold">هدف القرآن اليومي (صفحات)</label>
                     <div className="flex items-center gap-2">
                         <button onClick={() => handleGoalChange(-1)} className="w-8 h-8 rounded-full bg-white/10 text-white font-bold hover:bg-white/20">-</button>
                         <span className="text-xl font-bold text-white w-8 text-center">{settings.quranGoal}</span>
@@ -453,7 +452,7 @@ const SettingsPage: React.FC = () => {
                 </div>
 
                 <div className="pt-4 border-t border-white/10">
-                    <p className="text-sm opacity-80 mb-2">تخصيص أوقات الأذكار</p>
+                    <p className="text-sm text-white/95 mb-2">تخصيص أوقات الأذكار</p>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label htmlFor="morning_azkar" className="text-sm font-semibold">بداية أذكار الصباح</label>
@@ -469,11 +468,11 @@ const SettingsPage: React.FC = () => {
 
             <SettingsCard title="الإشعارات" icon="🔔">
                 <label className="flex items-center justify-between cursor-pointer">
-                    <span>تفعيل إشعارات الصلوات</span>
+                    <span className="font-semibold">تفعيل إشعارات الصلوات</span>
                     <input type="checkbox" checked={settings.notifications.prayers} onChange={e => handleSettingsChange('notifications', {...settings.notifications, prayers: e.target.checked})} className="w-6 h-6 rounded accent-yellow-400"/>
                 </label>
                 <label className="flex items-center justify-between cursor-pointer">
-                    <span>تفعيل إشعارات الأذكار</span>
+                    <span className="font-semibold">تفعيل إشعارات الأذكار</span>
                     <input type="checkbox" checked={settings.notifications.azkar} onChange={e => handleSettingsChange('notifications', {...settings.notifications, azkar: e.target.checked})} className="w-6 h-6 rounded accent-yellow-400"/>
                 </label>
             </SettingsCard>
@@ -486,7 +485,7 @@ const SettingsPage: React.FC = () => {
                 <button onClick={handleFullReset} className="w-full bg-red-900 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                     🔥 إعادة تعيين التطبيق بالكامل
                 </button>
-                 <p className="text-xs text-center text-red-300/80">هذه الإجراءات نهائية ولا يمكن التراجع عنها.</p>
+                 <p className="text-xs text-center text-red-300">هذه الإجراءات نهائية ولا يمكن التراجع عنها.</p>
             </div>
         </div>
     )
@@ -494,7 +493,7 @@ const SettingsPage: React.FC = () => {
 
 
 const MorePage: React.FC = () => {
-    const { page } = ReactRouterDOM.useParams<{ page: MorePageType }>();
+    const { page } = useParams<{ page: MorePageType }>();
 
     const availablePages: MorePageType[] = ['stats', 'challenges', 'about', 'support', 'settings'];
     const currentPage = page && availablePages.includes(page) ? page : 'stats';

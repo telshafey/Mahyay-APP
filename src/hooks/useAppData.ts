@@ -507,5 +507,6 @@ export const useAppData = () => {
     locationError,
     detectLocation,
     notification,
+    showNotification,
   };
 };

@@ -7,6 +7,7 @@
     <title>مَحيّاي - رفيقك الروحي اليومي</title>
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#2d5a47" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,7 +38,8 @@
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.16.0",
     "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.8.2",
     "vite": "https://aistudiocdn.com/vite@^7.1.4",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.0.2"
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.0.2",
+    "vite-plugin-pwa": "https://aistudiocdn.com/vite-plugin-pwa@^1.0.3"
   }
 }
 </script>
@@ -45,16 +47,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          }, err => {
-            console.log('ServiceWorker registration failed: ', err);
-          });
-        });
-      }
-    </script>
   </body>
 </html>

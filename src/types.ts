@@ -3,6 +3,7 @@ export interface UserProfile {
   id: string;
   name: string;
   picture: string;
+  role?: 'admin' | 'user';
 }
 
 export interface AuthContextType {
@@ -202,6 +203,7 @@ export interface AppContextType {
 
   // Notifications
   notification: { message: string; icon: string } | null;
+  showNotification: (message: string, icon: string) => void;
 
   // Data Management
   resetAllData: () => Promise<void>;

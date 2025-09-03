@@ -1,7 +1,6 @@
 
 import React from 'react';
-// Fix: Corrected react-router-dom import to use namespace import to resolve module export errors.
-import * as ReactRouterDOM from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppContext } from './contexts/AppContext.ts';
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import { useAppData } from './hooks/useAppData.ts';
@@ -9,6 +8,7 @@ import Header from './components/Header.tsx';
 import BottomNav from './components/BottomNav.tsx';
 import ScrollToTop from './components/ScrollToTop.tsx';
 import NotificationToast from './components/NotificationToast.tsx';
+import AdminRoute from './components/AdminRoute.tsx';
 
 // Statically import page components to fix module resolution errors with dynamic imports in the current environment.
 import HomePage from './pages/HomePage.tsx';
@@ -16,6 +16,7 @@ import PrayersPage from './pages/PrayersPage.tsx';
 import AzkarPage from './pages/AzkarPage.tsx';
 import QuranPage from './pages/QuranPage.tsx';
 import MorePage from './pages/MorePage.tsx';
+import AdminPage from './pages/AdminPage.tsx';
 
 const MainAppLayout: React.FC = () => {
   const appData = useAppData();
@@ -32,18 +33,23 @@ const MainAppLayout: React.FC = () => {
   return (
     <AppContext.Provider value={appData}>
       <NotificationToast />
-      <div className="min-h-screen bg-gray-50 text-gray-800">
+      <div className="min-h-screen">
           <Header />
-          <main className="pt-[70px] pb-[60px] md:pb-[65px] bg-gradient-to-b from-[#1e4d3b] to-[#2d5a47] min-h-screen">
-               <div className="p-4 h-full">
-                    <ReactRouterDOM.Routes>
-                        <ReactRouterDOM.Route path="/" element={<HomePage />} />
-                        <ReactRouterDOM.Route path="/prayers" element={<PrayersPage />} />
-                        <ReactRouterDOM.Route path="/azkar" element={<AzkarPage />} />
-                        <ReactRouterDOM.Route path="/quran" element={<QuranPage />} />
-                        <ReactRouterDOM.Route path="/more/:page" element={<MorePage />} />
-                        <ReactRouterDOM.Route path="*" element={<ReactRouterDOM.Navigate to="/" />} />
-                    </ReactRouterDOM.Routes>
+          <main className="pt-[70px] pb-[60px] md:pb-[65px]">
+               <div className="p-4">
+                    <Routes>
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/prayers" element={<PrayersPage />} />
+                        <Route path="/azkar" element={<AzkarPage />} />
+                        <Route path="/quran" element={<QuranPage />} />
+                        <Route path="/more/:page" element={<MorePage />} />
+                        <Route path="/admin" element={
+                            <AdminRoute>
+                                <AdminPage />
+                            </AdminRoute>
+                        } />
+                        <Route path="*" element={<Navigate to="/" />} />
+                    </Routes>
                </div>
           </main>
           <BottomNav />
@@ -55,12 +61,12 @@ const MainAppLayout: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <ReactRouterDOM.HashRouter>
+      <HashRouter>
         <ScrollToTop />
-        <ReactRouterDOM.Routes>
-          <ReactRouterDOM.Route path="/*" element={<MainAppLayout />} />
-        </ReactRouterDOM.Routes>
-      </ReactRouterDOM.HashRouter>
+        <Routes>
+          <Route path="/*" element={<MainAppLayout />} />
+        </Routes>
+      </HashRouter>
     </AuthProvider>
   );
 };

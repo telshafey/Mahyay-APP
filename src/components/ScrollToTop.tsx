@@ -1,9 +1,8 @@
 import { useEffect } from 'react';
-// Fix: Corrected react-router-dom import to use namespace import to resolve module export errors.
-import * as ReactRouterDOM from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 const ScrollToTop: React.FC = () => {
-  const { pathname } = ReactRouterDOM.useLocation();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
