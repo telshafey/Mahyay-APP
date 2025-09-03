@@ -1,5 +1,5 @@
 
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../contexts/AppContext.ts';
 import { PRAYERS, ADDITIONAL_PRAYERS } from '../constants.ts';
 import { Prayer, PrayerFardStatus, Nawafil, NawafilStatus } from '../types.ts';
@@ -120,7 +120,30 @@ const NawafilCard: React.FC<{ nawafil: Nawafil }> = ({ nawafil }) => {
 }
 
 const PrayersPage: React.FC = () => {
-  const [selectedPrayer, setSelectedPrayer] = useState<Prayer>(PRAYERS[0]);
+  const getInitialPrayer = (): Prayer => {
+    try {
+        const savedPrayerName = sessionStorage.getItem('selectedPrayer');
+        if (savedPrayerName) {
+            const savedPrayer = PRAYERS.find(p => p.name === savedPrayerName);
+            if (savedPrayer) {
+                return savedPrayer;
+            }
+        }
+    } catch (error) {
+        console.error("Could not read from sessionStorage", error);
+    }
+    return PRAYERS[0];
+  };
+
+  const [selectedPrayer, setSelectedPrayer] = useState<Prayer>(getInitialPrayer);
+
+  useEffect(() => {
+    try {
+        sessionStorage.setItem('selectedPrayer', selectedPrayer.name);
+    } catch (error) {
+        console.error("Could not write to sessionStorage", error);
+    }
+  }, [selectedPrayer]);
 
   return (
     <div className="space-y-8">
