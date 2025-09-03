@@ -1,17 +1,14 @@
-import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
-    return {
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-      },
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, '.'),
-        }
-      }
-    };
-});
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  define: {
+    // Vercel provides the environment variables during the build process.
+    // This makes them available to your client-side code.
+    // NOTE: For local development, you can create a .env.local file
+    // at the root of your project and add: API_KEY="your_gemini_api_key"
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY),
+  }
+})

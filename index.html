@@ -5,6 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>مَحيّاي - رفيقك الروحي اليومي</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#2d5a47" />
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,20 +28,6 @@
         animation: fadeIn 0.5s ease-in-out; 
       }
     </style>
-  <script>
-    // In a no-bundler environment, process.env is not available.
-    // We define it on the window object so the Gemini service can access the API key.
-    // ****************************************************
-    // ** SECURITY WARNING: THIS KEY IS EXPOSED CLIENT-SIDE **
-    // ** For production, use a backend proxy or serverless function to secure your API key.
-    // ** ACTION REQUIRED: REPLACE WITH YOUR GEMINI API KEY **
-    // ****************************************************
-    window.process = {
-      env: {
-        API_KEY: 'AIzaSyBzo22hsMXbYmS0saMHDBQLEaNhq6WEGg0'
-      }
-    };
-  </script>
   <script type="importmap">
 {
   "imports": {
@@ -48,7 +36,10 @@
     "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
     "@google/genai": "https://esm.sh/@google/genai@^1.12.0",
     "react-router-dom": "https://esm.sh/react-router-dom@^7.7.1",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.44.4"
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.44.4",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.0.2",
+    "vite": "https://aistudiocdn.com/vite@^7.1.4",
+    "@supabase/gotrue-js": "https://aistudiocdn.com/@supabase/gotrue-js@^2.71.1"
   }
 }
 </script>
@@ -56,5 +47,16 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>

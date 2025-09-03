@@ -1,9 +1,7 @@
-import { useState, useEffect, useCallback, useContext, useMemo, useRef } from 'react';
-import { AppData, DailyData, PrayerFardStatus, Settings, Prayer, UserStats, UserChallenge, CommunityUser, Group, Invitation, GroupSharingSettings, GroupType, GroupActivity, IslamicOccasion, HijriMonthInfo, Wisdom, HijriYearInfo, Friend } from '../types.ts';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { AppData, DailyData, PrayerFardStatus, Settings, Prayer, UserStats, IslamicOccasion, HijriMonthInfo, Wisdom, HijriYearInfo } from '../types.ts';
 import { PRAYERS, AZKAR_DATA, DAILY_DUAS, ISLAMIC_OCCASIONS, HIJRI_MONTHS_INFO, DAILY_WISDOMS } from '../constants.ts';
-import { AuthContext } from '../contexts/AuthContext.tsx';
-import { calculateStats, calculateUserChallenges, getMaxCount } from '../utils.ts';
-import { supabase, Json, Database } from '../supabase.ts';
+import { calculateStats } from '../utils.ts';
 
 const getDateKey = (date: Date = new Date()): string => {
   return date.toISOString().split('T')[0];
@@ -34,11 +32,10 @@ const defaultSettings: Settings = {
     prayerMethod: 5,
 };
 
-export const useAppData = () => {
-  const authContext = useContext(AuthContext);
-  const user = authContext?.user;
-  const isGuest = user?.id === 'guest';
+const APP_DATA_KEY = 'mahyay_appData';
+const SETTINGS_KEY = 'mahyay_settings';
 
+export const useAppData = () => {
   const [appData, setAppData] = useState<AppData>({});
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isDataLoading, setIsDataLoading] = useState(true);
@@ -63,165 +60,60 @@ export const useAppData = () => {
   const notificationTimeoutRef = useRef<number | null>(null);
   const shownNotificationsRef = useRef<Set<string>>(new Set());
 
-  // Community State
-  const [isCommunityLoading, setIsCommunityLoading] = useState(true);
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [friendRequests, setFriendRequests] = useState<Friend[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
-  const [discoverableUsers, setDiscoverableUsers] = useState<CommunityUser[]>([]);
-  const [sharingSettings, setSharingSettings] = useState<Record<string, GroupSharingSettings>>({});
-
-
-  const loadEssentialData = useCallback(async () => {
-    if (!user || isGuest) {
-        setIsDataLoading(false);
-        return;
-    }
+  useEffect(() => {
     setIsDataLoading(true);
     setDataError(null);
-
     try {
-        const { data: userData, error: userDataError } = await supabase
-            .from('user_data')
-            .select('settings, app_data')
-            .eq('user_id', user.id)
-            .single();
-        
-        if (userDataError && userDataError.code !== 'PGRST116') {
-            throw new Error(`خطأ في تحميل بيانات المستخدم: ${userDataError.message}`);
-        }
+        const storedAppData = localStorage.getItem(APP_DATA_KEY);
+        const storedSettings = localStorage.getItem(SETTINGS_KEY);
 
-        if (userData) {
-            setSettings(userData.settings ? { ...defaultSettings, ...(userData.settings as unknown as Settings) } : defaultSettings);
-            setAppData((userData.app_data as unknown as AppData) || {});
-        } else {
-            setSettings(defaultSettings);
-            setAppData({});
+        if (storedAppData) {
+            setAppData(JSON.parse(storedAppData));
         }
-    } catch (error: any) {
-        console.error("CRITICAL ERROR loading essential user data:", error);
-        setDataError(`فشل تحميل بياناتك. قد تكون هناك مشكلة في إعداد قاعدة البيانات أو في الاتصال. يرجى التأكد من تشغيل النص البرمجي (SQL) بشكل صحيح في لوحة تحكم Supabase والمحاولة مرة أخرى.\n${error.message}`);
+        if (storedSettings) {
+            setSettings(JSON.parse(storedSettings));
+        }
+    } catch (error) {
+        console.error("Error loading data from localStorage:", error);
+        setDataError("فشل تحميل بياناتك من المتصفح. قد تكون البيانات تالفة.");
     } finally {
         setIsDataLoading(false);
     }
-  }, [user, isGuest]);
-
-  const loadCommunityData = useCallback(async () => {
-    if (!user || isGuest) {
-        setIsCommunityLoading(false);
-        return;
-    }
-    setIsCommunityLoading(true);
-    try {
-        const [groupsRes, friendsRes, usersRes, invitesRes] = await Promise.all([
-            supabase.rpc('get_user_groups'),
-            supabase.rpc('get_user_friends'),
-            supabase.rpc('get_discoverable_users'),
-            supabase.rpc('get_user_invitations')
-        ]);
-
-        if (groupsRes.error) throw new Error(`خطأ في تحميل المجموعات: ${groupsRes.error.message}`);
-        setGroups((groupsRes.data as unknown as Group[]) || []);
-
-        if (friendsRes.error) throw new Error(`خطأ في تحميل الأصدقاء: ${friendsRes.error.message}`);
-        const allFriendships = (friendsRes.data as unknown as Friend[]) || [];
-        setFriends(allFriendships.filter(f => f.status === 'accepted'));
-        setFriendRequests(allFriendships.filter(f => f.status === 'pending' && f.action_by_user_id !== user.id));
-
-        if (usersRes.error) throw new Error(`خطأ في تحميل المستخدمين: ${usersRes.error.message}`);
-        setDiscoverableUsers((usersRes.data as unknown as CommunityUser[]) || []);
-
-        if (invitesRes.error) throw new Error(`خطأ في تحميل الدعوات: ${invitesRes.error.message}`);
-        setInvitations((invitesRes.data as unknown as Invitation[]) || []);
-
-    } catch (error: any) {
-        console.error("Error loading community data:", error);
-        // This is a non-critical error, so we don't set the main dataError state.
-        // The community pages can handle the lack of data gracefully.
-    } finally {
-        setIsCommunityLoading(false);
-    }
-  }, [user, isGuest]);
-
-  useEffect(() => {
-    loadEssentialData();
-    loadCommunityData();
-  }, [user, loadEssentialData, loadCommunityData]);
+  }, []);
 
   const dailyData = useMemo(() => {
     return appData[todayKey] ? { ...defaultDailyData, ...appData[todayKey] } : defaultDailyData;
   }, [appData, todayKey]);
 
 
-  const saveData = useCallback(async (newDailyData: Partial<DailyData>) => {
-    const newAppData = {
-        ...appData,
-        [todayKey]: {
-            ...(appData[todayKey] || defaultDailyData),
-            ...newDailyData
-        }
-    };
-    setAppData(newAppData);
+  const saveData = useCallback((newDailyData: Partial<DailyData>) => {
+    setAppData(prevAppData => {
+        const newAppData = {
+            ...prevAppData,
+            [todayKey]: {
+                ...(prevAppData[todayKey] || defaultDailyData),
+                ...newDailyData
+            }
+        };
+        localStorage.setItem(APP_DATA_KEY, JSON.stringify(newAppData));
+        return newAppData;
+    });
+  }, [todayKey]);
 
-    if (!user || isGuest) return;
-
-    const upsertData: Database['public']['Tables']['user_data']['Insert'] = {
-      user_id: user.id,
-      app_data: newAppData as Json,
-    };
-    const { error } = await supabase
-        .from('user_data')
-        .upsert(upsertData);
-    
-    if (error) {
-        console.error("Error saving app data:", error);
-    }
-  }, [user, appData, todayKey, isGuest]);
-
-  const updateSettings = useCallback(async (newSettings: Partial<Settings>) => {
-    const updatedSettings = { ...settings, ...newSettings };
-    setSettings(updatedSettings);
-
-    if(!user || isGuest) return;
-    
-    const upsertSettings: Database['public']['Tables']['user_data']['Insert'] = {
-      user_id: user.id,
-      settings: updatedSettings as unknown as Json,
-    };
-    const { error } = await supabase
-        .from('user_data')
-        .upsert(upsertSettings);
-    
-    if (error) {
-        console.error("Error saving settings:", error);
-    }
-  }, [user, settings, isGuest]);
+  const updateSettings = useCallback((newSettings: Partial<Settings>) => {
+    setSettings(prevSettings => {
+        const updatedSettings = { ...prevSettings, ...newSettings };
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(updatedSettings));
+        return updatedSettings;
+    });
+  }, []);
 
   const resetAllData = async () => {
-      if(!user || isGuest) {
-          alert("لا يمكن إعادة تعيين البيانات في وضع الضيف.");
-          return;
-      }
-      if (!window.confirm("⚠️ تحذير! هل أنت متأكد من أنك تريد مسح جميع بياناتك؟ لا يمكن التراجع عن هذا الإجراء.")) return;
-
-      const resetPayload: Database['public']['Tables']['user_data']['Insert'] = {
-        user_id: user.id,
-        app_data: {},
-        settings: defaultSettings as unknown as Json,
-      };
-      const { error } = await supabase
-        .from('user_data')
-        .upsert(resetPayload);
-        
-      if (error) {
-          alert("حدث خطأ أثناء مسح البيانات.");
-          console.error("Reset error:", error);
-      } else {
-          setAppData({});
-          setSettings(defaultSettings);
-          alert("تم مسح البيانات بنجاح.");
-      }
+      if (!window.confirm("⚠️ تحذير! هل أنت متأكد من أنك تريد مسح جميع بيانات العبادة؟ لا يمكن التراجع عن هذا الإجراء.")) return;
+      
+      localStorage.removeItem(APP_DATA_KEY);
+      setAppData({});
+      alert("تم مسح بيانات العبادة بنجاح.");
   };
   
   const updatePrayerStatus = (prayerName: string, status: PrayerFardStatus) => {
@@ -269,7 +161,7 @@ export const useAppData = () => {
       let totalRequired = 0;
 
       azkarItems.forEach((item, index) => {
-          const max = getMaxCount(item.repeat);
+          const max = parseInt(item.repeat, 10) || 1;
           const current = Math.min(azkarProgressData[index] || 0, max);
           totalCompleted += current;
           totalRequired += max;
@@ -281,7 +173,7 @@ export const useAppData = () => {
     const newAzkarProgress = { ...dailyData.azkarProgress };
     if (!newAzkarProgress[azkarName]) newAzkarProgress[azkarName] = {};
     const currentCount = newAzkarProgress[azkarName][azkarIndex] || 0;
-    const maxCount = getMaxCount(AZKAR_DATA[azkarName][azkarIndex].repeat);
+    const maxCount = parseInt(AZKAR_DATA[azkarName][azkarIndex].repeat, 10) || 1;
     if (currentCount < maxCount) {
         newAzkarProgress[azkarName][azkarIndex] = currentCount + 1;
         saveData({ azkarProgress: newAzkarProgress });
@@ -298,7 +190,7 @@ export const useAppData = () => {
       const newAzkarProgress = { ...dailyData.azkarProgress };
       const newGroupProgress: { [key: number]: number } = {};
       AZKAR_DATA[azkarName].forEach((item, index) => {
-          newGroupProgress[index] = getMaxCount(item.repeat);
+          newGroupProgress[index] = parseInt(item.repeat, 10) || 1;
       });
       newAzkarProgress[azkarName] = newGroupProgress;
 
@@ -327,45 +219,55 @@ export const useAppData = () => {
 
   const detectLocation = useCallback(() => {
     setLocationError(null);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCoordinates({
-            lat: position.coords.latitude,
-            lon: position.coords.longitude,
-          });
-        },
-        (error: GeolocationPositionError) => {
-            console.error("Geolocation error object:", error);
-            let errorMessage: string;
-            switch (error.code) {
-                case error.PERMISSION_DENIED:
-                    errorMessage = "لقد رفضت الإذن بالوصول إلى الموقع. للحصول على أوقات دقيقة، يرجى تفعيل الإذن من إعدادات المتصفح وإعادة تحميل الصفحة.";
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    errorMessage = "معلومات الموقع غير متاحة حاليًا. يرجى التأكد من تشغيل خدمات الموقع (GPS) والمحاولة مرة أخرى.";
-                    break;
-                case error.TIMEOUT:
-                    errorMessage = "انتهت مهلة طلب الموقع. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
-                    break;
-                default:
-                    errorMessage = `حدث خطأ غير متوقع: ${error.message}`;
-                    break;
-            }
-            const finalMessage = `لم نتمكن من تحديد موقعك. ${errorMessage} سيتم الآن عرض مواقيت الصلاة للقاهرة.`;
-            setLocationError(finalMessage);
-            setCoordinates(null);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000, // 15 seconds
-          maximumAge: 60000 // Accept a cached position up to 1 minute old
-        }
-      );
-    } else {
+
+    if (!navigator.geolocation) {
       setLocationError("خدمات الموقع غير مدعومة في هذا المتصفح. سيتم عرض مواقيت الصلاة للقاهرة.");
       setCoordinates(null);
+      return;
     }
+    
+    // Geolocation API is often restricted to secure contexts (HTTPS).
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        setLocationError("خدمات الموقع تتطلب اتصالاً آمناً (HTTPS) لتعمل بشكل صحيح. سيتم عرض مواقيت الصلاة للقاهرة.");
+        setCoordinates(null);
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoordinates({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        });
+        setLocationError(null); // Clear previous errors on success
+      },
+      (error: GeolocationPositionError) => {
+          console.error(`Geolocation Error: Code=${error.code}, Message=${error.message}`);
+          let errorMessage: string;
+          switch (error.code) {
+              case error.PERMISSION_DENIED:
+                  errorMessage = "لقد رفضت الإذن بالوصول إلى الموقع. للحصول على أوقات دقيقة، يرجى تفعيل الإذن من إعدادات المتصفح وإعادة تحميل الصفحة.";
+                  break;
+              case error.POSITION_UNAVAILABLE:
+                  errorMessage = "معلومات الموقع غير متاحة حاليًا. يرجى التأكد من تشغيل خدمات الموقع (GPS) والمحاولة مرة أخرى.";
+                  break;
+              case error.TIMEOUT:
+                  errorMessage = "انتهت مهلة طلب الموقع. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+                  break;
+              default:
+                  errorMessage = `حدث خطأ غير متوقع. (${error.message})`;
+                  break;
+          }
+          const finalMessage = `لم نتمكن من تحديد موقعك. ${errorMessage} سيتم الآن عرض مواقيت الصلاة للقاهرة.`;
+          setLocationError(finalMessage);
+          setCoordinates(null);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 60000
+      }
+    );
   }, []);
 
   useEffect(() => {
@@ -495,11 +397,6 @@ export const useAppData = () => {
         counts.push({ day: dayName, count: prayerCount });
     }
     
-    // Rotate array to start with today
-    const todayIndex = new Date().getDay();
-    const rotatedDayNames = [...dayNames.slice(todayIndex + 1), ...dayNames.slice(0, todayIndex + 1)];
-    
-    // This logic is a bit complex, let's simplify and just return the last 7 days in order
     const orderedCounts = [];
     for (let i = 6; i >= 0; i--) {
         const date = new Date();
@@ -517,7 +414,6 @@ export const useAppData = () => {
     return orderedCounts;
   }, [appData]);
 
-    // --- NOTIFICATION LOGIC ---
     const showNotification = useCallback((message: string, icon: string) => {
         if (notificationTimeoutRef.current) {
             clearTimeout(notificationTimeoutRef.current);
@@ -525,7 +421,7 @@ export const useAppData = () => {
         setNotification({ message, icon });
         notificationTimeoutRef.current = window.setTimeout(() => {
             setNotification(null);
-        }, 5000); // Disappears after 5 seconds
+        }, 5000);
     }, []);
 
     useEffect(() => {
@@ -533,13 +429,11 @@ export const useAppData = () => {
             const now = new Date();
             const currentDayKey = getDateKey(now);
     
-            // Reset shown notifications at midnight
             if (!shownNotificationsRef.current.has(`reset_${currentDayKey}`)) {
                 shownNotificationsRef.current.clear();
                 shownNotificationsRef.current.add(`reset_${currentDayKey}`);
             }
 
-            // Prayer Notifications
             if (settings.notifications.prayers) {
                 for (const prayer of PRAYERS) {
                     const prayerTimeStr = prayerTimes[prayer.name];
@@ -557,12 +451,10 @@ export const useAppData = () => {
                 }
             }
     
-            // Azkar Notifications
             if (settings.notifications.azkar) {
                 const currentHour = now.getHours();
                 const currentMinute = now.getMinutes();
 
-                // Morning Azkar
                 const [morningStartHour, morningStartMinute] = settings.azkarMorningStart.split(':').map(Number);
                 const morningKey = `${currentDayKey}_morning_azkar`;
                 if (currentHour === morningStartHour && currentMinute === morningStartMinute && !shownNotificationsRef.current.has(morningKey)) {
@@ -570,7 +462,6 @@ export const useAppData = () => {
                     shownNotificationsRef.current.add(morningKey);
                 }
 
-                // Evening Azkar
                 const [eveningStartHour, eveningStartMinute] = settings.azkarEveningStart.split(':').map(Number);
                 const eveningKey = `${currentDayKey}_evening_azkar`;
                  if (currentHour === eveningStartHour && currentMinute === eveningStartMinute && !shownNotificationsRef.current.has(eveningKey)) {
@@ -580,221 +471,10 @@ export const useAppData = () => {
             }
         };
     
-        const intervalId = setInterval(checkNotifications, 60 * 1000); // Check every minute
+        const intervalId = setInterval(checkNotifications, 60 * 1000);
     
         return () => clearInterval(intervalId);
     }, [prayerTimes, settings.notifications, settings.azkarMorningStart, settings.azkarEveningStart, showNotification]);
-
-  // --- COMMUNITY FEATURES ---
-  
-  const addFriend = async (friendId: string) => {
-    if(!user || isGuest) return;
-    const currentUserId = user.id;
-    const [user_id_1, user_id_2] = [currentUserId, friendId].sort();
-
-    const newFriendship: Database['public']['Tables']['friendships']['Insert'] = {
-        user_id_1,
-        user_id_2,
-        status: 'pending',
-        action_by_user_id: currentUserId
-    };
-    const { error } = await supabase.from('friendships').insert(newFriendship);
-
-    if(error) {
-        console.error("Error adding friend:", error);
-        alert("حدث خطأ أثناء إرسال طلب الصداقة.");
-    } else {
-        alert("تم إرسال طلب الصداقة بنجاح.");
-        loadCommunityData();
-    }
-  };
-
-  const respondToFriendRequest = async (friendId: string, response: 'accepted' | 'declined') => {
-    if (!user || isGuest) return;
-    const currentUserId = user.id;
-    const [user_id_1, user_id_2] = [currentUserId, friendId].sort();
-
-    if (response === 'accepted') {
-        const updatePayload: Database['public']['Tables']['friendships']['Update'] = { 
-            status: 'accepted', 
-            action_by_user_id: currentUserId 
-        };
-        const { error } = await supabase.from('friendships')
-            .update(updatePayload)
-            .eq('user_id_1', user_id_1)
-            .eq('user_id_2', user_id_2);
-        if (error) {
-            alert("حدث خطأ أثناء قبول الصداقة.");
-        } else {
-            alert("تم قبول الصداقة بنجاح!");
-        }
-    } else { // declined
-        const { error } = await supabase.from('friendships')
-            .delete()
-            .eq('user_id_1', user_id_1)
-            .eq('user_id_2', user_id_2);
-        if(error) alert("حدث خطأ أثناء رفض الطلب.");
-    }
-    loadCommunityData();
-  };
-
-  const createGroup = async (name: string, type: GroupType, memberIds: string[]) => {
-      if(!user || isGuest) return;
-      
-      const newGroup: Database['public']['Tables']['groups']['Insert'] = {
-        name,
-        type,
-        created_by: user.id,
-      };
-      const { data: groupData, error: groupError } = await supabase
-        .from('groups')
-        .insert(newGroup)
-        .select()
-        .single();
-      
-      if(groupError || !groupData) {
-          console.error("Error creating group:", groupError);
-          alert("حدث خطأ أثناء إنشاء المجموعة.");
-          return;
-      }
-      
-      const creatorAsMember: Database['public']['Tables']['group_members']['Insert'] = {
-        group_id: groupData.id,
-        user_id: user.id,
-      };
-      const { error: creatorError } = await supabase.from('group_members').insert(creatorAsMember);
-      if(creatorError) {
-          console.error("Critical: Could not add creator to group", creatorError);
-      }
-
-      const invitationsToInsert: Database['public']['Tables']['group_invitations']['Insert'][] = memberIds.map(memberId => ({
-          group_id: groupData.id,
-          inviter_id: user.id,
-          invitee_id: memberId,
-          status: 'pending'
-      }));
-
-      if(invitationsToInsert.length > 0) {
-        const { error: invitesError } = await supabase.from('group_invitations').insert(invitationsToInsert);
-        if(invitesError) {
-            alert("تم إنشاء المجموعة، ولكن حدث خطأ أثناء إرسال الدعوات.");
-        } else {
-            alert(`تم إنشاء مجموعة "${name}" وإرسال الدعوات بنجاح.`);
-        }
-      } else {
-         alert(`تم إنشاء مجموعة "${name}" بنجاح.`);
-      }
-      
-      loadCommunityData();
-  };
-  
-  const respondToInvitation = async (invitationId: string, response: 'accepted' | 'declined') => {
-      if(!user || isGuest) return;
-      const invitation = invitations.find(inv => inv.id === invitationId);
-      if(!invitation) return;
-
-      const updatePayload: Database['public']['Tables']['group_invitations']['Update'] = {
-        status: response,
-      };
-      const { error: updateError } = await supabase.from('group_invitations')
-        .update(updatePayload)
-        .eq('id', invitationId);
-
-      if(updateError) {
-          alert("حدث خطأ أثناء الرد على الدعوة.");
-          console.error(updateError);
-          return;
-      }
-      
-      if(response === 'accepted') {
-          const newMember: Database['public']['Tables']['group_members']['Insert'] = {
-              group_id: invitation.group_id,
-              user_id: user.id
-          };
-          const { error: insertError } = await supabase.from('group_members').insert(newMember);
-          if(insertError) {
-              alert("تم قبول الدعوة، ولكن حدث خطأ أثناء الانضمام للمجموعة.");
-              console.error(insertError);
-          } else {
-              alert("انضممت للمجموعة بنجاح!");
-          }
-      }
-
-      loadCommunityData();
-  };
-  
-  const updateSharingSettings = async (groupId: string, newSettings: GroupSharingSettings) => {
-      if(!user || isGuest) return;
-      const settingsUpdate: Database['public']['Tables']['group_members']['Update'] = {
-        sharing_settings: newSettings as unknown as Json,
-      };
-      const { error } = await supabase
-        .from('group_members')
-        .update(settingsUpdate)
-        .eq('group_id', groupId)
-        .eq('user_id', user.id);
-        
-      if(error) {
-        console.error("Error updating settings:", error);
-        alert("حدث خطأ أثناء تحديث الإعدادات.");
-      } else {
-        alert("تم تحديث إعدادات المشاركة.");
-        // We might need a more robust way to update local state here
-        loadCommunityData();
-      }
-  };
-  
-  const getGroupFeed = async (group: Group): Promise<GroupActivity[]> => {
-      if(isGuest) return [];
-      const { data, error } = await supabase
-        .from('group_activity')
-        .select(`id, message, icon, created_at, user:profiles (id, name, picture)`)
-        .eq('group_id', group.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-    if (error) {
-        console.error("Error fetching group feed:", error);
-        return [];
-    }
-
-    return data.map((item: any) => ({
-        id: item.id,
-        message: item.message,
-        icon: item.icon,
-        timestamp: new Date(item.created_at),
-        user: item.user,
-        groupId: group.id
-    }));
-  };
-
-  const getSharedUserData = async (userId: string, groupId: string): Promise<AppData | null> => {
-    if(isGuest) return null;
-    const { data, error } = await supabase.rpc('get_shared_user_data', {
-      target_user_id: userId,
-      group_id_context: groupId
-    });
-    if (error) {
-      console.error(`Error fetching shared data for user ${userId}:`, error);
-      return null;
-    }
-    return data as unknown as AppData | null;
-  };
-
-  const getGroupMemberStats = async (userId: string, groupId: string): Promise<UserStats | null> => {
-    if(isGuest) return null;
-    const memberAppData = await getSharedUserData(userId, groupId);
-    if (!memberAppData) return null; // User has disabled sharing
-    return calculateStats(memberAppData);
-  };
-
-  const getGroupMemberChallenges = async (userId: string, groupId: string): Promise<UserChallenge[] | null> => {
-    if(isGuest) return null;
-    const memberAppData = await getSharedUserData(userId, groupId);
-    if (!memberAppData) return null; // User has disabled sharing
-    return calculateUserChallenges(memberAppData);
-  };
-
 
   return {
     dailyData,
@@ -827,20 +507,5 @@ export const useAppData = () => {
     locationError,
     detectLocation,
     notification,
-    isCommunityLoading,
-    friends,
-    friendRequests,
-    groups,
-    invitations,
-    discoverableUsers,
-    sharingSettings,
-    addFriend,
-    respondToFriendRequest,
-    createGroup,
-    respondToInvitation,
-    updateSharingSettings,
-    getGroupFeed,
-    getGroupMemberStats,
-    getGroupMemberChallenges
   };
 };

@@ -1,28 +1,15 @@
 
-
-import type { User as SupabaseUser } from '@supabase/supabase-js';
-
 export interface UserProfile {
   id: string;
   name: string;
-  email: string;
   picture: string;
 }
 
 export interface AuthContextType {
-  user: SupabaseUser | null;
   profile: UserProfile | null;
   isLoading: boolean;
-  isAdmin: boolean;
-  logout: () => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
-  signUpWithEmail: (name: string, email: string, password: string) => Promise<void>;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signInAsGuest: () => void;
-  updateUserProfile: (name: string, picture?: string) => Promise<void>;
-  updateUserProfilePicture: (file: File) => Promise<void>;
-  deleteAccount: () => Promise<void>;
-  sendPasswordResetEmail: (email: string) => Promise<void>;
+  updateUserProfile: (name: string) => void;
+  resetProfile: () => void;
 }
 
 export interface SunnahInfo {
@@ -31,7 +18,7 @@ export interface SunnahInfo {
 }
 
 export interface Prayer {
-  name: string;
+  name:string;
   emoji: string;
   virtue: string;
   sunnahBefore: SunnahInfo | null;
@@ -150,51 +137,6 @@ export interface UserChallenge {
   status: 'active' | 'available' | 'completed';
 }
 
-export interface CommunityUser {
-  id: string;
-  name: string;
-  picture: string;
-}
-
-export interface Friend extends CommunityUser {
-    status: 'pending' | 'accepted';
-    action_by_user_id: string;
-}
-
-export type GroupType = 'family' | 'friends';
-
-export interface Group {
-  id: string;
-  name: string;
-  type: GroupType;
-  members: CommunityUser[];
-  created_by: string;
-}
-
-export interface Invitation {
-  id: string;
-  group_id: string;
-  group_name: string;
-  inviter_id: string;
-  inviter_name: string;
-  status: 'pending' | 'accepted' | 'declined';
-}
-
-export interface GroupSharingSettings {
-    activity: boolean;
-    stats: boolean;
-    challenges: boolean;
-}
-
-export interface GroupActivity {
-    id: string;
-    user: CommunityUser;
-    message: string;
-    icon: string;
-    timestamp: Date;
-    groupId: string;
-}
-
 export interface Wisdom {
     id: string;
     text: string;
@@ -203,7 +145,7 @@ export interface Wisdom {
 }
 
 export interface IslamicOccasion {
-    id: string;
+    id:string;
     name: string;
     hijriMonth: number;
     hijriDay: number;
@@ -261,23 +203,6 @@ export interface AppContextType {
   // Notifications
   notification: { message: string; icon: string } | null;
 
-  // Community Features
-  isCommunityLoading: boolean;
-  friends: Friend[];
-  friendRequests: Friend[];
-  groups: Group[];
-  invitations: Invitation[];
-  discoverableUsers: CommunityUser[];
-  sharingSettings: Record<string, GroupSharingSettings>;
-  addFriend: (friendId: string) => Promise<void>;
-  respondToFriendRequest: (friendId: string, response: 'accepted' | 'declined') => Promise<void>;
-  createGroup: (name: string, type: GroupType, memberIds: string[]) => Promise<void>;
-  respondToInvitation: (invitationId: string, response: 'accepted' | 'declined') => Promise<void>;
-  updateSharingSettings: (groupId: string, settings: GroupSharingSettings) => Promise<void>;
-  getGroupFeed: (group: Group) => Promise<GroupActivity[]>;
-  getGroupMemberStats: (userId: string, groupId: string) => Promise<UserStats | null>;
-  getGroupMemberChallenges: (userId: string, groupId: string) => Promise<UserChallenge[] | null>;
-  
   // Data Management
   resetAllData: () => Promise<void>;
 }

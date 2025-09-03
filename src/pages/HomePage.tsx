@@ -1,4 +1,5 @@
 import React, { useContext, useState } from 'react';
+// Fix: Corrected react-router-dom import to resolve module export errors.
 import { Link } from 'react-router-dom';
 import { AppContext } from '../contexts/AppContext.ts';
 import { PRAYERS, AZKAR_TYPES, CHALLENGES } from '../constants.ts';

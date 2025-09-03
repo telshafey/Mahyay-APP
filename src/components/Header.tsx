@@ -44,20 +44,11 @@ const Header: React.FC = () => {
                         <div className="absolute top-full mt-2 w-64 bg-white/95 backdrop-blur-lg rounded-xl shadow-2xl border border-white/20 overflow-hidden text-gray-800 animate-fade-in">
                            <div className="p-4 border-b border-gray-200">
                              <p className="font-bold">{authContext?.profile?.name}</p>
-                             {authContext?.profile?.email && <p className="text-sm text-gray-500">{authContext?.profile?.email}</p>}
                            </div>
                            <NavLink to="/more/stats" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>📊</span><span>الإحصائيات والتحديات</span></NavLink>
                            <NavLink to="/more/about" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>ℹ️</span><span>عن التطبيق</span></NavLink>
                            <NavLink to="/more/support" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>🆘</span><span>الدعم والأسئلة</span></NavLink>
                            <NavLink to="/more/settings" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>⚙️</span><span>الإعدادات</span></NavLink>
-                           {authContext?.isAdmin && (
-                                <NavLink to="/admin" className="flex items-center gap-3 px-4 py-3 font-bold text-yellow-700 hover:bg-yellow-200/50 transition-colors" onClick={() => setDropdownOpen(false)}>
-                                    <span>👑</span><span>لوحة التحكم</span>
-                                </NavLink>
-                           )}
-                           <div className="p-2 border-t border-gray-200">
-                              <button onClick={() => authContext?.logout()} className="w-full text-left flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-100/50 transition-colors rounded-md"><span>↪️</span><span>تسجيل الخروج</span></button>
-                           </div>
                         </div>
                     )}
                  </div>

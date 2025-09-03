@@ -1,0 +1,26 @@
+{
+  "name": "مَحيّاي - رفيقك الروحي اليومي",
+  "short_name": "مَحيّاي",
+  "description": "تطبيق إسلامي شامل يساعدك على تنظيم عباداتك اليومية من صلوات وأذكار وقراءة للقرآن الكريم، مع متابعة الإحصائيات والتحديات الإيمانية. معزز بتأملات روحية من Gemini.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1e4d3b",
+  "theme_color": "#2d5a47",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

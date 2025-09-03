@@ -1,25 +1,16 @@
 
 
-import React, { useContext } from 'react';
+import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { AuthContext } from '../contexts/AuthContext.tsx';
 
 const BottomNav: React.FC = () => {
-    const authContext = useContext(AuthContext);
-    const isGuest = authContext?.user?.id === 'guest';
-
-    let navItems = [
+    
+    const navItems = [
         { path: '/', icon: '🏠', label: 'الرئيسية' },
         { path: '/prayers', icon: '🕌', label: 'الصلوات' },
         { path: '/azkar', icon: '📿', label: 'الأذكار' },
         { path: '/quran', icon: '📖', label: 'القرآن' },
-        { path: '/community', icon: '🤝', label: 'المجتمع' }
     ];
-
-    // Hide community tab for guests
-    if (isGuest) {
-        navItems = navItems.filter(item => item.path !== '/community');
-    }
     
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-lg border-t border-gray-200/80 shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.05)] h-[60px] md:h-[65px] flex justify-around items-center pb-safe">
