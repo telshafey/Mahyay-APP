@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
-// Fix: Corrected react-router-dom import to resolve module export errors.
-import { Link } from 'react-router-dom';
+// Fix: Corrected react-router-dom import to use namespace import to resolve module export errors.
+import * as ReactRouterDOM from 'react-router-dom';
 import { AppContext } from '../contexts/AppContext.ts';
 import { PRAYERS, AZKAR_TYPES, CHALLENGES } from '../constants.ts';
 import type { PrayerStatus, UserChallenge } from '../types.ts';
@@ -23,9 +23,9 @@ const LocationBanner: React.FC<{ message: string }> = ({ message }) => {
 const SectionHeader: React.FC<{ title: string; linkTo: string; }> = ({ title, linkTo }) => (
     <div className="flex justify-between items-center mb-4">
         <h3 className="text-white text-xl font-semibold flex items-center gap-2">{title}</h3>
-        <Link to={linkTo} className="text-sm bg-white/15 hover:bg-white/25 transition-colors text-white py-2 px-4 rounded-full">
+        <ReactRouterDOM.Link to={linkTo} className="text-sm bg-white/15 hover:bg-white/25 transition-colors text-white py-2 px-4 rounded-full">
             عرض الكل ←
-        </Link>
+        </ReactRouterDOM.Link>
     </div>
 );
 
@@ -182,9 +182,9 @@ const HomePage: React.FC = () => {
             <SectionHeader title="🏆 التحديات النشطة" linkTo="/more/challenges" />
             <div className="space-y-4">
                 {activeChallenges.slice(0, 2).map(challenge => (
-                    <Link to="/more/challenges" key={challenge.id}>
+                    <ReactRouterDOM.Link to="/more/challenges" key={challenge.id}>
                         <ChallengeCard challenge={challenge} />
-                    </Link>
+                    </ReactRouterDOM.Link>
                 ))}
             </div>
         </section>
@@ -196,13 +196,13 @@ const HomePage: React.FC = () => {
                     const status = dailyData.prayerData[p.name]?.fard;
                     const isCompleted = status && status !== 'not_prayed' && status !== 'missed';
                     return (
-                        <Link to="/prayers" key={p.name}>
+                        <ReactRouterDOM.Link to="/prayers" key={p.name}>
                             <GlassCard className={`text-center transition-transform transform hover:-translate-y-1 ${isCompleted ? '!bg-green-500/30 !border-green-400/50' : ''}`}>
                                 <div className="text-2xl mb-1">{p.emoji}</div>
                                 <div className="text-xs md:text-sm font-semibold text-white">{p.name}</div>
                                 <div className="text-[10px] md:text-xs text-white/70">{prayerTimes[p.name] || '...'}</div>
                             </GlassCard>
-                        </Link>
+                        </ReactRouterDOM.Link>
                     )
                 })}
              </div>
@@ -215,7 +215,7 @@ const HomePage: React.FC = () => {
                     const isCompleted = dailyData.azkarStatus[azkar.name];
                     const progress = context.getAzkarProgress(azkar.name);
                     return (
-                         <Link to="/azkar" key={azkar.name}>
+                         <ReactRouterDOM.Link to="/azkar" key={azkar.name}>
                             <GlassCard className={`flex flex-col justify-between h-full transition-transform transform hover:-translate-y-1 ${isCompleted ? '!bg-green-500/30 !border-green-400/50' : ''}`}>
                                 <div>
                                     <div className="flex items-center gap-3 mb-1">
@@ -228,7 +228,7 @@ const HomePage: React.FC = () => {
                                     {isCompleted ? '✅ مكتمل' : progress > 0 ? `🔄 ${Math.round(progress)}%` : '⏳ لم تبدأ'}
                                 </div>
                             </GlassCard>
-                         </Link>
+                         </ReactRouterDOM.Link>
                     );
                 })}
             </div>

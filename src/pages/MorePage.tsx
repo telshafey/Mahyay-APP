@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+// Fix: Corrected react-router-dom import to use namespace import to resolve module export errors.
+import * as ReactRouterDOM from 'react-router-dom';
 import { MorePage as MorePageType, Settings } from '../types.ts';
 import { AppContext } from '../contexts/AppContext.ts';
 import { AuthContext } from '../contexts/AuthContext.tsx';
@@ -493,7 +494,7 @@ const SettingsPage: React.FC = () => {
 
 
 const MorePage: React.FC = () => {
-    const { page } = useParams<{ page: MorePageType }>();
+    const { page } = ReactRouterDOM.useParams<{ page: MorePageType }>();
 
     const availablePages: MorePageType[] = ['stats', 'challenges', 'about', 'support', 'settings'];
     const currentPage = page && availablePages.includes(page) ? page : 'stats';

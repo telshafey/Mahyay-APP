@@ -1,7 +1,9 @@
 
 
+
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+// Fix: Corrected react-router-dom import to use namespace import to resolve module export errors.
+import * as ReactRouterDOM from 'react-router-dom';
 
 const BottomNav: React.FC = () => {
     
@@ -15,7 +17,7 @@ const BottomNav: React.FC = () => {
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-lg border-t border-gray-200/80 shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.05)] h-[60px] md:h-[65px] flex justify-around items-center pb-safe">
             {navItems.map(item => (
-                <NavLink 
+                <ReactRouterDOM.NavLink 
                     key={item.path} 
                     to={item.path}
                     end={item.path === '/'}
@@ -25,7 +27,7 @@ const BottomNav: React.FC = () => {
                 >
                     <span className="text-xl md:text-2xl">{item.icon}</span>
                     <span className="text-[10px] md:text-xs">{item.label}</span>
-                </NavLink>
+                </ReactRouterDOM.NavLink>
             ))}
         </nav>
     );
