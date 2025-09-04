@@ -4,6 +4,10 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    // This makes the environment variable available in the browser during the build process.
+    'process.env.API_KEY': JSON.stringify(process.env.VITE_API_KEY)
+  },
   plugins: [
     react(),
     VitePWA({ 

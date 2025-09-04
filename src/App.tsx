@@ -1,22 +1,21 @@
-
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppContext } from './contexts/AppContext.ts';
-import { AuthProvider } from './contexts/AuthContext.tsx';
-import { useAppData } from './hooks/useAppData.ts';
-import Header from './components/Header.tsx';
-import BottomNav from './components/BottomNav.tsx';
-import ScrollToTop from './components/ScrollToTop.tsx';
-import NotificationToast from './components/NotificationToast.tsx';
-import AdminRoute from './components/AdminRoute.tsx';
+import { AppContext } from './contexts/AppContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { useAppData } from './hooks/useAppData';
+import Header from './components/Header';
+import BottomNav from './components/BottomNav';
+import ScrollToTop from './components/ScrollToTop';
+import NotificationToast from './components/NotificationToast';
+import AdminRoute from './components/AdminRoute';
 
-// Statically import page components to fix module resolution errors with dynamic imports in the current environment.
-import HomePage from './pages/HomePage.tsx';
-import PrayersPage from './pages/PrayersPage.tsx';
-import AzkarPage from './pages/AzkarPage.tsx';
-import QuranPage from './pages/QuranPage.tsx';
-import MorePage from './pages/MorePage.tsx';
-import AdminPage from './pages/AdminPage.tsx';
+// Statically import page components to resolve module loading errors.
+import HomePage from './pages/HomePage';
+import PrayersPage from './pages/PrayersPage';
+import AzkarPage from './pages/AzkarPage';
+import QuranPage from './pages/QuranPage';
+import MorePage from './pages/MorePage';
+import AdminPage from './pages/AdminPage';
 
 const MainAppLayout: React.FC = () => {
   const appData = useAppData();

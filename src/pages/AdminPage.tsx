@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
-import { AppContext } from '../contexts/AppContext.ts';
-import { AuthContext } from '../contexts/AuthContext.tsx';
-import GlassCard from '../components/GlassCard.tsx';
+import { AppContext } from '../contexts/AppContext';
+import { AuthContext } from '../contexts/AuthContext';
+import GlassCard from '../components/GlassCard';
 
 const DATA_KEYS = ['mahyay_appData', 'mahyay_settings', 'mahyay_userProfile'];
 
@@ -24,6 +24,7 @@ const AdminPage: React.FC = () => {
             link.href = jsonString;
             link.download = `mahyay-backup-${new Date().toISOString().split('T')[0]}.json`;
             link.click();
+            // Fix: Add guard for appContext before calling showNotification.
             appContext?.showNotification('✅ تم تصدير البيانات بنجاح', '💾');
         } catch (error) {
             console.error('Failed to export data', error);
@@ -79,6 +80,17 @@ const AdminPage: React.FC = () => {
         }
     }
 
+    // Fix: Add a guard for contexts.
+    if (!appContext || !authContext) {
+        return (
+            <div className="space-y-6 text-white">
+                <h2 className="text-3xl font-bold text-center font-amiri">👑 لوحة تحكم المشرف</h2>
+                <GlassCard>
+                    <p>جاري تحميل البيانات...</p>
+                </GlassCard>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 text-white">
@@ -118,7 +130,7 @@ const AdminPage: React.FC = () => {
              <GlassCard>
                 <h3 className="text-xl font-bold mb-4">🛠️ أدوات النظام</h3>
                 <button 
-                    onClick={() => appContext?.showNotification('🔔 هذا إشعار اختباري!', '🧪')}
+                    onClick={() => appContext.showNotification('🔔 هذا إشعار اختباري!', '🧪')}
                     className="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
                 >
                     اختبار الإشعارات

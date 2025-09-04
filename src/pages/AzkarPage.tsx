@@ -1,9 +1,9 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { AppContext } from '../contexts/AppContext.ts';
-import { AZKAR_TYPES, AZKAR_DATA, MISCELLANEOUS_AZKAR } from '../constants.ts';
-import { AzkarType, AzkarItem } from '../types.ts';
-import GlassCard from '../components/GlassCard.tsx';
-import { getMaxCount } from '../utils.ts';
+import { AppContext } from '../contexts/AppContext';
+import { AZKAR_TYPES, AZKAR_DATA, MISCELLANEOUS_AZKAR } from '../constants';
+import { AzkarType, AzkarItem } from '../types';
+import GlassCard from '../components/GlassCard';
+import { getMaxCount } from '../utils';
 
 const AzkarItemCard: React.FC<{
     item: AzkarItem;
@@ -11,6 +11,7 @@ const AzkarItemCard: React.FC<{
     azkarName: string;
 }> = ({ item, index, azkarName }) => {
     const context = useContext(AppContext);
+    // Fix: Add a guard to ensure context is not null before use.
     if (!context) return null;
 
     const { dailyData, incrementAzkarCount } = context;
@@ -74,7 +75,8 @@ const AzkarPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<AzkarType>(AZKAR_TYPES[0]);
 
     useEffect(() => {
-        if (!context?.settings) return;
+        // Fix: Add a guard to ensure context and settings are available.
+        if (!context || !context.settings) return;
         const { settings } = context;
     
         const currentHour = new Date().getHours();
@@ -89,8 +91,10 @@ const AzkarPage: React.FC = () => {
         } else {
             setActiveTab(eveningAzkar);
         }
-    }, [context?.settings]);
+    // Fix: Depend on the context object itself.
+    }, [context]);
     
+    // Fix: Add a guard to ensure context is not null before rendering the main component.
     if (!context) return null;
 
     const { completeAzkarGroup } = context;

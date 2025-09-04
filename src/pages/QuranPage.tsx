@@ -1,11 +1,12 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { AppContext } from '../contexts/AppContext.ts';
-import GlassCard from '../components/GlassCard.tsx';
-import { getVerseReflection } from '../services/geminiService.ts';
-import { REFLECTION_VERSES } from '../constants.ts';
+import { AppContext } from '../contexts/AppContext';
+import GlassCard from '../components/GlassCard';
+import { getVerseReflection } from '../services/geminiService';
+import { REFLECTION_VERSES } from '../constants';
 
 const QuranPage: React.FC = () => {
     const context = useContext(AppContext);
+    // Fix: Add a guard to ensure context is not null before use.
     if (!context) return null;
     const { dailyData, settings, updateQuranRead, completeKhatma } = context;
 

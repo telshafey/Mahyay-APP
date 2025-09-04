@@ -1,6 +1,6 @@
 import React from 'react';
-import GlassCard from './GlassCard.tsx';
-import { UserChallenge } from '../types.ts';
+import GlassCard from './GlassCard';
+import { UserChallenge } from '../types';
 
 const ChallengeCard: React.FC<{ challenge: UserChallenge }> = ({ challenge }) => {
     const progressPercentage = (challenge.progress / challenge.total) * 100;

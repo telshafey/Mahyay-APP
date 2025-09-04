@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { NavLink } from 'react-router-dom';
-import { AppContext } from '../contexts/AppContext.ts';
-import { AuthContext } from '../contexts/AuthContext.tsx';
+import { AppContext } from '../contexts/AppContext';
+import { AuthContext } from '../contexts/AuthContext';
 
 const Header: React.FC = () => {
     const appContext = useContext(AppContext);
@@ -19,12 +19,19 @@ const Header: React.FC = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
     
+    // Fix: Add a guard for contexts to prevent errors and layout shifts.
+    if (!appContext || !authContext) {
+        return <header className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-l from-[#1e4d3b] to-[#2d5a47] h-[70px] border-b border-white/10"></header>;
+    }
+
+    const { profile } = authContext;
+
     const renderUserAvatar = () => {
-      if (authContext?.profile?.picture) {
-        return <img src={authContext.profile.picture} alt={authContext.profile.name || 'User'} className="w-10 h-10 rounded-full border-2 border-white/50 object-cover" />
+      if (profile?.picture) {
+        return <img src={profile.picture} alt={profile.name || 'User'} className="w-10 h-10 rounded-full border-2 border-white/50 object-cover" />
       }
 
-      const nameInitial = authContext?.profile?.name ? authContext.profile.name.charAt(0).toUpperCase() : '؟';
+      const nameInitial = profile?.name ? profile.name.charAt(0).toUpperCase() : '؟';
 
       return (
         <div className="w-10 h-10 rounded-full border-2 border-white/50 bg-yellow-500 flex items-center justify-center text-xl font-bold text-white">
@@ -43,9 +50,9 @@ const Header: React.FC = () => {
                     {dropdownOpen && (
                         <div className="absolute top-full mt-2 w-64 bg-white/95 backdrop-blur-lg rounded-xl shadow-2xl border border-white/20 overflow-hidden text-gray-800 animate-fade-in">
                            <div className="p-4 border-b border-gray-200">
-                             <p className="font-bold">{authContext?.profile?.name}</p>
+                             <p className="font-bold">{profile?.name}</p>
                            </div>
-                           {authContext?.profile?.role === 'admin' && (
+                           {profile?.role === 'admin' && (
                                <NavLink to="/admin" className="flex items-center gap-3 px-4 py-3 font-bold bg-yellow-100/50 hover:bg-yellow-200/50 transition-colors" onClick={() => setDropdownOpen(false)}>
                                    <span>👑</span><span>لوحة التحكم</span>
                                </NavLink>
@@ -72,8 +79,8 @@ const Header: React.FC = () => {
             
             <div className="flex items-center justify-end w-1/3 text-right">
                 <div>
-                    <p className="font-amiri font-semibold text-sm md:text-base text-[#d4af37]">{appContext?.hijriDate}</p>
-                    <p className="text-xs opacity-90">{appContext?.gregorianDate}</p>
+                    <p className="font-amiri font-semibold text-sm md:text-base text-[#d4af37]">{appContext.hijriDate}</p>
+                    <p className="text-xs opacity-90">{appContext.gregorianDate}</p>
                 </div>
             </div>
         </header>

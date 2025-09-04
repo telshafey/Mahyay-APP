@@ -1,10 +1,10 @@
 import React, { useContext, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AppContext } from '../contexts/AppContext.ts';
-import { PRAYERS, AZKAR_TYPES, CHALLENGES } from '../constants.ts';
-import type { PrayerStatus, UserChallenge } from '../types.ts';
-import GlassCard from '../components/GlassCard.tsx';
-import ChallengeCard from '../components/ChallengeCard.tsx';
+import { AppContext } from '../contexts/AppContext';
+import { PRAYERS, AZKAR_TYPES, CHALLENGES } from '../constants';
+import type { PrayerStatus, UserChallenge } from '../types';
+import GlassCard from '../components/GlassCard';
+import ChallengeCard from '../components/ChallengeCard';
 
 const LocationBanner: React.FC<{ message: string }> = ({ message }) => {
     const [isVisible, setIsVisible] = useState(true);
@@ -42,7 +42,8 @@ const VerseCard: React.FC = () => {
 
 const DailyWisdomCard: React.FC = () => {
     const context = useContext(AppContext);
-    if (!context?.dailyWisdom) {
+    // Fix: Add a guard to ensure context and dailyWisdom are not null.
+    if (!context || !context.dailyWisdom) {
         return <GlassCard><p className="text-center text-white/80">جاري تحميل حكمة اليوم...</p></GlassCard>;
     }
     const { dailyWisdom } = context;
@@ -57,7 +58,8 @@ const DailyWisdomCard: React.FC = () => {
 
 const IslamicCalendar: React.FC = () => {
     const context = useContext(AppContext);
-    if (!context) return null;
+    // Fix: Add a guard to ensure context is not null before use.
+    if (!context) return <GlassCard><p className="text-center text-white/80">جاري تحميل التقويم الإسلامي...</p></GlassCard>;
 
     const { currentHijriMonthInfo, nextIslamicOccasion, hijriYearInfo } = context;
 
@@ -122,7 +124,8 @@ const HomePage: React.FC = () => {
 
   if (!context) return <div>Loading...</div>;
 
-  const { dailyData, nextPrayer, stats, prayerTimes, locationError } = context;
+  // Fix: Destructure all required properties from context to ensure correct type inference.
+  const { dailyData, nextPrayer, stats, prayerTimes, locationError, getAzkarProgress } = context;
   
   const todayPrayers = Object.values(dailyData.prayerData).filter((p: PrayerStatus) => p.fard !== 'not_prayed' && p.fard !== 'missed').length;
   const todayAzkar = Object.values(dailyData.azkarStatus).filter(s => s === true).length;
@@ -212,7 +215,7 @@ const HomePage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
                 {AZKAR_TYPES.map(azkar => {
                     const isCompleted = dailyData.azkarStatus[azkar.name];
-                    const progress = context.getAzkarProgress(azkar.name);
+                    const progress = getAzkarProgress(azkar.name);
                     return (
                          <Link to="/azkar" key={azkar.name}>
                             <GlassCard className={`flex flex-col justify-between h-full transition-transform transform hover:-translate-y-1 ${isCompleted ? '!bg-green-500/30 !border-green-400/50' : ''}`}>

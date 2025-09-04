@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { AppData, DailyData, PrayerFardStatus, Settings, Prayer, UserStats, IslamicOccasion, HijriMonthInfo, Wisdom, HijriYearInfo } from '../types.ts';
-import { PRAYERS, AZKAR_DATA, DAILY_DUAS, ISLAMIC_OCCASIONS, HIJRI_MONTHS_INFO, DAILY_WISDOMS } from '../constants.ts';
-import { calculateStats } from '../utils.ts';
+import { AppData, DailyData, PrayerFardStatus, Settings, Prayer, UserStats, IslamicOccasion, HijriMonthInfo, Wisdom, HijriYearInfo, PrayerStatus } from '../types';
+import { PRAYERS, AZKAR_DATA, DAILY_DUAS, ISLAMIC_OCCASIONS, HIJRI_MONTHS_INFO, DAILY_WISDOMS } from '../constants';
+import { calculateStats } from '../utils';
 
 const getDateKey = (date: Date = new Date()): string => {
   return date.toISOString().split('T')[0];
@@ -377,7 +377,7 @@ export const useAppData = () => {
   const stats = useMemo(() => calculateStats(appData), [appData]);
 
   const weeklyPrayerCounts = useMemo(() => {
-    const counts = [];
+    const orderedCounts: { day: string; count: number; }[] = [];
     const today = new Date();
     const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
     
@@ -385,29 +385,14 @@ export const useAppData = () => {
         const date = new Date(today);
         date.setDate(today.getDate() - i);
         const dayKey = getDateKey(date);
-        const dayIndex = date.getDay();
-        const dayName = dayNames[dayIndex];
-        
-        const dayData = appData[dayKey];
-        let prayerCount = 0;
-        if (dayData && dayData.prayerData) {
-            prayerCount = Object.values(dayData.prayerData).filter(p => p.fard === 'early' || p.fard === 'ontime').length;
-        }
-        
-        counts.push({ day: dayName, count: prayerCount });
-    }
-    
-    const orderedCounts = [];
-    for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(new Date().getDate() - i);
-        const dayKey = getDateKey(date);
         const dayName = dayNames[date.getDay()];
+        
         const dayData = appData[dayKey];
         let prayerCount = 0;
         if (dayData && dayData.prayerData) {
-            prayerCount = Object.values(dayData.prayerData).filter(p => p.fard === 'early' || p.fard === 'ontime').length;
+            prayerCount = Object.values(dayData.prayerData).filter((p: PrayerStatus) => p.fard === 'early' || p.fard === 'ontime').length;
         }
+        
         orderedCounts.push({ day: i === 0 ? 'اليوم' : dayName, count: prayerCount });
     }
 

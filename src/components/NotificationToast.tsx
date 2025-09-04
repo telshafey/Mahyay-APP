@@ -1,11 +1,12 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { AppContext } from '../contexts/AppContext.ts';
+import { AppContext } from '../contexts/AppContext';
 
 const NotificationToast: React.FC = () => {
     const context = useContext(AppContext);
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
+        // Fix: Add a guard to ensure context is not null.
         if (context?.notification) {
             setIsVisible(true);
             const timer = setTimeout(() => {
@@ -18,6 +19,7 @@ const NotificationToast: React.FC = () => {
         }
     }, [context?.notification]);
 
+    // Fix: Check for context and notification before rendering.
     if (!context?.notification) {
         return null;
     }

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+// Fix: Corrected import statement for react-router-dom.
 import { useLocation } from 'react-router-dom';
 
 const ScrollToTop: React.FC = () => {

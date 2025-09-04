@@ -1,11 +1,11 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { MorePage as MorePageType, Settings } from '../types.ts';
-import { AppContext } from '../contexts/AppContext.ts';
-import { AuthContext } from '../contexts/AuthContext.tsx';
-import { CHALLENGES, PRAYER_METHODS, QURAN_TOTAL_PAGES } from '../constants.ts';
-import GlassCard from '../components/GlassCard.tsx';
-import ChallengeCard from '../components/ChallengeCard.tsx';
+import { MorePage as MorePageType, Settings } from '../types';
+import { AppContext } from '../contexts/AppContext';
+import { AuthContext } from '../contexts/AuthContext';
+import { CHALLENGES, PRAYER_METHODS, QURAN_TOTAL_PAGES } from '../constants';
+import GlassCard from '../components/GlassCard';
+import ChallengeCard from '../components/ChallengeCard';
 
 const SettingsCard: React.FC<{ title: string; icon: string; children: React.ReactNode }> = ({ title, icon, children }) => (
     <GlassCard>
@@ -30,6 +30,7 @@ const StatCard: React.FC<{ icon: string; label: string; value: string | number; 
 
 const WeeklyPrayerChart: React.FC = () => {
     const context = useContext(AppContext);
+    // Fix: Add a guard to ensure context is not null before use.
     if (!context) return null;
     const { weeklyPrayerCounts } = context;
 
@@ -63,7 +64,8 @@ const WeeklyPrayerChart: React.FC = () => {
 
 const KhatmaProgressChart: React.FC = () => {
     const context = useContext(AppContext);
-    if (!context?.stats.khatmaProgress) return null;
+    // Fix: Add a guard to ensure context and nested properties are not null.
+    if (!context?.stats?.khatmaProgress) return null;
 
     const { pagesReadInCurrent, percentage } = context.stats.khatmaProgress;
     
@@ -124,7 +126,21 @@ const KhatmaProgressChart: React.FC = () => {
 const StatsAndChallengesPage: React.FC = () => {
     const context = useContext(AppContext);
     const [activeTab, setActiveTab] = useState<'active' | 'available' | 'completed'>('active');
+    const challengesSectionRef = useRef<HTMLElement>(null);
+    const { page } = useParams<{ page: string }>();
 
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (page === 'challenges' && challengesSectionRef.current) {
+                challengesSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
+        
+        return () => clearTimeout(timer);
+    }, [page]);
+
+
+    // Fix: Add a guard to ensure context is not null before use.
     if (!context) return null;
 
     const { stats } = context;
@@ -149,7 +165,7 @@ const StatsAndChallengesPage: React.FC = () => {
                     ))}
                 </div>
             </section>
-            <section id="challenges">
+            <section id="challenges" ref={challengesSectionRef}>
                 <h3 className="text-2xl font-bold text-white text-center mb-4">التحديات</h3>
                 <div className="space-y-4">
                     <GlassCard className="!p-2">
@@ -335,6 +351,7 @@ const SettingsPage: React.FC = () => {
     const context = useContext(AppContext);
     const authContext = useContext(AuthContext);
 
+    // Fix: Add guards for both contexts.
     if (!context || !authContext) {
         return (
             <GlassCard>

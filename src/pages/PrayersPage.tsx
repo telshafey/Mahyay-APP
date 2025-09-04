@@ -1,13 +1,14 @@
 
 
 import React, { useContext, useState, useEffect } from 'react';
-import { AppContext } from '../contexts/AppContext.ts';
-import { PRAYERS, ADDITIONAL_PRAYERS } from '../constants.ts';
-import { Prayer, PrayerFardStatus, Nawafil, NawafilStatus } from '../types.ts';
-import GlassCard from '../components/GlassCard.tsx';
+import { AppContext } from '../contexts/AppContext';
+import { PRAYERS, ADDITIONAL_PRAYERS } from '../constants';
+import { Prayer, PrayerFardStatus, Nawafil, NawafilStatus } from '../types';
+import GlassCard from '../components/GlassCard';
 
 const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
     const context = useContext(AppContext);
+    // Fix: Add a guard to ensure context is not null before use.
     if (!context) return null;
 
     const { dailyData, updatePrayerStatus, updateSunnahStatus, prayerTimes } = context;
@@ -88,6 +89,7 @@ const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
 
 const NawafilCard: React.FC<{ nawafil: Nawafil }> = ({ nawafil }) => {
     const context = useContext(AppContext);
+    // Fix: Add a guard to ensure context is not null before use.
     if(!context) return null;
 
     const { dailyData, updateNawafilOption, updateQiyamCount } = context;

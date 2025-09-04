@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
-import type { UserProfile, AuthContextType } from '../types.ts';
+import type { UserProfile, AuthContextType } from '../types';
 
 const PROFILE_KEY = 'mahyay_userProfile';
 

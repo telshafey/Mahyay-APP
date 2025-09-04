@@ -1,4 +1,6 @@
-import { AppData, UserStats, UserChallenge } from "./types";
+
+// Fix: Remove `Partial` from import as it is a built-in TypeScript utility type.
+import { AppData, UserStats, UserChallenge, DailyData, PrayerStatus } from "./types";
 import { CHALLENGES, QURAN_TOTAL_PAGES } from "./constants";
 
 export const getMaxCount = (repeatText: string): number => {
@@ -39,7 +41,7 @@ export const calculateStats = (appData: AppData): UserStats => {
     const allData = Object.entries(appData);
 
     // Calculate total pages first from all history
-    allData.forEach(([, data]) => {
+    allData.forEach(([, data]: [string, Partial<DailyData>]) => {
         quranPages += data.quranRead || 0;
     });
 
@@ -50,7 +52,8 @@ export const calculateStats = (appData: AppData): UserStats => {
         const data = appData[key];
 
         if (data) {
-            const prayersDone = Object.values(data.prayerData || {}).filter(p => p.fard === 'early' || p.fard === 'ontime').length;
+            // Fix: Explicitly type `p` to resolve error 'Property 'fard' does not exist on type 'unknown''.
+            const prayersDone = Object.values(data.prayerData || {}).filter((p: PrayerStatus) => p.fard === 'early' || p.fard === 'ontime').length;
             
             if (i === consecutiveDays && prayersDone >= 3) {
                 consecutiveDays++;
