@@ -1,20 +1,10 @@
-
 import { GoogleGenAI } from "@google/genai";
 
-// Fix: Use `process.env.API_KEY` as per @google/genai coding guidelines. This resolves the error on `import.meta.env`.
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-  console.warn("Gemini API key not found. Reflections feature will be disabled.");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY! });
+// FIX: Per coding guidelines, the API key must be obtained from process.env.API_KEY.
+// This also resolves the TypeScript error "Property 'env' does not exist on type 'ImportMeta'".
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const getVerseReflection = async (verse: string): Promise<string> => {
-  if (!API_KEY) {
-    return Promise.resolve("ميزة التأملات الروحية غير متاحة حالياً.");
-  }
-
   try {
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
