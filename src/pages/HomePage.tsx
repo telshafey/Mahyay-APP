@@ -23,12 +23,23 @@ const DuaCompanionModal: React.FC<{ onClose: () => void; }> = ({ onClose }) => {
         setResult(null);
         setError(null);
         
-        const duaResult = await getPersonalizedDua(request);
+        const response = await getPersonalizedDua(request);
 
-        if (duaResult) {
-            setResult(duaResult);
+        if (response.data) {
+            setResult(response.data);
         } else {
-            setError('عذراً، لم نتمكن من صياغة الدعاء. يرجى المحاولة مرة أخرى بطلب مختلف.');
+            let userFriendlyError = 'عذراً، لم نتمكن من صياغة الدعاء. يرجى المحاولة مرة أخرى بطلب مختلف.';
+            if (response.error) {
+                if (response.error.includes('initialized') || response.error.includes('API_KEY')) {
+                    userFriendlyError = 'خدمة الذكاء الاصطناعي غير مهيأة. يرجى مراجعة إعدادات التطبيق.';
+                } else if (response.error.includes('400') || response.error.includes('API key')) {
+                    userFriendlyError = 'حدث خطأ في الاتصال بالخدمة. قد تكون هناك مشكلة في الإعدادات أو مفتاح الوصول.';
+                } else if (response.error.includes('500')) {
+                    userFriendlyError = 'الخدمة تواجه ضغطاً حالياً. يرجى المحاولة مرة أخرى بعد قليل.';
+                }
+            }
+            setError(userFriendlyError);
+            console.error("Dua Companion Error:", response.error);
         }
         setIsLoading(false);
     };

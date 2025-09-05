@@ -11,10 +11,27 @@ if (apiKey) {
     console.warn("API_KEY is not set in environment variables. Gemini features will be disabled.");
 }
 
-export const getVerseReflection = async (verse: string): Promise<VerseReflection | null> => {
+const handleGeminiError = (error: unknown): string => {
+    console.error("Error fetching from Gemini:", error);
+    let message = 'An unknown error occurred while contacting the AI service.';
+    if (error instanceof Error) {
+        if (error.message.includes('400') || error.message.includes('API key not valid')) {
+            message = "The request was rejected. This can be due to an invalid API key, billing issues, or safety filters.";
+        } else if (error.message.includes('500') || error.message.includes('503')) {
+            message = "The AI service is currently experiencing issues. Please try again later."
+        } else {
+            message = error.message;
+        }
+    }
+    return message;
+};
+
+
+export const getVerseReflection = async (verse: string): Promise<{ data: VerseReflection | null, error: string | null }> => {
   if (!ai) {
-    console.warn("Gemini not available for verse reflection.");
-    return null;
+    const msg = "Gemini service is not initialized. The API_KEY may be missing or invalid.";
+    console.warn(msg);
+    return { data: null, error: msg };
   }
   try {
     const response = await ai.models.generateContent({
@@ -49,19 +66,20 @@ export const getVerseReflection = async (verse: string): Promise<VerseReflection
     const result = JSON.parse(jsonText);
 
     if (result && result.reflection && result.actionable_tip) {
-        return result;
+        return { data: result, error: null };
     }
-    return null;
+    return { data: null, error: "The AI response was not in the expected format." };
   } catch (error) {
-    console.error("Error fetching reflection from Gemini:", error);
-    return null;
+    const errorMessage = handleGeminiError(error);
+    return { data: null, error: errorMessage };
   }
 };
 
-export const getPersonalizedDua = async (prompt: string): Promise<PersonalizedDua | null> => {
+export const getPersonalizedDua = async (prompt: string): Promise<{ data: PersonalizedDua | null, error: string | null }> => {
     if (!ai) {
-        console.warn("Gemini not available for personalized dua.");
-        return null;
+        const msg = "Gemini service is not initialized. The API_KEY may be missing or invalid.";
+        console.warn(msg);
+        return { data: null, error: msg };
     }
     try {
         const response = await ai.models.generateContent({
@@ -101,21 +119,22 @@ export const getPersonalizedDua = async (prompt: string): Promise<PersonalizedDu
         const result = JSON.parse(jsonText);
 
         if (result && result.dua && result.source_info) {
-            return result;
+            return { data: result, error: null };
         }
-        return null;
+        return { data: null, error: "The AI response was not in the expected format." };
 
     } catch (error) {
-        console.error("Error fetching personalized dua from Gemini:", error);
-        return null;
+        const errorMessage = handleGeminiError(error);
+        return { data: null, error: errorMessage };
     }
 }
 
 
-export const getGoalInspiration = async (): Promise<{title: string; icon: string} | null> => {
+export const getGoalInspiration = async (): Promise<{ data: {title: string; icon: string} | null; error: string | null; }> => {
     if (!ai) {
-        console.warn("Gemini not available for goal inspiration.");
-        return null;
+        const msg = "Gemini service is not initialized. The API_KEY may be missing or invalid.";
+        console.warn(msg);
+        return { data: null, error: msg };
     }
     try {
         const response = await ai.models.generateContent({
@@ -143,12 +162,12 @@ export const getGoalInspiration = async (): Promise<{title: string; icon: string
         const result = JSON.parse(jsonText);
 
         if (result && result.title && result.icon) {
-            return result;
+            return { data: result, error: null };
         }
-        return null;
+        return { data: null, error: "The AI response was not in the expected format." };
 
     } catch (error) {
-        console.error("Error fetching goal inspiration from Gemini:", error);
-        return null;
+        const errorMessage = handleGeminiError(error);
+        return { data: null, error: errorMessage };
     }
 };

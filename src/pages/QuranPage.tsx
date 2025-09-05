@@ -37,11 +37,12 @@ const QuranPage: React.FC = () => {
         setIsReflectionLoading(true);
         setReflectionData(null);
         setReflectionError(null);
-        const reflection = await getVerseReflection(reflectionVerse.text);
-        if (reflection) {
-            setReflectionData(reflection);
+        const response = await getVerseReflection(reflectionVerse.text);
+        if (response.data) {
+            setReflectionData(response.data);
         } else {
             setReflectionError("عذرًا، حدث خطأ أثناء جلب التأمل. يرجى المحاولة مرة أخرى.");
+            console.error("Reflection Error:", response.error);
         }
         setIsReflectionLoading(false);
     };

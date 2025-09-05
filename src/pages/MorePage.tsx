@@ -637,11 +637,12 @@ const GoalsPage: React.FC = () => {
         setIsInspiring(true);
         setInspiration(null);
         setInspirationError(null);
-        const result = await getGoalInspiration();
-        if (result) {
-            setInspiration(result);
+        const response = await getGoalInspiration();
+        if (response.data) {
+            setInspiration(response.data);
         } else {
-            setInspirationError("عذراً، لم نتمكن من جلب إلهام في الوقت الحالي. حاول مرة أخرى.");
+            setInspirationError(response.error || "عذراً، لم نتمكن من جلب إلهام في الوقت الحالي. حاول مرة أخرى.");
+            console.error("Goal Inspiration Error:", response.error);
         }
         setIsInspiring(false);
     }
