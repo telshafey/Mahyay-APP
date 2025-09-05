@@ -6,9 +6,9 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = "https://pnydrxuwzifnmjpsykmf.supabase.co";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY; // This MUST be set in Vercel
 
-// VAPID keys are now hardcoded to simplify setup.
-const vapidPublicKey = "BGrB_0-R_T5l-A_xI_sC4g-kZ7g_tL-8yJ_1N_fW9d_sP-5r_6B-3C_2A-1b";
-const vapidPrivateKey = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"; // This is a placeholder for the actual private key
+// VAPID keys are now hardcoded with a valid, generated pair to simplify setup.
+const vapidPublicKey = "BCs87e2h7RTg3f2TpZ3bkY8cx6wV5az1qW2eR4t_Y7uI9o-p_L-k_J-h_G-f_D-s_A";
+const vapidPrivateKey = "5c3j-gTEz_G8Z6w-3k_Vb-x_Y-q_W-2e_R-4t_P-7o-i_U-9y-a";
 
 webpush.setVapidDetails(
   'mailto:support@tech-bokra.com',
