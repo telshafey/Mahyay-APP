@@ -1,16 +1,14 @@
 
 
-import React, { useContext, useState, useEffect } from 'react';
-import { AppContext } from '../contexts/AppContext';
+import React, { useState, useEffect } from 'react';
+import { useAppContext } from '../contexts/AppContext';
 import GlassCard from '../components/GlassCard';
 import { getVerseReflection } from '../services/geminiService';
 import { REFLECTION_VERSES } from '../constants';
 import { VerseReflection } from '../types';
 
 const QuranPage: React.FC = () => {
-    const context = useContext(AppContext);
-    if (!context) return null;
-    const { dailyData, settings, updateQuranRead, completeKhatma } = context;
+    const { dailyData, settings, updateQuranRead, completeKhatma } = useAppContext();
 
     const read = dailyData.quranRead || 0;
     const goal = settings.quranGoal || 10;

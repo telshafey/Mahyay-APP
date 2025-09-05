@@ -1,8 +1,7 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppContext } from './contexts/AppContext';
-import { AuthContext } from './contexts/AuthContext';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuthContext } from './contexts/AuthContext';
 import { useAppData } from './hooks/useAppData';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
@@ -10,7 +9,7 @@ import ScrollToTop from './components/ScrollToTop';
 import NotificationToast from './components/NotificationToast';
 import AdminRoute from './components/AdminRoute';
 
-// Statically import page components to resolve module loading errors.
+// Statically import page components.
 import HomePage from './pages/HomePage';
 import PrayersPage from './pages/PrayersPage';
 import AzkarPage from './pages/AzkarPage';
@@ -26,19 +25,24 @@ const LoadingScreen: React.FC = () => (
     </div>
 );
 
+const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const appData = useAppData();
+    if (appData.isDataLoading) {
+        return <LoadingScreen />;
+    }
+    return (
+        <AppContext.Provider value={appData}>
+            {children}
+        </AppContext.Provider>
+    );
+}
+
 const MainAppLayout: React.FC = () => {
-  const appData = useAppData();
-
-  if (appData.isDataLoading) {
-    return <LoadingScreen />;
-  }
-
   return (
-    <AppContext.Provider value={appData}>
-      <NotificationToast />
       <div className="min-h-screen">
+          <NotificationToast />
           <Header />
-          <main className="pt-[70px] pb-[60px] md:pb-[65px]">
+          <main className="pt-[60px] pb-[60px] md:pb-[65px]">
                <div className="p-4">
                     <Routes>
                         <Route path="/" element={<HomePage />} />
@@ -57,24 +61,25 @@ const MainAppLayout: React.FC = () => {
           </main>
           <BottomNav />
       </div>
-    </AppContext.Provider>
   );
 }
 
 const AppRoutes: React.FC = () => {
-    const authContext = useContext(AuthContext);
+    const authContext = useAuthContext();
 
-    if (authContext?.isLoading) {
+    if (authContext.isLoading) {
         return <LoadingScreen />;
     }
 
     return (
         <Routes>
-            {authContext?.profile ? (
-                // User is logged in, show the main application
-                 <Route path="/*" element={<MainAppLayout />} />
+            {authContext.profile ? (
+                <Route path="/*" element={
+                    <AppContextProvider>
+                        <MainAppLayout />
+                    </AppContextProvider>
+                } />
             ) : (
-                // User is not logged in, show login page and redirect all other paths to it
                 <>
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="*" element={<Navigate to="/login" replace />} />

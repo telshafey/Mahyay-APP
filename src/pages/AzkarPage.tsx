@@ -1,5 +1,5 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { AppContext } from '../contexts/AppContext';
+import React, { useState, useEffect } from 'react';
+import { useAppContext } from '../contexts/AppContext';
 import { AZKAR_TYPES, AZKAR_DATA, MISCELLANEOUS_AZKAR } from '../constants';
 import { AzkarType, AzkarItem } from '../types';
 import GlassCard from '../components/GlassCard';
@@ -10,11 +10,7 @@ const AzkarItemCard: React.FC<{
     index: number;
     azkarName: string;
 }> = ({ item, index, azkarName }) => {
-    const context = useContext(AppContext);
-    // Fix: Add a guard to ensure context is not null before use.
-    if (!context) return null;
-
-    const { dailyData, incrementAzkarCount } = context;
+    const { dailyData, incrementAzkarCount } = useAppContext();
     const azkarProgress = dailyData.azkarProgress[azkarName] || {};
     const maxCount = getMaxCount(item.repeat);
     const currentCount = Math.min(azkarProgress[index] || 0, maxCount);
@@ -71,14 +67,10 @@ const AccordionItem: React.FC<{
 
 
 const AzkarPage: React.FC = () => {
-    const context = useContext(AppContext);
+    const { settings, completeAzkarGroup } = useAppContext();
     const [activeTab, setActiveTab] = useState<AzkarType>(AZKAR_TYPES[0]);
 
     useEffect(() => {
-        // Fix: Add a guard to ensure context and settings are available.
-        if (!context || !context.settings) return;
-        const { settings } = context;
-    
         const currentHour = new Date().getHours();
         const morningAzkar = AZKAR_TYPES.find(a => a.name === 'أذكار الصباح')!;
         const eveningAzkar = AZKAR_TYPES.find(a => a.name === 'أذكار المساء')!;
@@ -91,13 +83,8 @@ const AzkarPage: React.FC = () => {
         } else {
             setActiveTab(eveningAzkar);
         }
-    // Fix: Depend on the context object itself.
-    }, [context]);
+    }, [settings.azkarMorningStart, settings.azkarEveningStart]);
     
-    // Fix: Add a guard to ensure context is not null before rendering the main component.
-    if (!context) return null;
-
-    const { completeAzkarGroup } = context;
     const azkarItems = AZKAR_DATA[activeTab.name] || [];
 
     return (

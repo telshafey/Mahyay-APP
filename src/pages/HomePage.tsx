@@ -1,8 +1,6 @@
-
-
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AppContext } from '../contexts/AppContext';
+import { useAppContext } from '../contexts/AppContext';
 import { PRAYERS, AZKAR_TYPES, CHALLENGES } from '../constants';
 import { PrayerStatus, UserChallenge, PersonalizedDua } from '../types';
 import GlassCard from '../components/GlassCard';
@@ -145,11 +143,10 @@ const VerseCard: React.FC = () => {
 }
 
 const DailyWisdomCard: React.FC = () => {
-    const context = useContext(AppContext);
-    if (!context || !context.dailyWisdom) {
+    const { dailyWisdom } = useAppContext();
+    if (!dailyWisdom) {
         return <GlassCard><p className="text-center text-white/80">جاري تحميل حكمة اليوم...</p></GlassCard>;
     }
-    const { dailyWisdom } = context;
     return (
         <GlassCard className="!bg-gradient-to-tr !from-purple-500/20 !to-indigo-500/30 !border-purple-400/30">
             <h3 className="text-white text-xl font-semibold mb-4 text-center">💡 حكمة اليوم</h3>
@@ -160,9 +157,7 @@ const DailyWisdomCard: React.FC = () => {
 }
 
 const DuaCompanionCard: React.FC<{ onOpenModal: () => void }> = ({ onOpenModal }) => {
-    const context = useContext(AppContext);
-    if (!context) return null;
-    const { dailyDua } = context;
+    const { dailyDua } = useAppContext();
     return (
         <GlassCard className="!bg-gradient-to-tr !from-teal-500/20 !to-cyan-500/30 !border-teal-400/30">
             <h3 className="text-white text-xl font-semibold mb-4 text-center">💖 دعاء اليوم</h3>
@@ -180,10 +175,7 @@ const DuaCompanionCard: React.FC<{ onOpenModal: () => void }> = ({ onOpenModal }
 
 
 const IslamicCalendar: React.FC = () => {
-    const context = useContext(AppContext);
-    if (!context) return <GlassCard><p className="text-center text-white/80">جاري تحميل التقويم الإسلامي...</p></GlassCard>;
-
-    const { currentHijriMonthInfo, nextIslamicOccasion, hijriYearInfo } = context;
+    const { currentHijriMonthInfo, nextIslamicOccasion, hijriYearInfo } = useAppContext();
 
     const hijriMonths: { [key: number]: string } = {
         1: "محرم", 2: "صفر", 3: "ربيع الأول", 4: "ربيع الآخر",
@@ -242,12 +234,8 @@ const IslamicCalendar: React.FC = () => {
 
 
 const HomePage: React.FC = () => {
-  const context = useContext(AppContext);
   const [isDuaModalOpen, setIsDuaModalOpen] = useState(false);
-
-  if (!context) return <div>Loading...</div>;
-
-  const { dailyData, nextPrayer, stats, prayerTimes, locationError, getAzkarProgress, personalGoals, goalProgress, toggleDailyGoalCompletion } = context;
+  const { dailyData, nextPrayer, stats, prayerTimes, locationError, getAzkarProgress, personalGoals, goalProgress, toggleDailyGoalCompletion } = useAppContext();
   
   const todayPrayers = Object.values(dailyData.prayerData).filter((p: PrayerStatus) => p.fard !== 'not_prayed' && p.fard !== 'missed').length;
   const todayAzkar = Object.values(dailyData.azkarStatus).filter(s => s === true).length;
@@ -359,10 +347,10 @@ const HomePage: React.FC = () => {
                     const isCompleted = status && status !== 'not_prayed' && status !== 'missed';
                     return (
                         <Link to="/prayers" key={p.name}>
-                            <GlassCard className={`text-center transition-transform transform hover:-translate-y-1 ${isCompleted ? '!bg-green-500/30 !border-green-400/50' : ''}`}>
-                                <div className="text-2xl mb-1">{p.emoji}</div>
-                                <div className="text-xs md:text-sm font-semibold text-white">{p.name}</div>
-                                <div className="text-[10px] md:text-xs text-white/90">{prayerTimes[p.name] || '...'}</div>
+                            <GlassCard className={`text-center transition-transform transform hover:-translate-y-1 !p-2 md:!p-4 ${isCompleted ? '!bg-green-500/30 !border-green-400/50' : ''}`}>
+                                <div className="text-xl md:text-2xl mb-1">{p.emoji}</div>
+                                <div className="text-xs font-semibold text-white">{p.name}</div>
+                                <div className="text-[11px] text-white/90">{prayerTimes[p.name] || '...'}</div>
                             </GlassCard>
                         </Link>
                     )

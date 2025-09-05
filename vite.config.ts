@@ -1,3 +1,4 @@
+
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -7,13 +8,19 @@ export default defineConfig({
   define: {
     // Per guidelines, the app must use process.env.API_KEY.
     // This exposes the VITE_API_KEY environment variable to the app as process.env.API_KEY.
-    'process.env.API_KEY': JSON.stringify(process.env.VITE_API_KEY)
+    'process.env.API_KEY': JSON.stringify(process.env.VITE_API_KEY),
   },
   plugins: [
     react(),
     VitePWA({ 
       registerType: 'autoUpdate',
-      includeAssets: ['vite.svg'],
+      // Switch to injectManifest strategy to use our custom service worker
+      strategies: 'injectManifest',
+      srcDir: '.',
+      filename: 'sw.js',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+      },
       manifest: {
         name: 'مَحيّاي - رفيقك الروحي اليومي',
         short_name: 'مَحيّاي',

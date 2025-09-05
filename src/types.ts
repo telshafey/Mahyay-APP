@@ -1,16 +1,20 @@
+import { AuthError, Session, User } from '@supabase/supabase-js';
 
 export interface UserProfile {
   id: string;
   name: string;
+  email: string | undefined;
   picture: string;
   role?: 'admin' | 'user';
 }
 
 export interface AuthContextType {
   profile: UserProfile | null;
+  session: Session | null;
   isLoading: boolean;
-  updateUserProfile: (name: string) => void;
-  resetProfile: () => void;
+  signIn: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
+  signOut: () => Promise<{ error: AuthError | null }>;
 }
 
 export interface SunnahInfo {
@@ -113,7 +117,7 @@ export interface AppData {
 }
 
 export type ActivePage = 'home' | 'prayers' | 'azkar' | 'quran' | 'more';
-export type MorePage = 'stats' | 'challenges' | 'about' | 'support' | 'settings' | 'goals';
+export type MorePage = 'stats' | 'challenges' | 'about' | 'support' | 'settings' | 'goals' | 'privacy' | 'terms';
 
 export interface UserStats {
   totalPoints: number;
@@ -207,6 +211,8 @@ export interface AppContextType {
   updateSettings: (newSettings: Partial<Settings>) => void;
   hijriDate: string;
   gregorianDate: string;
+  shortHijriDate: string;
+  shortGregorianDate: string;
   dailyDua: { text: string; source: string; };
   nextPrayer: { prayer: Prayer | null, countdown: string, isNextDay: boolean };
   stats: UserStats;

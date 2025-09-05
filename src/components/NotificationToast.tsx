@@ -1,13 +1,12 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { AppContext } from '../contexts/AppContext';
+import React, { useEffect, useState } from 'react';
+import { useAppContext } from '../contexts/AppContext';
 
 const NotificationToast: React.FC = () => {
-    const context = useContext(AppContext);
+    const { notification } = useAppContext();
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
-        // Fix: Add a guard to ensure context is not null.
-        if (context?.notification) {
+        if (notification) {
             setIsVisible(true);
             const timer = setTimeout(() => {
                 setIsVisible(false);
@@ -17,10 +16,9 @@ const NotificationToast: React.FC = () => {
         } else {
             setIsVisible(false);
         }
-    }, [context?.notification]);
+    }, [notification]);
 
-    // Fix: Check for context and notification before rendering.
-    if (!context?.notification) {
+    if (!notification) {
         return null;
     }
 
@@ -29,8 +27,8 @@ const NotificationToast: React.FC = () => {
             className={`fixed top-5 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 ease-in-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}
         >
             <div className="bg-white/20 backdrop-blur-lg border border-white/30 rounded-full shadow-lg p-2 flex items-center gap-3 pr-5">
-                <span className="text-2xl">{context.notification.icon}</span>
-                <p className="text-white font-semibold">{context.notification.message}</p>
+                <span className="text-2xl">{notification.icon}</span>
+                <p className="text-white font-semibold">{notification.message}</p>
             </div>
         </div>
     );

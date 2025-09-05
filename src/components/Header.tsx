@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
-import { AppContext } from '../contexts/AppContext';
-import { AuthContext } from '../contexts/AuthContext';
+import { useAppContext } from '../contexts/AppContext';
+import { useAuthContext } from '../contexts/AuthContext';
 
 const Header: React.FC = () => {
-    const appContext = useContext(AppContext);
-    const authContext = useContext(AuthContext);
+    const appContext = useAppContext();
+    const authContext = useAuthContext();
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -19,30 +19,25 @@ const Header: React.FC = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
     
-    // Fix: Add a guard for contexts to prevent errors and layout shifts.
-    if (!appContext || !authContext) {
-        return <header className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-l from-[#1e4d3b] to-[#2d5a47] h-[70px] border-b border-white/10"></header>;
-    }
-
     const { profile } = authContext;
 
     const renderUserAvatar = () => {
       if (profile?.picture) {
-        return <img src={profile.picture} alt={profile.name || 'User'} className="w-10 h-10 rounded-full border-2 border-white/50 object-cover" />
+        return <img src={profile.picture} alt={profile.name || 'User'} className="w-9 h-9 rounded-full border-2 border-white/50 object-cover" />
       }
 
       const nameInitial = profile?.name ? profile.name.charAt(0).toUpperCase() : '؟';
 
       return (
-        <div className="w-10 h-10 rounded-full border-2 border-white/50 bg-yellow-500 flex items-center justify-center text-xl font-bold text-white">
+        <div className="w-9 h-9 rounded-full border-2 border-white/50 bg-yellow-500 flex items-center justify-center text-lg font-bold text-white">
             {nameInitial}
         </div>
       )
     }
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-l from-[#1e4d3b] to-[#2d5a47] text-white shadow-lg h-[70px] px-3 flex items-center justify-between border-b border-white/10 backdrop-blur-sm">
-            <div className="flex items-center gap-3 w-1/3">
+        <header className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-l from-[#1e4d3b] to-[#2d5a47] text-white shadow-lg h-[60px] px-3 flex items-center justify-between border-b border-white/10 backdrop-blur-sm">
+            <div className="flex items-center gap-2 w-1/3">
                  <div ref={dropdownRef} className="relative">
                     <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center justify-center">
                        {renderUserAvatar()}
@@ -62,12 +57,16 @@ const Header: React.FC = () => {
                            <NavLink to="/more/about" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>ℹ️</span><span>عن التطبيق</span></NavLink>
                            <NavLink to="/more/support" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>🆘</span><span>الدعم والأسئلة</span></NavLink>
                            <NavLink to="/more/settings" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>⚙️</span><span>الإعدادات</span></NavLink>
+                           <div className="border-t border-gray-200 mt-1 pt-1">
+                             <NavLink to="/more/privacy" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>🔒</span><span>سياسة الخصوصية</span></NavLink>
+                             <NavLink to="/more/terms" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>📜</span><span>شروط الاستخدام</span></NavLink>
+                           </div>
                         </div>
                     )}
                  </div>
                  <button
                     onClick={() => alert('سجل الإشعارات قيد التطوير وسيتوفر قريباً!')}
-                    className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
                     aria-label="الإشعارات"
                  >
                     <span className="text-xl">🔔</span>
@@ -89,8 +88,11 @@ const Header: React.FC = () => {
                 </div>
                 {/* Mobile View */}
                 <div className="md:hidden">
-                    <p className="font-amiri font-semibold text-sm text-[#d4af37]">{appContext.hijriDate}</p>
-                    <p className="text-xs opacity-90">{appContext.gregorianDate}</p>
+                     <p className="font-semibold text-xs text-white/90 whitespace-nowrap">
+                        <span>{appContext.shortGregorianDate} م</span>
+                        <span className="mx-1.5 opacity-50">|</span>
+                        <span className="text-yellow-300">{appContext.shortHijriDate} هـ</span>
+                    </p>
                 </div>
             </div>
         </header>

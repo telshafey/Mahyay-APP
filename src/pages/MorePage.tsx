@@ -1,12 +1,83 @@
-import React, { useContext, useState, useEffect, useRef, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { MorePage as MorePageType, Settings, PersonalGoal, GoalType } from '../types';
-import { AppContext } from '../contexts/AppContext';
-import { AuthContext } from '../contexts/AuthContext';
+import { useAppContext } from '../contexts/AppContext';
+import { useAuthContext } from '../contexts/AuthContext';
 import { CHALLENGES, PRAYER_METHODS, QURAN_TOTAL_PAGES } from '../constants';
 import GlassCard from '../components/GlassCard';
 import ChallengeCard from '../components/ChallengeCard';
 import { getGoalInspiration } from '../services/geminiService';
+import { subscribeUser, getSubscription, unsubscribeUser } from '../utils/pushNotifications';
+
+
+const PushNotificationManager: React.FC = () => {
+    const [isSubscribed, setIsSubscribed] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const checkSubscription = async () => {
+            const subscription = await getSubscription();
+            setIsSubscribed(!!subscription);
+            setIsLoading(false);
+        };
+        checkSubscription();
+    }, []);
+
+    const handleSubscription = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            if (isSubscribed) {
+                await unsubscribeUser();
+                setIsSubscribed(false);
+            } else {
+                await subscribeUser();
+                setIsSubscribed(true);
+            }
+        } catch (err) {
+            console.error("Failed to handle subscription", err);
+            if (err instanceof Error) {
+                 if (Notification.permission === 'denied') {
+                    setError('لقد قمت بحظر الإشعارات. يرجى تفعيلها من إعدادات المتصفح.');
+                } else {
+                    setError(err.message);
+                }
+            } else {
+                setError("حدث خطأ غير متوقع.");
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <SettingsCard title="الإشعارات الفورية (Push)" icon="🚀">
+            <div className="text-center space-y-3">
+                <p className="text-sm text-white/90">
+                    {isSubscribed 
+                        ? "أنت مشترك حاليًا في الإشعارات الفورية. ستصلك رسائل هامة من إدارة التطبيق."
+                        : "اشترك لتصلك رسائل هامة ومواعظ مباشرة من إدارة التطبيق، حتى لو كنت خارج التطبيق."
+                    }
+                </p>
+                <button
+                    onClick={handleSubscription}
+                    disabled={isLoading}
+                    className={`w-full font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50
+                        ${isSubscribed 
+                            ? 'bg-red-800/80 hover:bg-red-800 text-white' 
+                            : 'bg-green-500 hover:bg-green-600 text-white'}`
+                    }
+                >
+                    {isLoading ? 'جاري المعالجة...' : (isSubscribed ? 'إلغاء الاشتراك' : 'تفعيل الإشعارات')}
+                </button>
+                {error && <p className="text-red-300 text-sm mt-2">{error}</p>}
+            </div>
+        </SettingsCard>
+    );
+};
+
 
 const SettingsCard: React.FC<{ title: string; icon: string; children: React.ReactNode }> = ({ title, icon, children }) => (
     <GlassCard>
@@ -30,11 +101,7 @@ const StatCard: React.FC<{ icon: string; label: string; value: string | number; 
 );
 
 const WeeklyPrayerChart: React.FC = () => {
-    const context = useContext(AppContext);
-    // Fix: Add a guard to ensure context is not null before use.
-    if (!context) return null;
-    const { weeklyPrayerCounts } = context;
-
+    const { weeklyPrayerCounts } = useAppContext();
     const maxCount = 5; // Max 5 prayers
 
     return (
@@ -64,11 +131,8 @@ const WeeklyPrayerChart: React.FC = () => {
 };
 
 const KhatmaProgressChart: React.FC = () => {
-    const context = useContext(AppContext);
-    // Fix: Add a guard to ensure context and nested properties are not null.
-    if (!context?.stats?.khatmaProgress) return null;
-
-    const { pagesReadInCurrent, percentage } = context.stats.khatmaProgress;
+    const { stats } = useAppContext();
+    const { pagesReadInCurrent, percentage } = stats.khatmaProgress;
     
     const radius = 50;
     const stroke = 8;
@@ -125,7 +189,7 @@ const KhatmaProgressChart: React.FC = () => {
 
 
 const StatsAndChallengesPage: React.FC = () => {
-    const context = useContext(AppContext);
+    const { stats } = useAppContext();
     const [activeTab, setActiveTab] = useState<'active' | 'available' | 'completed'>('active');
     const challengesSectionRef = useRef<HTMLElement>(null);
     const { page } = useParams<{ page: string }>();
@@ -140,11 +204,6 @@ const StatsAndChallengesPage: React.FC = () => {
         return () => clearTimeout(timer);
     }, [page]);
 
-
-    // Fix: Add a guard to ensure context is not null before use.
-    if (!context) return null;
-
-    const { stats } = context;
     const filteredChallenges = CHALLENGES.filter(c => c.status === activeTab);
 
     const statItems = [
@@ -268,11 +327,15 @@ const AboutPage: React.FC = () => {
                  </Section>
             </div>
 
-             <Section title="تواصل معنا" icon="📞">
-                 <div className="text-center">
+             <Section title="معلومات قانونية وتواصل" icon="⚖️">
+                 <div className="text-center space-y-3">
+                     <div className="flex justify-center items-center gap-4">
+                         <Link to="/more/terms" className="font-semibold text-yellow-300 hover:text-yellow-200">شروط الاستخدام</Link>
+                         <span className="text-white/50">|</span>
+                         <Link to="/more/privacy" className="font-semibold text-yellow-300 hover:text-yellow-200">سياسة الخصوصية</Link>
+                     </div>
                      <p>📧 للدعم والاستفسارات:</p>
                      <a href="mailto:support@tech-bokra.com" className="font-bold text-lg text-yellow-300 tracking-wider">support@tech-bokra.com</a>
-                     <p className="mt-2 text-sm text-white">نحن نقدر تواصلكم ونسعد بالرد على استفساراتكم واقتراحاتكم.</p>
                  </div>
             </Section>
         </GlassCard>
@@ -457,30 +520,12 @@ const SupportPage: React.FC = () => {
 }
 
 const SettingsPage: React.FC = () => {
-    const context = useContext(AppContext);
-    const authContext = useContext(AuthContext);
-
-    // Fix: Add guards for both contexts.
-    if (!context || !authContext) {
-        return (
-            <GlassCard>
-                <p className="text-center text-white">جاري تحميل الإعدادات...</p>
-            </GlassCard>
-        );
-    }
+    const context = useAppContext();
+    const authContext = useAuthContext();
     
     const { settings, updateSettings, resetAllData, coordinates, locationError, detectLocation } = context;
-    const { profile, updateUserProfile, resetProfile } = authContext;
-
-    const [userName, setUserName] = useState(profile?.name || '');
+    const { profile, signOut } = authContext;
     
-    useEffect(() => {
-      if (profile?.name) {
-        setUserName(profile.name);
-      }
-    }, [profile?.name]);
-
-
     const handleSettingsChange = (key: keyof Settings, value: any) => {
         updateSettings({ [key]: value });
     };
@@ -490,18 +535,14 @@ const SettingsPage: React.FC = () => {
         handleSettingsChange('quranGoal', newGoal);
     }
     
-    const handleProfileUpdate = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!profile || userName.trim() === profile.name || !userName.trim()) return;
-        updateUserProfile(userName.trim());
-        alert("تم تحديث الاسم بنجاح.");
-    }
-    
-    const handleFullReset = () => {
+    const handleFullReset = async () => {
         if (!window.confirm("⚠️ تحذير! هل أنت متأكد من حذف ملفك الشخصي وجميع بيانات العبادة؟ لا يمكن التراجع عن هذا الإجراء.")) return;
-        resetAllData();
-        resetProfile();
+        
+        await resetAllData();
+        await signOut();
+        
         alert("تم إعادة تعيين التطبيق بالكامل.");
+        // The onAuthStateChange listener in AuthContext will handle the redirect.
     }
 
     return (
@@ -515,22 +556,10 @@ const SettingsPage: React.FC = () => {
                             className="w-24 h-24 rounded-full border-4 border-white/50 object-cover shadow-lg"
                          />
                      </div>
-                    <form onSubmit={handleProfileUpdate} className="w-full max-w-sm space-y-4">
-                        <div>
-                            <label htmlFor="username" className="text-sm sr-only">الاسم</label>
-                            <input 
-                                id="username"
-                                type="text" 
-                                value={userName}
-                                onChange={(e) => setUserName(e.target.value)}
-                                placeholder={"اكتب اسمك"}
-                                className="w-full text-center text-xl font-bold bg-white/10 rounded-md py-1 border border-transparent focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder:text-white/70" 
-                            />
-                        </div>
-                        <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50" disabled={!profile || userName.trim() === profile?.name || !userName.trim()}>
-                            حفظ الاسم
-                        </button>
-                    </form>
+                    <div className="w-full max-w-sm space-y-4">
+                        <p className="w-full text-center text-xl font-bold bg-white/10 rounded-md py-2">{profile?.name}</p>
+                        <p className="text-sm text-white/80">{profile?.email}</p>
+                    </div>
                  </div>
             </GlassCard>
 
@@ -592,7 +621,7 @@ const SettingsPage: React.FC = () => {
                 </div>
             </SettingsCard>
 
-            <SettingsCard title="الإشعارات" icon="🔔">
+            <SettingsCard title="الإشعارات الداخلية" icon="🔔">
                 <label className="flex items-center justify-between cursor-pointer">
                     <span className="font-semibold">تفعيل إشعارات الصلوات</span>
                     <input type="checkbox" checked={settings.notifications.prayers} onChange={e => handleSettingsChange('notifications', {...settings.notifications, prayers: e.target.checked})} className="w-6 h-6 rounded accent-yellow-400"/>
@@ -602,6 +631,14 @@ const SettingsPage: React.FC = () => {
                     <input type="checkbox" checked={settings.notifications.azkar} onChange={e => handleSettingsChange('notifications', {...settings.notifications, azkar: e.target.checked})} className="w-6 h-6 rounded accent-yellow-400"/>
                 </label>
             </SettingsCard>
+            
+            <PushNotificationManager />
+
+             <GlassCard>
+                <button onClick={signOut} className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors">
+                    تسجيل الخروج
+                </button>
+            </GlassCard>
 
              <div className="border-2 border-red-500/50 rounded-2xl p-4 space-y-4">
                 <h4 className="text-lg font-bold text-center text-red-300">منطقة الخطر</h4>
@@ -620,7 +657,7 @@ const SettingsPage: React.FC = () => {
 const GOAL_ICONS = ['🎯', '📖', '🤲', '❤️', '💰', '🏃‍♂️', '🌱', '⭐', '📿', '🕌'];
 
 const GoalsPage: React.FC = () => {
-    const context = useContext(AppContext);
+    const { personalGoals, addPersonalGoal, goalProgress, updateTargetGoalProgress, toggleDailyGoalCompletion, dailyData, deletePersonalGoal } = useAppContext();
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [goal, setGoal] = useState({ title: '', icon: GOAL_ICONS[0], type: 'daily' as GoalType, target: 1, unit: '', endDate: '' });
     const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
@@ -628,10 +665,6 @@ const GoalsPage: React.FC = () => {
     const [inspiration, setInspiration] = useState<{title: string; icon: string} | null>(null);
     const [isInspiring, setIsInspiring] = useState(false);
     const [inspirationError, setInspirationError] = useState<string | null>(null);
-
-
-    if (!context) return null;
-    const { personalGoals, addPersonalGoal, goalProgress, updateTargetGoalProgress, toggleDailyGoalCompletion, dailyData, deletePersonalGoal } = context;
     
     const handleInspireMe = async () => {
         setIsInspiring(true);
@@ -828,11 +861,93 @@ const GoalsPage: React.FC = () => {
     );
 };
 
+const PrivacyPolicyPage: React.FC = () => (
+    <GlassCard className="text-white">
+        <div className="prose prose-invert prose-headings:font-amiri prose-headings:text-yellow-300 prose-a:text-teal-300 max-w-none">
+            <h2>سياسة الخصوصية لتطبيق مَحيّاي</h2>
+            <p><strong>آخر تحديث:</strong> 25 يوليو 2024</p>
+
+            <h4>1. مقدمة</h4>
+            <p>نحن في تطبيق "مَحيّاي" نأخذ خصوصيتك على محمل الجد. توضح هذه السياسة كيف نتعامل مع معلوماتك الشخصية. باستخدامك للتطبيق، فإنك توافق على الممارسات الموضحة في هذه السياسة.</p>
+
+            <h4>2. البيانات التي نجمعها</h4>
+            <p>تطبيق "مَحيّاي" مصمم ليعمل بخصوصية تامة. البيانات الوحيدة التي يتم جمعها هي:</p>
+            <ul>
+                <li><strong>الاسم:</strong> الاسم الذي تقدمه عند بدء استخدام التطبيق لتخصيص تجربتك.</li>
+                <li><strong>بيانات الاستخدام:</strong> سجلات عباداتك (الصلوات، الأذكار، قراءة القرآن) وأهدافك الشخصية.</li>
+            </ul>
+
+            <h4>3. تخزين البيانات</h4>
+            <p><strong>جميع بياناتك يتم تخزينها محليًا على جهازك فقط</strong> داخل مساحة التخزين الخاصة بالمتصفح (LocalStorage). نحن لا نقوم برفع أو تخزين أي من بياناتك الشخصية أو بيانات استخدامك على خوادمنا أو أي خدمة سحابية أخرى.</p>
+
+            <h4>4. استخدام البيانات</h4>
+            <p>تُستخدم بياناتك للأغراض التالية فقط:</p>
+            <ul>
+                <li>عرض إحصائياتك وتقدمك داخل التطبيق.</li>
+                <li>تخصيص تجربتك، مثل مناداتك باسمك.</li>
+                <li>تشغيل الميزات الأساسية للتطبيق.</li>
+            </ul>
+
+            <h4>5. مشاركة البيانات وخدمات الطرف الثالث</h4>
+            <p>نحن لا نبيع أو نشارك بياناتك الشخصية مع أي طرف ثالث. ومع ذلك، يستخدم التطبيق خدمات طرف ثالث ضرورية لعمله:</p>
+            <ul>
+                <li><strong>Aladhan API:</strong> للحصول على مواقيت الصلاة بناءً على موقعك (إذا وافقت على مشاركته) أو لمدينة افتراضية.</li>
+                <li><strong>Google Gemini API:</strong> لتشغيل الميزات المعززة بالذكاء الاصطناعي مثل "رفيق الدعاء" و "تأملات الآيات". يتم إرسال استفساراتك فقط (نص الآية أو طلب الدعاء) بشكل مجهول إلى الخدمة لمعالجتها.</li>
+            </ul>
+
+            <h4>6. التحكم في بياناتك</h4>
+            <p>لديك السيطرة الكاملة على بياناتك. يمكنك حذف جميع بياناتك في أي وقت من خلال خيار "إعادة تعيين التطبيق" في صفحة الإعدادات.</p>
+
+            <h4>7. خصوصية الأطفال</h4>
+            <p>التطبيق مخصص لجميع الأعمار ولا يجمع عن قصد أي معلومات يمكن التعرف عليها شخصيًا من الأطفال.</p>
+            
+            <h4>8. تغييرات على سياسة الخصوصية</h4>
+            <p>قد نقوم بتحديث سياسة الخصوصية هذه من وقت لآخر. سنعلمك بأي تغييرات عن طريق نشر السياسة الجديدة في هذه الصفحة.</p>
+
+            <h4>9. اتصل بنا</h4>
+            <p>إذا كانت لديك أي أسئلة حول سياسة الخصوصية هذه، يمكنك التواصل معنا عبر البريد الإلكتروني: <a href="mailto:support@tech-bokra.com">support@tech-bokra.com</a></p>
+        </div>
+    </GlassCard>
+);
+
+const TermsOfUsePage: React.FC = () => (
+    <GlassCard className="text-white">
+        <div className="prose prose-invert prose-headings:font-amiri prose-headings:text-yellow-300 prose-a:text-teal-300 max-w-none">
+            <h2>شروط الاستخدام لتطبيق مَحيّاي</h2>
+            <p><strong>آخر تحديث:</strong> 25 يوليو 2024</p>
+            
+            <h4>1. قبول الشروط</h4>
+            <p>باستخدامك لتطبيق "مَحيّاي" ("التطبيق")، فإنك توافق على الالتزام بشروط الاستخدام هذه ("الشروط"). إذا كنت لا توافق على هذه الشروط، يرجى عدم استخدام التطبيق.</p>
+            
+            <h4>2. وصف الخدمة</h4>
+            <p>"مَحيّاي" هو تطبيق إسلامي يهدف لمساعدة المستخدمين على تتبع عباداتهم اليومية. يتم توفير المحتوى الديني (آيات، أحاديث، أذكار) للمنفعة والفائدة، وقد تم بذل أقصى جهد للتأكد من صحته، ولكن يجب على المستخدم دائمًا الرجوع إلى المصادر الأصلية للتحقق.</p>
+            
+            <h4>3. مسؤوليات المستخدم</h4>
+            <p>أنت توافق على استخدام التطبيق فقط للأغراض المشروعة وبطريقة لا تنتهك حقوق الآخرين أو تقيد استخدامهم للتطبيق. بياناتك هي مسؤوليتك الشخصية، حيث يتم تخزينها على جهازك الخاص.</p>
+            
+            <h4>4. إخلاء المسؤولية عن الضمان</h4>
+            <p>يتم توفير التطبيق "كما هو" و "كما هو متاح" دون أي ضمانات من أي نوع. نحن لا نضمن أن التطبيق سيعمل دون انقطاع أو أنه سيكون خاليًا من الأخطاء.</p>
+            
+            <h4>5. حدود المسؤولية</h4>
+            <p>لن نكون مسؤولين عن أي أضرار مباشرة أو غير مباشرة تنشأ عن استخدامك أو عدم قدرتك على استخدام التطبيق.</p>
+            
+            <h4>6. الملكية الفكرية</h4>
+            <p>جميع حقوق الملكية الفكرية المتعلقة بالتطبيق (بما في ذلك الكود المصدري والتصميم والعلامة التجارية) هي ملك لمطوري "مَحيّاي".</p>
+
+            <h4>7. إنهاء الاستخدام</h4>
+            <p>يجوز لنا إنهاء أو تعليق وصولك إلى التطبيق في أي وقت، دون إشعار مسبق، لأي سبب من الأسباب، بما في ذلك انتهاك هذه الشروط.</p>
+            
+            <h4>8. اتصل بنا</h4>
+            <p>إذا كانت لديك أي أسئلة حول هذه الشروط، يمكنك التواصل معنا عبر البريد الإلكتروني: <a href="mailto:support@tech-bokra.com">support@tech-bokra.com</a></p>
+        </div>
+    </GlassCard>
+);
+
 
 const MorePage: React.FC = () => {
     const { page } = useParams<{ page: MorePageType }>();
 
-    const availablePages: MorePageType[] = ['stats', 'challenges', 'about', 'support', 'settings', 'goals'];
+    const availablePages: MorePageType[] = ['stats', 'challenges', 'about', 'support', 'settings', 'goals', 'privacy', 'terms'];
     const currentPage = page && availablePages.includes(page) ? page : 'stats';
 
 
@@ -843,6 +958,8 @@ const MorePage: React.FC = () => {
         support: SupportPage,
         settings: SettingsPage,
         goals: GoalsPage,
+        privacy: PrivacyPolicyPage,
+        terms: TermsOfUsePage,
     };
 
     const pageTitles: Record<MorePageType, string> = {
@@ -851,7 +968,9 @@ const MorePage: React.FC = () => {
         about: 'ℹ️ عن التطبيق',
         support: '🆘 الدعم والأسئلة الشائعة',
         settings: '⚙️ الإعدادات',
-        goals: '🎯 أهدافي الشخصية'
+        goals: '🎯 أهدافي الشخصية',
+        privacy: '🔒 سياسة الخصوصية',
+        terms: '📜 شروط الاستخدام'
     }
 
     const CurrentPage = pageComponents[currentPage];

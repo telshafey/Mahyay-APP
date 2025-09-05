@@ -1,5 +1,4 @@
 
-// Fix: Remove `Partial` from import as it is a built-in TypeScript utility type.
 import { AppData, UserStats, UserChallenge, DailyData, PrayerStatus } from "./types";
 import { CHALLENGES, QURAN_TOTAL_PAGES } from "./constants";
 
@@ -52,7 +51,6 @@ export const calculateStats = (appData: AppData): UserStats => {
         const data = appData[key];
 
         if (data) {
-            // Fix: Explicitly type `p` to resolve error 'Property 'fard' does not exist on type 'unknown''.
             const prayersDone = Object.values(data.prayerData || {}).filter((p: PrayerStatus) => p.fard === 'early' || p.fard === 'ontime').length;
             
             if (i === consecutiveDays && prayersDone >= 3) {
@@ -127,4 +125,60 @@ export const calculateUserChallenges = (appData: AppData): UserChallenge[] => {
         return { ...c, progress };
     });
     return activeChallenges;
+};
+
+
+// --- Data Mapping Utilities ---
+
+// Converts snake_case from DB to camelCase for the app
+export const toCamel = (s: string) => {
+  return s.replace(/([-_][a-z])/ig, ($1) => {
+    return $1.toUpperCase()
+      .replace('-', '')
+      .replace('_', '');
+  });
+};
+
+// Converts camelCase from app to snake_case for the DB
+export const toSnake = (s: string) => {
+    return s.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+};
+
+// Recursively converts keys of an object or array of objects
+export const convertKeys = (obj: any, converter: (s: string) => string): any => {
+    if (Array.isArray(obj)) {
+        return obj.map(v => convertKeys(v, converter));
+    } else if (obj !== null && typeof obj === 'object') {
+        return Object.keys(obj).reduce((acc, key) => {
+            acc[converter(key)] = convertKeys(obj[key], converter);
+            return acc;
+        }, {} as any);
+    }
+    return obj;
+};
+
+// A robust wrapper for localStorage to handle potential browser restrictions or errors.
+export const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return window.localStorage.getItem(key);
+    } catch (e) {
+      console.warn(`Failed to read from localStorage key "${key}"`, e);
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn(`Failed to write to localStorage key "${key}"`, e);
+    }
+  },
+  removeItem: (key: string): void => {
+    try {
+      window.localStorage.removeItem(key);
+    } catch (e) {
+      console.warn(`Failed to remove from localStorage key "${key}"`, e);
+    }
+  }
 };

@@ -1,17 +1,11 @@
-
-
-import React, { useContext, useState, useEffect } from 'react';
-import { AppContext } from '../contexts/AppContext';
+import React, { useState, useEffect } from 'react';
+import { useAppContext } from '../contexts/AppContext';
 import { PRAYERS, ADDITIONAL_PRAYERS } from '../constants';
 import { Prayer, PrayerFardStatus, Nawafil, NawafilStatus } from '../types';
 import GlassCard from '../components/GlassCard';
 
 const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
-    const context = useContext(AppContext);
-    // Fix: Add a guard to ensure context is not null before use.
-    if (!context) return null;
-
-    const { dailyData, updatePrayerStatus, updateSunnahStatus, prayerTimes } = context;
+    const { dailyData, updatePrayerStatus, updateSunnahStatus, prayerTimes } = useAppContext();
     const status = dailyData.prayerData[prayer.name];
 
     const prayerTimeStr = prayerTimes[prayer.name];
@@ -88,11 +82,7 @@ const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
 
 
 const NawafilCard: React.FC<{ nawafil: Nawafil }> = ({ nawafil }) => {
-    const context = useContext(AppContext);
-    // Fix: Add a guard to ensure context is not null before use.
-    if(!context) return null;
-
-    const { dailyData, updateNawafilOption, updateQiyamCount } = context;
+    const { dailyData, updateNawafilOption, updateQiyamCount } = useAppContext();
     const status: NawafilStatus = dailyData.nawafilData[nawafil.name] || {};
 
     return(
@@ -156,7 +146,7 @@ const PrayersPage: React.FC = () => {
                 {PRAYERS.map(p => (
                     <button key={p.name} onClick={() => setSelectedPrayer(p)} className={`p-2 rounded-lg transition-all text-white ${selectedPrayer.name === p.name ? 'bg-white/25 scale-105' : 'bg-white/10 hover:bg-white/20'}`}>
                         <div className="text-xl md:text-2xl">{p.emoji}</div>
-                        <div className="text-[10px] md:text-xs font-semibold">{p.name}</div>
+                        <div className="text-xs font-semibold">{p.name}</div>
                     </button>
                 ))}
             </div>

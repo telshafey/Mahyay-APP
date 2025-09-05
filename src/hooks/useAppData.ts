@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AppData, DailyData, PrayerFardStatus, Settings, Prayer, UserStats, IslamicOccasion, HijriMonthInfo, Wisdom, HijriYearInfo, PrayerStatus, PersonalGoal, GoalProgress } from '../types';
 import { PRAYERS, AZKAR_DATA, DAILY_DUAS, ISLAMIC_OCCASIONS, HIJRI_MONTHS_INFO, DAILY_WISDOMS, AZKAR_TYPES } from '../constants';
-import { calculateStats } from '../utils';
+import { calculateStats, toSnake, toCamel, convertKeys, safeLocalStorage } from '../utils';
+import { supabase } from '../supabase';
+import { useAuthContext } from '../contexts/AuthContext';
 
 const getDateKey = (date: Date = new Date()): string => {
   return date.toISOString().split('T')[0];
@@ -33,13 +35,14 @@ const defaultSettings: Settings = {
     prayerMethod: 5,
 };
 
+// Local storage keys remain for offline caching
 const APP_DATA_KEY = 'mahyay_appData';
 const SETTINGS_KEY = 'mahyay_settings';
 const PERSONAL_GOALS_KEY = 'mahyay_personalGoals';
 const GOAL_PROGRESS_KEY = 'mahyay_goalProgress';
 
-
 export const useAppData = () => {
+  const { profile } = useAuthContext();
   const [appData, setAppData] = useState<AppData>({});
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isDataLoading, setIsDataLoading] = useState(true);
@@ -48,6 +51,9 @@ export const useAppData = () => {
   
   const [hijriDate, setHijriDate] = useState('');
   const [gregorianDate, setGregorianDate] = useState('');
+  const [shortHijriDate, setShortHijriDate] = useState('');
+  const [shortGregorianDate, setShortGregorianDate] = useState('');
+
   const [dailyDua, setDailyDua] = useState(DAILY_DUAS[0]);
   const [prayerTimes, setPrayerTimes] = useState<Record<string, string>>({});
   const [dailyWisdom, setDailyWisdom] = useState<Wisdom | null>(null);
@@ -55,83 +61,15 @@ export const useAppData = () => {
   const [currentHijriMonthInfo, setCurrentHijriMonthInfo] = useState<HijriMonthInfo | null>(null);
   const [nextIslamicOccasion, setNextIslamicOccasion] = useState<IslamicOccasion | null>(null);
 
-  // Goals State
   const [personalGoals, setPersonalGoals] = useState<PersonalGoal[]>([]);
   const [goalProgress, setGoalProgress] = useState<GoalProgress>({});
 
-  // Location State
   const [coordinates, setCoordinates] = useState<{ lat: number; lon: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
 
-  // Notification State
   const [notification, setNotification] = useState<{ message: string; icon: string } | null>(null);
   const notificationTimeoutRef = useRef<number | null>(null);
   const shownNotificationsRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    setIsDataLoading(true);
-    setDataError(null);
-    try {
-        const storedAppData = localStorage.getItem(APP_DATA_KEY);
-        const storedSettings = localStorage.getItem(SETTINGS_KEY);
-        const storedGoals = localStorage.getItem(PERSONAL_GOALS_KEY);
-        const storedGoalProgress = localStorage.getItem(GOAL_PROGRESS_KEY);
-
-        if (storedAppData) setAppData(JSON.parse(storedAppData));
-        if (storedSettings) setSettings(JSON.parse(storedSettings));
-        if (storedGoals) setPersonalGoals(JSON.parse(storedGoals));
-        if (storedGoalProgress) setGoalProgress(JSON.parse(storedGoalProgress));
-
-    } catch (error) {
-        console.error("Error loading data from localStorage:", error);
-        setDataError("فشل تحميل بياناتك من المتصفح. قد تكون البيانات تالفة.");
-    } finally {
-        setIsDataLoading(false);
-    }
-  }, []);
-
-  const dailyData = useMemo(() => {
-    const dataForToday = appData[todayKey];
-    return { ...defaultDailyData, ...dataForToday };
-  }, [appData, todayKey]);
-
-
-  const saveData = useCallback((newDailyData: Partial<DailyData>) => {
-    setAppData(prevAppData => {
-        const currentDailyData = prevAppData[todayKey] || defaultDailyData;
-        const updatedDailyData = { ...currentDailyData, ...newDailyData };
-         if (!updatedDailyData.dailyGoalProgress) {
-            updatedDailyData.dailyGoalProgress = {};
-        }
-        const newAppData = {
-            ...prevAppData,
-            [todayKey]: updatedDailyData
-        };
-        localStorage.setItem(APP_DATA_KEY, JSON.stringify(newAppData));
-        return newAppData;
-    });
-  }, [todayKey]);
-
-  const updateSettings = useCallback((newSettings: Partial<Settings>) => {
-    setSettings(prevSettings => {
-        const updatedSettings = { ...prevSettings, ...newSettings };
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(updatedSettings));
-        return updatedSettings;
-    });
-  }, []);
-
-  const resetAllData = async () => {
-      if (!window.confirm("⚠️ تحذير! هل أنت متأكد من أنك تريد مسح جميع بيانات العبادة والأهداف؟ لا يمكن التراجع عن هذا الإجراء.")) return;
-      
-      localStorage.removeItem(APP_DATA_KEY);
-      localStorage.removeItem(PERSONAL_GOALS_KEY);
-      localStorage.removeItem(GOAL_PROGRESS_KEY);
-      setAppData({});
-      setPersonalGoals([]);
-      setGoalProgress({});
-
-      alert("تم مسح بيانات العبادة والأهداف بنجاح.");
-  };
 
   const showNotification = useCallback((message: string, icon: string) => {
       if (notificationTimeoutRef.current) {
@@ -143,78 +81,348 @@ export const useAppData = () => {
       }, 5000);
   }, []);
 
+  // --- DATA SYNC WITH SUPABASE ---
 
-  // --- GOALS MANAGEMENT ---
-    const saveGoals = useCallback((goals: PersonalGoal[]) => {
-      setPersonalGoals(goals);
-      localStorage.setItem(PERSONAL_GOALS_KEY, JSON.stringify(goals));
-    }, []);
-
-    const saveGoalProgress = useCallback((progress: GoalProgress) => {
-        setGoalProgress(progress);
-        localStorage.setItem(GOAL_PROGRESS_KEY, JSON.stringify(progress));
-    }, []);
-
-    const addPersonalGoal = (goal: Omit<PersonalGoal, 'id' | 'createdAt' | 'isArchived' | 'completedAt'>) => {
-        const newGoal: PersonalGoal = {
-            ...goal,
-            id: crypto.randomUUID(),
-            createdAt: new Date().toISOString(),
-            isArchived: false,
+  useEffect(() => {
+    const loadData = async () => {
+        if (!profile) {
+            setIsDataLoading(false);
+            return;
         };
-        const updatedGoals = [...personalGoals, newGoal];
-        saveGoals(updatedGoals);
-        if (newGoal.type === 'target' && goalProgress[newGoal.id] === undefined) {
-            const newProgress = {...goalProgress, [newGoal.id]: 0};
-            saveGoalProgress(newProgress);
+
+        setIsDataLoading(true);
+        setDataError(null);
+
+        try {
+            // Load from localStorage first for offline speed
+            try {
+                const storedAppData = safeLocalStorage.getItem(APP_DATA_KEY);
+                const storedSettings = safeLocalStorage.getItem(SETTINGS_KEY);
+                const storedGoals = safeLocalStorage.getItem(PERSONAL_GOALS_KEY);
+                const storedGoalProgress = safeLocalStorage.getItem(GOAL_PROGRESS_KEY);
+
+                if (storedAppData) setAppData(JSON.parse(storedAppData));
+                if (storedSettings) {
+                    const loadedSettings = JSON.parse(storedSettings);
+                    // Merge with defaults to prevent crashes on missing nested keys
+                    setSettings({
+                        ...defaultSettings,
+                        ...loadedSettings,
+                        notifications: {
+                            ...defaultSettings.notifications,
+                            ...(loadedSettings.notifications || {}),
+                        },
+                    });
+                }
+                if (storedGoals) setPersonalGoals(JSON.parse(storedGoals));
+                if (storedGoalProgress) setGoalProgress(JSON.parse(storedGoalProgress));
+            } catch (e) {
+                console.warn("Failed to load or parse data from localStorage. Resetting local state.", e);
+                setAppData({});
+                setSettings(defaultSettings);
+                setPersonalGoals([]);
+                setGoalProgress({});
+            }
+
+
+            // Fetch from Supabase to get the latest synced data
+            const [
+                settingsRes,
+                goalsRes,
+                goalProgressRes,
+                dailyDataRes
+            ] = await Promise.all([
+                supabase.from('settings').select('*').eq('user_id', profile.id).single(),
+                supabase.from('personal_goals').select('*').eq('user_id', profile.id),
+                supabase.from('goal_progress').select('*').eq('user_id', profile.id),
+                supabase.from('daily_data').select('*').eq('user_id', profile.id),
+            ]);
+
+            if (settingsRes.error) throw new Error(`Settings fetch failed: ${settingsRes.error.message}`);
+            if (goalsRes.error) throw new Error(`Goals fetch failed: ${goalsRes.error.message}`);
+            if (goalProgressRes.error) throw new Error(`Goal Progress fetch failed: ${goalProgressRes.error.message}`);
+            if (dailyDataRes.error) throw new Error(`Daily Data fetch failed: ${dailyDataRes.error.message}`);
+            
+            // Sync settings
+            if (settingsRes.data) {
+                const loadedSettings: Partial<Settings> = convertKeys(settingsRes.data, toCamel);
+                const mergedSettings: Settings = {
+                    ...defaultSettings,
+                    ...loadedSettings,
+                    notifications: {
+                        ...defaultSettings.notifications,
+                        ...(loadedSettings.notifications || {}),
+                    },
+                };
+                setSettings(mergedSettings);
+                safeLocalStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
+            }
+
+            // Sync personal goals
+            if (goalsRes.data) {
+                const dbGoals: PersonalGoal[] = convertKeys(goalsRes.data, toCamel);
+                setPersonalGoals(dbGoals);
+                safeLocalStorage.setItem(PERSONAL_GOALS_KEY, JSON.stringify(dbGoals));
+            }
+            
+            // Sync goal progress
+            if (goalProgressRes.data) {
+                const dbProgress = goalProgressRes.data.reduce((acc, item) => {
+                    acc[item.goal_id] = item.current_value;
+                    return acc;
+                }, {} as GoalProgress);
+                setGoalProgress(dbProgress);
+                safeLocalStorage.setItem(GOAL_PROGRESS_KEY, JSON.stringify(dbProgress));
+            }
+
+            // Sync daily data
+            if (dailyDataRes.data) {
+                const dbAppData = dailyDataRes.data.reduce((acc, day) => {
+                    acc[day.date_key] = convertKeys(day, toCamel);
+                    return acc;
+                }, {} as AppData);
+                setAppData(dbAppData);
+                safeLocalStorage.setItem(APP_DATA_KEY, JSON.stringify(dbAppData));
+            }
+
+        } catch (error) {
+            console.error("Error loading data:", error);
+            const message = error instanceof Error ? error.message : "فشل تحميل بياناتك من السحابة. قد يتم عرض بيانات غير محدّثة.";
+            setDataError(message);
+        } finally {
+            setIsDataLoading(false);
         }
     };
 
-    const updatePersonalGoal = (goalId: string, updates: Partial<PersonalGoal>) => {
+    loadData();
+  }, [profile]);
+
+  const dailyData = useMemo(() => {
+    const dataForToday = appData[todayKey];
+    return { ...defaultDailyData, ...dataForToday };
+  }, [appData, todayKey]);
+
+
+  const saveData = useCallback(async (newDailyData: Partial<DailyData>) => {
+    if (!profile) return;
+    const currentDailyData = appData[todayKey] || defaultDailyData;
+    const updatedDailyData = { ...currentDailyData, ...newDailyData };
+    
+    // Optimistic UI update
+    const newAppData = { ...appData, [todayKey]: updatedDailyData };
+    setAppData(newAppData);
+    safeLocalStorage.setItem(APP_DATA_KEY, JSON.stringify(newAppData));
+
+    // Sync to Supabase
+    try {
+        const dataToUpsert = {
+            user_id: profile.id,
+            date_key: todayKey,
+            prayer_data: updatedDailyData.prayerData,
+            nawafil_data: updatedDailyData.nawafilData,
+            azkar_progress: updatedDailyData.azkarProgress,
+            azkar_status: updatedDailyData.azkarStatus,
+            quran_read: updatedDailyData.quranRead,
+            quran_khatmat: updatedDailyData.quranKhatmat,
+            daily_goal_progress: updatedDailyData.dailyGoalProgress,
+        };
+        
+        const { error } = await supabase.from('daily_data').upsert(dataToUpsert);
+        if (error) throw error;
+
+    } catch (error) {
+        console.error("Failed to sync daily data:", error);
+        showNotification("⚠️ فشلت المزامنة، تحقق من اتصالك", "🔄");
+    }
+  }, [appData, todayKey, profile, showNotification]);
+
+  const updateSettings = useCallback(async (newSettings: Partial<Settings>) => {
+    if (!profile) return;
+    
+    // Perform a deep merge for nested objects like 'notifications' to prevent data loss.
+    const updatedSettings: Settings = {
+        ...settings,
+        ...newSettings,
+        notifications: {
+            ...settings.notifications,
+            ...(newSettings.notifications || {}),
+        },
+    };
+
+    setSettings(updatedSettings);
+    safeLocalStorage.setItem(SETTINGS_KEY, JSON.stringify(updatedSettings));
+
+    try {
+        const settingsForDb = convertKeys(updatedSettings, toSnake);
+        const { error } = await supabase.from('settings').upsert({ ...settingsForDb, user_id: profile.id });
+        if (error) throw error;
+    } catch(error) {
+        console.error("Failed to sync settings:", error);
+        showNotification("⚠️ فشلت مزامنة الإعدادات", "⚙️");
+    }
+  }, [settings, profile, showNotification]);
+
+  const resetAllData = async () => {
+      if (!profile) return;
+      if (!window.confirm("⚠️ تحذير! هل أنت متأكد من أنك تريد مسح جميع بيانات العبادة والأهداف من حسابك؟ لا يمكن التراجع عن هذا الإجراء.")) return;
+      
+      try {
+          // Delete from Supabase
+          await Promise.all([
+              supabase.from('daily_data').delete().eq('user_id', profile.id),
+              supabase.from('personal_goals').delete().eq('user_id', profile.id),
+              // Goal progress is cascade deleted
+          ]);
+          
+          // Clear local
+          safeLocalStorage.removeItem(APP_DATA_KEY);
+          safeLocalStorage.removeItem(PERSONAL_GOALS_KEY);
+          safeLocalStorage.removeItem(GOAL_PROGRESS_KEY);
+          setAppData({});
+          setPersonalGoals([]);
+          setGoalProgress({});
+
+          alert("تم مسح بيانات العبادة والأهداف من حسابك بنجاح.");
+      } catch (error) {
+          console.error("Failed to reset data:", error);
+          alert("حدث خطأ أثناء محاولة مسح البيانات من السحابة.");
+      }
+  };
+
+  // --- GOALS MANAGEMENT ---
+    const addPersonalGoal = async (goal: Omit<PersonalGoal, 'id' | 'createdAt' | 'isArchived' | 'completedAt'>) => {
+        if(!profile) return;
+        const tempId = crypto.randomUUID();
+        const newGoal: PersonalGoal = {
+            ...goal,
+            id: tempId, // Temporary ID for UI
+            createdAt: new Date().toISOString(),
+            isArchived: false,
+        };
+        
+        // Optimistic UI update
+        const updatedGoals = [...personalGoals, newGoal];
+        setPersonalGoals(updatedGoals);
+        safeLocalStorage.setItem(PERSONAL_GOALS_KEY, JSON.stringify(updatedGoals));
+        
+        try {
+            const goalForDb = convertKeys({ ...goal, user_id: profile.id }, toSnake);
+            const { data, error } = await supabase.from('personal_goals').insert(goalForDb).select().single();
+            if (error) throw error;
+            
+            const savedGoal: PersonalGoal = convertKeys(data, toCamel);
+
+            // Replace temporary goal with the one from DB
+            const finalGoals = personalGoals.map(g => g.id === tempId ? savedGoal : g)
+            setPersonalGoals(finalGoals);
+            safeLocalStorage.setItem(PERSONAL_GOALS_KEY, JSON.stringify(finalGoals));
+
+            if (savedGoal.type === 'target') {
+                await updateTargetGoalProgress(savedGoal.id, 0, true);
+            }
+        } catch(error) {
+            console.error("Failed to add goal:", error);
+            showNotification("⚠️ فشلت إضافة الهدف", "🎯");
+            // Revert UI change
+            setPersonalGoals(personalGoals);
+        }
+    };
+
+    const updatePersonalGoal = async (goalId: string, updates: Partial<PersonalGoal>) => {
+       if (!profile) return;
+        
+        const oldGoals = personalGoals;
         const updatedGoals = personalGoals.map(g => g.id === goalId ? { ...g, ...updates } : g);
-        saveGoals(updatedGoals);
+        setPersonalGoals(updatedGoals);
+        safeLocalStorage.setItem(PERSONAL_GOALS_KEY, JSON.stringify(updatedGoals));
+        
+        try {
+            const updatesForDb = convertKeys(updates, toSnake);
+            const { error } = await supabase.from('personal_goals').update(updatesForDb).eq('id', goalId);
+            if(error) throw error;
+        } catch (error) {
+            console.error("Failed to update goal:", error);
+            showNotification("⚠️ فشل تحديث الهدف", "🎯");
+            setPersonalGoals(oldGoals);
+        }
     };
     
     const archivePersonalGoal = (goalId: string) => {
         updatePersonalGoal(goalId, { isArchived: true });
     };
 
-    const deletePersonalGoal = (goalId: string) => {
+    const deletePersonalGoal = async (goalId: string) => {
+        if(!profile) return;
+        
+        const oldGoals = personalGoals;
+        const oldProgress = goalProgress;
+
         const updatedGoals = personalGoals.filter(g => g.id !== goalId);
         const newProgress = { ...goalProgress };
         delete newProgress[goalId];
-        saveGoals(updatedGoals);
-        saveGoalProgress(newProgress);
+        
+        setPersonalGoals(updatedGoals);
+        setGoalProgress(newProgress);
+        safeLocalStorage.setItem(PERSONAL_GOALS_KEY, JSON.stringify(updatedGoals));
+        safeLocalStorage.setItem(GOAL_PROGRESS_KEY, JSON.stringify(newProgress));
+        
+        try {
+            const { error } = await supabase.from('personal_goals').delete().eq('id', goalId);
+            if(error) throw error;
+        } catch (error) {
+            console.error("Failed to delete goal:", error);
+            showNotification("⚠️ فشل حذف الهدف", "🎯");
+            setPersonalGoals(oldGoals);
+            setGoalProgress(oldProgress);
+        }
     };
   
-    const updateTargetGoalProgress = (goalId: string, newValue: number) => {
+    const updateTargetGoalProgress = async (goalId: string, newValue: number, isInitial = false) => {
+        if(!profile) return;
         const goal = personalGoals.find(g => g.id === goalId);
         if (!goal) return;
+
         const cappedValue = Math.max(0, Math.min(newValue, goal.target));
         const newProgress = { ...goalProgress, [goalId]: cappedValue };
 
-        if (cappedValue >= goal.target && !goal.completedAt) {
-            updatePersonalGoal(goalId, { completedAt: new Date().toISOString() });
-            showNotification(`🎉 رائع! أتممت هدف '${goal.title}'`, goal.icon);
-        } else if (cappedValue < goal.target && goal.completedAt) {
-            updatePersonalGoal(goalId, { completedAt: undefined });
+        // Optimistic update
+        setGoalProgress(newProgress);
+        safeLocalStorage.setItem(GOAL_PROGRESS_KEY, JSON.stringify(newProgress));
+
+        if (!isInitial) {
+          if (cappedValue >= goal.target && !goal.completedAt) {
+              updatePersonalGoal(goalId, { completedAt: new Date().toISOString() });
+              showNotification(`🎉 رائع! أتممت هدف '${goal.title}'`, goal.icon);
+          } else if (cappedValue < goal.target && goal.completedAt) {
+              updatePersonalGoal(goalId, { completedAt: undefined });
+          }
         }
-        saveGoalProgress(newProgress);
+
+        try {
+            const { error } = await supabase.from('goal_progress').upsert({
+                goal_id: goalId,
+                user_id: profile.id,
+                current_value: cappedValue
+            });
+            if (error) throw error;
+        } catch (error) {
+            console.error("Failed to sync goal progress:", error);
+            showNotification("⚠️ فشلت مزامنة تقدم الهدف", "🎯");
+        }
     };
 
     const toggleDailyGoalCompletion = (goalId: string) => {
         const currentStatus = dailyData.dailyGoalProgress[goalId] || false;
         const newDailyGoalProgress = { ...dailyData.dailyGoalProgress, [goalId]: !currentStatus };
         saveData({ dailyGoalProgress: newDailyGoalProgress });
-        if (!currentStatus) { // if it was false and is now true
+        if (!currentStatus) {
             const goal = personalGoals.find(g => g.id === goalId);
             if (goal) {
                 showNotification(`أحسنت! أكملت هدف '${goal.title}'`, goal.icon);
             }
         }
     };
-
-  // --- END GOALS MANAGEMENT ---
+  // --- END GOALS & DATA SYNC ---
   
   const updatePrayerStatus = (prayerName: string, status: PrayerFardStatus) => {
     const newPrayerData = { ...dailyData.prayerData };
@@ -345,7 +553,6 @@ export const useAppData = () => {
       return;
     }
     
-    // Geolocation API is often restricted to secure contexts (HTTPS).
     if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
         setLocationError("خدمات الموقع تتطلب اتصالاً آمناً (HTTPS) لتعمل بشكل صحيح. سيتم عرض مواقيت الصلاة للقاهرة.");
         setCoordinates(null);
@@ -358,7 +565,7 @@ export const useAppData = () => {
           lat: position.coords.latitude,
           lon: position.coords.longitude,
         });
-        setLocationError(null); // Clear previous errors on success
+        setLocationError(null);
       },
       (error: GeolocationPositionError) => {
           console.error(`Geolocation Error: Code=${error.code}, Message=${error.message}`);
@@ -424,6 +631,7 @@ export const useAppData = () => {
                 const hijri = data.data.date.hijri;
                 const gregorian = data.data.date.gregorian;
 
+                // Long formats
                 setHijriDate(`${hijri.day} ${hijri.month.ar}، ${hijri.year} هـ`);
                 
                 const dayOfWeek = hijri.weekday.ar;
@@ -436,8 +644,12 @@ export const useAppData = () => {
                     year: 'numeric',
                     timeZone: 'UTC'
                 }).format(dateObj);
-                
                 setGregorianDate(`${dayOfWeek}، ${formattedGregorian}`);
+
+                // Short formats
+                setShortHijriDate(`${hijri.day}/${hijri.month.number}/${hijri.year}`);
+                setShortGregorianDate(`${gregorian.day}/${gregorian.month.number}/${gregorian.year}`);
+
 
                 const hijriYear = hijri.year;
                 const yearInfo = { year: hijriYear, length: 354 };
@@ -602,6 +814,8 @@ export const useAppData = () => {
     updateSettings,
     hijriDate,
     gregorianDate,
+    shortHijriDate,
+    shortGregorianDate,
     dailyDua,
     nextPrayer,
     stats,
