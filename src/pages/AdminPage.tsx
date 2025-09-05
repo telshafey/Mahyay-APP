@@ -3,7 +3,7 @@ import { AppContext } from '../contexts/AppContext';
 import { AuthContext } from '../contexts/AuthContext';
 import GlassCard from '../components/GlassCard';
 
-const DATA_KEYS = ['mahyay_appData', 'mahyay_settings', 'mahyay_userProfile'];
+const DATA_KEYS = ['mahyay_appData', 'mahyay_settings', 'mahyay_userProfile', 'mahyay_personalGoals', 'mahyay_goalProgress'];
 
 const AdminPage: React.FC = () => {
     const appContext = useContext(AppContext);
@@ -43,15 +43,19 @@ const AdminPage: React.FC = () => {
                 if (typeof text !== 'string') throw new Error("File is not readable");
                 
                 const importedData = JSON.parse(text);
+                
+                const requiredKeys = ['mahyay_appData', 'mahyay_settings', 'mahyay_userProfile'];
+                const hasAllKeys = requiredKeys.every(key => Object.prototype.hasOwnProperty.call(importedData, key));
 
-                const hasAllKeys = DATA_KEYS.every(key => Object.prototype.hasOwnProperty.call(importedData, key));
                 if (!hasAllKeys) {
                     throw new Error("ملف النسخ الاحتياطي غير صالح أو تالف.");
                 }
 
                 if (window.confirm("⚠️ هل أنت متأكد من استيراد هذه البيانات؟ سيتم الكتابة فوق جميع بياناتك الحالية.")) {
-                    DATA_KEYS.forEach(key => {
-                         localStorage.setItem(key, JSON.stringify(importedData[key]));
+                    Object.keys(importedData).forEach(key => {
+                         if (DATA_KEYS.includes(key)) {
+                            localStorage.setItem(key, JSON.stringify(importedData[key]));
+                         }
                     });
                     alert("تم استيراد البيانات بنجاح! سيتم إعادة تحميل التطبيق الآن.");
                     window.location.reload();
@@ -96,6 +100,16 @@ const AdminPage: React.FC = () => {
         <div className="space-y-6 text-white">
             <h2 className="text-3xl font-bold text-center font-amiri">👑 لوحة تحكم المشرف</h2>
             
+             <GlassCard className="!bg-blue-900/30 !border-blue-400/50">
+                <div className="flex items-center gap-4 text-white">
+                    <span className="text-4xl">💡</span>
+                    <div>
+                        <h4 className="font-bold">نصيحة للحفاظ على بياناتك</h4>
+                        <p className="text-sm text-white/90">نوصي بتصدير نسخة احتياطية من بياناتك بشكل دوري (أسبوعياً مثلاً) وحفظها في مكان آمن. هذا يضمن عدم ضياع سجل إنجازاتك عند تغيير الجهاز أو حذف بيانات المتصفح.</p>
+                    </div>
+                </div>
+            </GlassCard>
+
             <GlassCard>
                 <h3 className="text-xl font-bold mb-4">💾 إدارة البيانات</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

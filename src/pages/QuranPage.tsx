@@ -1,12 +1,13 @@
+
 import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../contexts/AppContext';
 import GlassCard from '../components/GlassCard';
 import { getVerseReflection } from '../services/geminiService';
 import { REFLECTION_VERSES } from '../constants';
+import { VerseReflection } from '../types';
 
 const QuranPage: React.FC = () => {
     const context = useContext(AppContext);
-    // Fix: Add a guard to ensure context is not null before use.
     if (!context) return null;
     const { dailyData, settings, updateQuranRead, completeKhatma } = context;
 
@@ -16,26 +17,32 @@ const QuranPage: React.FC = () => {
     const khatmat = dailyData.quranKhatmat || 0;
 
     const [reflectionVerse, setReflectionVerse] = useState<{ text: string; source: string; } | null>(null);
-    const [reflectionText, setReflectionText] = useState<string | null>(null);
+    const [reflectionData, setReflectionData] = useState<VerseReflection | null>(null);
     const [isReflectionLoading, setIsReflectionLoading] = useState(false);
+    const [reflectionError, setReflectionError] = useState<string | null>(null);
 
     useEffect(() => {
         if (progress >= 100 && !reflectionVerse) {
             const randomIndex = Math.floor(Math.random() * REFLECTION_VERSES.length);
             setReflectionVerse(REFLECTION_VERSES[randomIndex]);
-            setReflectionText(null); 
+            setReflectionData(null); 
         } else if (progress < 100 && reflectionVerse) {
             setReflectionVerse(null);
-            setReflectionText(null);
+            setReflectionData(null);
         }
     }, [progress, reflectionVerse]);
 
     const handleGetReflection = async () => {
         if (!reflectionVerse) return;
         setIsReflectionLoading(true);
-        setReflectionText(null);
+        setReflectionData(null);
+        setReflectionError(null);
         const reflection = await getVerseReflection(reflectionVerse.text);
-        setReflectionText(reflection);
+        if (reflection) {
+            setReflectionData(reflection);
+        } else {
+            setReflectionError("عذرًا، حدث خطأ أثناء جلب التأمل. يرجى المحاولة مرة أخرى.");
+        }
         setIsReflectionLoading(false);
     };
 
@@ -116,7 +123,7 @@ const QuranPage: React.FC = () => {
                     <p className="text-sm text-purple-300 mt-2">{reflectionVerse.source}</p>
                 </div>
                 
-                {!reflectionText && (
+                {!reflectionData && !isReflectionLoading && (
                     <div className="text-center">
                         <button 
                             onClick={handleGetReflection} 
@@ -127,21 +134,43 @@ const QuranPage: React.FC = () => {
                         </button>
                     </div>
                 )}
+                
+                {isReflectionLoading && (
+                     <div className="text-center p-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-300 mx-auto"></div>
+                        <p className="text-white/80 mt-2 text-sm">جاري جلب التأملات...</p>
+                    </div>
+                )}
 
-                {reflectionText && (
-                    <div className="p-4 bg-black/20 rounded-lg text-center animate-fade-in space-y-4">
-                        <p className="text-white leading-relaxed font-amiri text-lg">{reflectionText}</p>
-                        <button 
-                            onClick={handleGetReflection}
-                            disabled={isReflectionLoading} 
-                            className="text-sm bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-4 rounded-full transition-colors"
-                        >
-                            {isReflectionLoading ? '...' : '🔄 إعادة التأمل'}
-                        </button>
+                {reflectionError && (
+                    <div className="p-3 bg-red-900/50 rounded-lg text-center text-red-300 text-sm animate-fade-in">
+                        {reflectionError}
+                    </div>
+                )}
+
+                {reflectionData && (
+                    <div className="space-y-4 animate-fade-in">
+                        <div className="p-4 bg-black/20 rounded-lg">
+                            <h4 className="font-bold text-purple-300 mb-2">التأمل:</h4>
+                            <p className="text-white leading-relaxed font-amiri text-lg">{reflectionData.reflection}</p>
+                        </div>
+                         <div className="p-4 bg-black/20 rounded-lg">
+                            <h4 className="font-bold text-purple-300 mb-2">خطوة عملية:</h4>
+                            <p className="text-white leading-relaxed font-amiri text-lg">{reflectionData.actionable_tip}</p>
+                        </div>
+                        <div className="text-center">
+                             <button 
+                                onClick={handleGetReflection}
+                                disabled={isReflectionLoading} 
+                                className="text-sm bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-4 rounded-full transition-colors"
+                            >
+                                {isReflectionLoading ? '...' : '🔄 إعادة التأمل'}
+                            </button>
+                        </div>
                     </div>
                 )}
             </GlassCard>
-        )}
+            )}
 
         </div>
     );

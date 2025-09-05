@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppContext } from './contexts/AppContext';
+import { AuthContext } from './contexts/AuthContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAppData } from './hooks/useAppData';
 import Header from './components/Header';
@@ -16,17 +17,20 @@ import AzkarPage from './pages/AzkarPage';
 import QuranPage from './pages/QuranPage';
 import MorePage from './pages/MorePage';
 import AdminPage from './pages/AdminPage';
+import LoginPage from './pages/LoginPage';
+
+const LoadingScreen: React.FC = () => (
+    <div className="h-screen flex flex-col justify-center items-center text-white bg-gradient-to-b from-[#1e4d3b] to-[#2d5a47]">
+        <h1 className="font-amiri text-4xl mb-4 animate-pulse">مَحيّاي</h1>
+        <p>جاري التحميل...</p>
+    </div>
+);
 
 const MainAppLayout: React.FC = () => {
   const appData = useAppData();
 
   if (appData.isDataLoading) {
-    return (
-        <div className="h-screen flex flex-col justify-center items-center text-white bg-gradient-to-b from-[#1e4d3b] to-[#2d5a47]">
-            <h1 className="font-amiri text-4xl mb-4 animate-pulse">مَحيّاي</h1>
-            <p>جاري تحميل بياناتك...</p>
-        </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
@@ -57,14 +61,36 @@ const MainAppLayout: React.FC = () => {
   );
 }
 
+const AppRoutes: React.FC = () => {
+    const authContext = useContext(AuthContext);
+
+    if (authContext?.isLoading) {
+        return <LoadingScreen />;
+    }
+
+    return (
+        <Routes>
+            {authContext?.profile ? (
+                // User is logged in, show the main application
+                 <Route path="/*" element={<MainAppLayout />} />
+            ) : (
+                // User is not logged in, show login page and redirect all other paths to it
+                <>
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="*" element={<Navigate to="/login" replace />} />
+                </>
+            )}
+        </Routes>
+    );
+};
+
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <HashRouter>
         <ScrollToTop />
-        <Routes>
-          <Route path="/*" element={<MainAppLayout />} />
-        </Routes>
+        <AppRoutes />
       </HashRouter>
     </AuthProvider>
   );

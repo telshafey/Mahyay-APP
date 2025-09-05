@@ -1,5 +1,4 @@
 
-
 export interface UserProfile {
   id: string;
   name: string;
@@ -238,4 +237,15 @@ export interface AppContextType {
 
   // Data Management
   resetAllData: () => Promise<void>;
+}
+
+// AI Feature Types
+export interface VerseReflection {
+    reflection: string;
+    actionable_tip: string;
+}
+
+export interface PersonalizedDua {
+    dua: string;
+    source_info: string;
 }

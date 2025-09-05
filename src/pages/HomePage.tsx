@@ -1,10 +1,109 @@
+
 import React, { useContext, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppContext } from '../contexts/AppContext';
 import { PRAYERS, AZKAR_TYPES, CHALLENGES } from '../constants';
-import type { PrayerStatus, UserChallenge } from '../types';
+import { PrayerStatus, UserChallenge, PersonalizedDua } from '../types';
 import GlassCard from '../components/GlassCard';
 import ChallengeCard from '../components/ChallengeCard';
+import { getPersonalizedDua } from '../services/geminiService';
+
+
+const DuaCompanionModal: React.FC<{ onClose: () => void; }> = ({ onClose }) => {
+    const [request, setRequest] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [result, setResult] = useState<PersonalizedDua | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!request.trim()) return;
+
+        setIsLoading(true);
+        setResult(null);
+        setError(null);
+        
+        const duaResult = await getPersonalizedDua(request);
+
+        if (duaResult) {
+            setResult(duaResult);
+        } else {
+            setError('عذراً، لم نتمكن من صياغة الدعاء. يرجى المحاولة مرة أخرى بطلب مختلف.');
+        }
+        setIsLoading(false);
+    };
+    
+    const handleCopy = () => {
+        if(result?.dua) {
+            navigator.clipboard.writeText(result.dua);
+            alert('تم نسخ الدعاء!');
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fade-in" onClick={onClose}>
+            <GlassCard className="w-full max-w-lg !bg-gradient-to-br from-[#2d5a47] to-[#1e4d3b]" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-white font-amiri">✨ رفيق الدعاء</h3>
+                    <button onClick={onClose} className="text-white/80 hover:text-white font-bold text-2xl">&times;</button>
+                </div>
+                
+                {!result && !isLoading && (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <label htmlFor="dua-request" className="block text-white/90 text-center">
+                            اكتب ما في قلبك أو ما تحتاج للدعاء به (مثال: لدي اختبار غداً وأشعر بالقلق)
+                        </label>
+                        <textarea
+                            id="dua-request"
+                            value={request}
+                            onChange={(e) => setRequest(e.target.value)}
+                            rows={3}
+                            placeholder="اكتب هنا..."
+                            className="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white placeholder:text-white/60 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                        />
+                        <button 
+                            type="submit" 
+                            disabled={!request.trim()}
+                            className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                            صياغة الدعاء
+                        </button>
+                    </form>
+                )}
+
+                {isLoading && (
+                    <div className="text-center p-8 space-y-3">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto"></div>
+                        <p className="text-white font-semibold">لحظات من فضلك، جاري صياغة الدعاء...</p>
+                    </div>
+                )}
+                
+                {error && (
+                    <div className="p-4 bg-red-900/50 rounded-lg text-center text-red-300">
+                        <p>{error}</p>
+                         <button onClick={() => { setError(null); setIsLoading(false); setResult(null); }} className="mt-3 bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-4 rounded-full transition-colors text-sm">
+                            حاول مجدداً
+                        </button>
+                    </div>
+                )}
+
+                {result && (
+                    <div className="space-y-4 animate-fade-in">
+                        <div className="p-4 bg-black/30 rounded-lg border-r-4 border-yellow-400">
+                             <p className="font-amiri text-xl md:text-2xl leading-relaxed text-white text-center">"{result.dua}"</p>
+                        </div>
+                        <div className="text-center text-sm text-yellow-300 font-semibold">{result.source_info}</div>
+                        <div className="flex gap-4">
+                             <button onClick={handleCopy} className="flex-1 bg-green-600 hover:bg-green-700 font-bold py-3 rounded-lg">نسخ الدعاء</button>
+                             <button onClick={() => { setResult(null); setRequest(''); }} className="flex-1 bg-gray-600 hover:bg-gray-700 py-3 rounded-lg">طلب دعاء آخر</button>
+                        </div>
+                    </div>
+                )}
+            </GlassCard>
+        </div>
+    );
+};
+
 
 const LocationBanner: React.FC<{ message: string }> = ({ message }) => {
     const [isVisible, setIsVisible] = useState(true);
@@ -42,7 +141,6 @@ const VerseCard: React.FC = () => {
 
 const DailyWisdomCard: React.FC = () => {
     const context = useContext(AppContext);
-    // Fix: Add a guard to ensure context and dailyWisdom are not null.
     if (!context || !context.dailyWisdom) {
         return <GlassCard><p className="text-center text-white/80">جاري تحميل حكمة اليوم...</p></GlassCard>;
     }
@@ -56,9 +154,28 @@ const DailyWisdomCard: React.FC = () => {
     );
 }
 
+const DuaCompanionCard: React.FC<{ onOpenModal: () => void }> = ({ onOpenModal }) => {
+    const context = useContext(AppContext);
+    if (!context) return null;
+    const { dailyDua } = context;
+    return (
+        <GlassCard className="!bg-gradient-to-tr !from-teal-500/20 !to-cyan-500/30 !border-teal-400/30">
+            <h3 className="text-white text-xl font-semibold mb-4 text-center">💖 دعاء اليوم</h3>
+            <div className="p-4 bg-black/25 rounded-lg border-r-4 border-teal-400 text-center mb-4">
+                <p className="font-amiri text-lg text-white">"{dailyDua.text}"</p>
+                <p className="text-sm text-teal-300 mt-2">{dailyDua.source}</p>
+            </div>
+            <p className="text-center text-sm text-white/90 mb-4">هل تحتاج لدعاء مخصص؟ دع الذكاء الاصطناعي يساعدك في مناجاة ربك.</p>
+            <button onClick={onOpenModal} className="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+                اطلب دعاءً مخصصًا
+            </button>
+        </GlassCard>
+    );
+};
+
+
 const IslamicCalendar: React.FC = () => {
     const context = useContext(AppContext);
-    // Fix: Add a guard to ensure context is not null before use.
     if (!context) return <GlassCard><p className="text-center text-white/80">جاري تحميل التقويم الإسلامي...</p></GlassCard>;
 
     const { currentHijriMonthInfo, nextIslamicOccasion, hijriYearInfo } = context;
@@ -121,6 +238,7 @@ const IslamicCalendar: React.FC = () => {
 
 const HomePage: React.FC = () => {
   const context = useContext(AppContext);
+  const [isDuaModalOpen, setIsDuaModalOpen] = useState(false);
 
   if (!context) return <div>Loading...</div>;
 
@@ -141,6 +259,8 @@ const HomePage: React.FC = () => {
   const activeGoals = personalGoals.filter(g => !g.isArchived && !g.completedAt).slice(0, 2);
 
   return (
+    <>
+    {isDuaModalOpen && <DuaCompanionModal onClose={() => setIsDuaModalOpen(false)} />}
     <div className="space-y-8">
         {locationError && <LocationBanner message={locationError} />}
 
@@ -161,6 +281,10 @@ const HomePage: React.FC = () => {
 
         <section>
             <DailyWisdomCard />
+        </section>
+        
+        <section>
+            <DuaCompanionCard onOpenModal={() => setIsDuaModalOpen(true)} />
         </section>
 
         <section>
@@ -256,6 +380,7 @@ const HomePage: React.FC = () => {
                                         <h4 className="font-semibold text-white">{azkar.name}</h4>
                                     </div>
                                     <p className="text-xs text-white mb-2">{azkar.time}</p>
+
                                 </div>
                                 <div className="text-sm font-semibold text-white">
                                     {isCompleted ? '✅ مكتمل' : progress > 0 ? `🔄 ${Math.round(progress)}%` : '⏳ لم تبدأ'}
@@ -273,6 +398,7 @@ const HomePage: React.FC = () => {
         </section>
 
     </div>
+    </>
   );
 };
 

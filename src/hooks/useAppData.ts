@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AppData, DailyData, PrayerFardStatus, Settings, Prayer, UserStats, IslamicOccasion, HijriMonthInfo, Wisdom, HijriYearInfo, PrayerStatus, PersonalGoal, GoalProgress } from '../types';
-import { PRAYERS, AZKAR_DATA, DAILY_DUAS, ISLAMIC_OCCASIONS, HIJRI_MONTHS_INFO, DAILY_WISDOMS } from '../constants';
+import { PRAYERS, AZKAR_DATA, DAILY_DUAS, ISLAMIC_OCCASIONS, HIJRI_MONTHS_INFO, DAILY_WISDOMS, AZKAR_TYPES } from '../constants';
 import { calculateStats } from '../utils';
 
 const getDateKey = (date: Date = new Date()): string => {
@@ -133,6 +133,17 @@ export const useAppData = () => {
       alert("تم مسح بيانات العبادة والأهداف بنجاح.");
   };
 
+  const showNotification = useCallback((message: string, icon: string) => {
+      if (notificationTimeoutRef.current) {
+          clearTimeout(notificationTimeoutRef.current);
+      }
+      setNotification({ message, icon });
+      notificationTimeoutRef.current = window.setTimeout(() => {
+          setNotification(null);
+      }, 5000);
+  }, []);
+
+
   // --- GOALS MANAGEMENT ---
     const saveGoals = useCallback((goals: PersonalGoal[]) => {
       setPersonalGoals(goals);
@@ -184,6 +195,7 @@ export const useAppData = () => {
 
         if (cappedValue >= goal.target && !goal.completedAt) {
             updatePersonalGoal(goalId, { completedAt: new Date().toISOString() });
+            showNotification(`🎉 رائع! أتممت هدف '${goal.title}'`, goal.icon);
         } else if (cappedValue < goal.target && goal.completedAt) {
             updatePersonalGoal(goalId, { completedAt: undefined });
         }
@@ -194,6 +206,12 @@ export const useAppData = () => {
         const currentStatus = dailyData.dailyGoalProgress[goalId] || false;
         const newDailyGoalProgress = { ...dailyData.dailyGoalProgress, [goalId]: !currentStatus };
         saveData({ dailyGoalProgress: newDailyGoalProgress });
+        if (!currentStatus) { // if it was false and is now true
+            const goal = personalGoals.find(g => g.id === goalId);
+            if (goal) {
+                showNotification(`أحسنت! أكملت هدف '${goal.title}'`, goal.icon);
+            }
+        }
     };
 
   // --- END GOALS MANAGEMENT ---
@@ -202,12 +220,22 @@ export const useAppData = () => {
     const newPrayerData = { ...dailyData.prayerData };
     newPrayerData[prayerName].fard = status;
     saveData({ prayerData: newPrayerData });
+    const prayer = PRAYERS.find(p => p.name === prayerName);
+    if (status !== 'not_prayed') {
+        showNotification(`تقبل الله صلاة ${prayerName}`, prayer?.emoji || '✅');
+    }
   };
   
   const updateSunnahStatus = (prayerName: string, sunnahType: 'sunnahBefore' | 'sunnahAfter') => {
     const newPrayerData = { ...dailyData.prayerData };
-    newPrayerData[prayerName][sunnahType] = !newPrayerData[prayerName][sunnahType];
+    const currentStatus = newPrayerData[prayerName][sunnahType];
+    newPrayerData[prayerName][sunnahType] = !currentStatus;
     saveData({ prayerData: newPrayerData });
+    const prayer = PRAYERS.find(p => p.name === prayerName);
+    if (!currentStatus) { // if it was false and is now true
+        const sunnahText = sunnahType === 'sunnahBefore' ? 'القبلية' : 'البعدية';
+        showNotification(`تقبل الله سُنة ${prayerName} ${sunnahText}`, prayer?.emoji || '🤲');
+    }
   };
 
   const updateNawafilOption = (prayerName: string, optionIndex: number) => {
@@ -278,16 +306,25 @@ export const useAppData = () => {
 
       const newStatus = { ...dailyData.azkarStatus, [azkarName]: true };
       saveData({ azkarProgress: newAzkarProgress, azkarStatus: newStatus });
+      const azkarType = AZKAR_TYPES.find(a => a.name === azkarName);
+      showNotification(`تقبل الله ${azkarName}`, azkarType?.emoji || '📿');
   };
 
   const updateQuranRead = (change: number) => {
-      const newRead = Math.max(0, (dailyData.quranRead || 0) + change);
+      const oldRead = dailyData.quranRead || 0;
+      const newRead = Math.max(0, oldRead + change);
       saveData({ quranRead: newRead });
+      
+      const goal = settings.quranGoal || 10;
+      if (oldRead < goal && newRead >= goal) {
+          showNotification(`ما شاء الله! أتممت وردك اليومي`, '📖');
+      }
   };
 
   const completeKhatma = () => {
       const newKhatmat = (dailyData.quranKhatmat || 0) + 1;
       saveData({ quranKhatmat: newKhatmat });
+      showNotification(`مبارك الختمة الجديدة! جعلها الله شفيعة لك`, '🏆');
   };
   
   useEffect(() => {
@@ -480,16 +517,6 @@ export const useAppData = () => {
 
     return orderedCounts;
   }, [appData]);
-
-    const showNotification = useCallback((message: string, icon: string) => {
-        if (notificationTimeoutRef.current) {
-            clearTimeout(notificationTimeoutRef.current);
-        }
-        setNotification({ message, icon });
-        notificationTimeoutRef.current = window.setTimeout(() => {
-            setNotification(null);
-        }, 5000);
-    }, []);
 
     useEffect(() => {
         const checkNotifications = () => {

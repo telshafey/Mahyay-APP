@@ -21,19 +21,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const storedProfile = localStorage.getItem(PROFILE_KEY);
             if (storedProfile) {
                 const parsedProfile = JSON.parse(storedProfile);
-                // Ensure role is set for older profiles
                 if (!parsedProfile.role) {
                     parsedProfile.role = 'admin';
                 }
                 setProfile(parsedProfile);
-            } else {
-                const defaultProfile = getDefaultProfile();
-                setProfile(defaultProfile);
-                localStorage.setItem(PROFILE_KEY, JSON.stringify(defaultProfile));
             }
+            // If no profile is stored, 'profile' remains null, prompting login.
         } catch (error) {
             console.error("Failed to load profile from localStorage", error);
-            setProfile(getDefaultProfile());
+            // On error, profile also remains null.
         }
         setIsLoading(false);
     }, []);
@@ -46,9 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const resetProfile = useCallback(() => {
         localStorage.removeItem(PROFILE_KEY);
-        const defaultProfile = getDefaultProfile();
-        setProfile(defaultProfile);
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(defaultProfile));
+        setProfile(null); // Set profile to null to trigger logout and redirect to login page.
     }, []);
 
     return (
