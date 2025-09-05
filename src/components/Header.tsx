@@ -79,8 +79,17 @@ const Header: React.FC = () => {
             </div>
             
             <div className="flex items-center justify-end w-1/3 text-right">
-                <div>
-                    <p className="font-amiri font-semibold text-sm md:text-base text-[#d4af37]">{appContext.hijriDate}</p>
+                {/* Desktop View */}
+                <div className="hidden md:block">
+                     <p className="font-semibold text-sm text-white whitespace-nowrap">
+                        <span className="opacity-90">{appContext.gregorianDate}</span>
+                        <span className="mx-2 opacity-50">|</span>
+                        <span className="text-[#d4af37] font-amiri">{appContext.hijriDate}</span>
+                    </p>
+                </div>
+                {/* Mobile View */}
+                <div className="md:hidden">
+                    <p className="font-amiri font-semibold text-sm text-[#d4af37]">{appContext.hijriDate}</p>
                     <p className="text-xs opacity-90">{appContext.gregorianDate}</p>
                 </div>
             </div>

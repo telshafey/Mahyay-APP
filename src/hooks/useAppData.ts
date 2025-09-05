@@ -422,9 +422,23 @@ export const useAppData = () => {
                     'العشاء': times.Isha
                 });
                 const hijri = data.data.date.hijri;
-                setHijriDate(`${hijri.day} ${hijri.month.ar}, ${hijri.year} هـ`);
-                setGregorianDate(data.data.date.gregorian.date);
+                const gregorian = data.data.date.gregorian;
+
+                setHijriDate(`${hijri.day} ${hijri.month.ar}، ${hijri.year} هـ`);
                 
+                const dayOfWeek = hijri.weekday.ar;
+                const [gDay, gMonth, gYear] = gregorian.date.split('-');
+                const dateObj = new Date(Date.UTC(Number(gYear), Number(gMonth) - 1, Number(gDay)));
+
+                const formattedGregorian = new Intl.DateTimeFormat('ar-SA-u-nu-latn', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                    timeZone: 'UTC'
+                }).format(dateObj);
+                
+                setGregorianDate(`${dayOfWeek}، ${formattedGregorian}`);
+
                 const hijriYear = hijri.year;
                 const yearInfo = { year: hijriYear, length: 354 };
                 setHijriYearInfo(yearInfo);
