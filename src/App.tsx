@@ -17,6 +17,10 @@ import QuranPage from './pages/QuranPage';
 import MorePage from './pages/MorePage';
 import AdminPage from './pages/AdminPage';
 import LoginPage from './pages/LoginPage';
+// Import public pages
+import TermsOfUsePage from './pages/more/TermsOfUsePage';
+import PrivacyPolicyPage from './pages/more/PrivacyPolicyPage';
+
 
 const LoadingScreen: React.FC = () => (
     <div className="h-screen flex flex-col justify-center items-center text-white bg-gradient-to-b from-[#1e4d3b] to-[#2d5a47]">
@@ -64,6 +68,14 @@ const MainAppLayout: React.FC = () => {
   );
 }
 
+const PublicPageLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-b from-[#1e4d3b] to-[#2d5a47] text-white">
+        <div className="w-full max-w-3xl">
+            {children}
+        </div>
+    </div>
+);
+
 const AppRoutes: React.FC = () => {
     const authContext = useAuthContext();
 
@@ -82,6 +94,16 @@ const AppRoutes: React.FC = () => {
             ) : (
                 <>
                     <Route path="/login" element={<LoginPage />} />
+                     <Route path="/more/terms" element={
+                        <PublicPageLayout>
+                            <TermsOfUsePage />
+                        </PublicPageLayout>
+                    } />
+                    <Route path="/more/privacy" element={
+                        <PublicPageLayout>
+                            <PrivacyPolicyPage />
+                        </PublicPageLayout>
+                    } />
                     <Route path="*" element={<Navigate to="/login" replace />} />
                 </>
             )}
