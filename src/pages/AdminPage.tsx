@@ -24,7 +24,6 @@ const AdminPage: React.FC = () => {
             link.href = jsonString;
             link.download = `mahyay-backup-${new Date().toISOString().split('T')[0]}.json`;
             link.click();
-            // Fix: Add guard for appContext before calling showNotification.
             appContext?.showNotification('✅ تم تصدير البيانات بنجاح', '💾');
         } catch (error) {
             console.error('Failed to export data', error);
@@ -84,7 +83,32 @@ const AdminPage: React.FC = () => {
         }
     }
 
-    // Fix: Add a guard for contexts.
+    const renderApiKeyStatus = () => {
+        const key = process.env.API_KEY;
+        let statusText: string;
+        let colorClass: string;
+
+        if (key && key.trim().length > 5 && key !== "undefined") {
+            statusText = '✅ تم العثور على مفتاح API بنجاح وجاهز للاستخدام.';
+            colorClass = 'bg-green-900/50 text-green-300';
+        } else if (key === "undefined") {
+            statusText = '❌ خطأ: لم يتم العثور على متغير البيئة (Environment Variable) باسم VITE_API_KEY في إعدادات النشر على Vercel. يرجى إضافته.';
+            colorClass = 'bg-red-900/50 text-red-300';
+        } else if (!key || key.trim().length === 0) {
+            statusText = '⚠️ تنبيه: تم العثور على متغير البيئة VITE_API_KEY ولكنه فارغ. يرجى إدخال قيمة مفتاح Gemini API الخاص بك.';
+            colorClass = 'bg-yellow-900/50 text-yellow-300';
+        } else {
+             statusText = '❌ خطأ: مفتاح API الذي تم إدخاله قصير جداً أو غير صالح. يرجى التحقق منه في إعدادات Vercel.';
+             colorClass = 'bg-red-900/50 text-red-300';
+        }
+
+        return (
+             <div className={`p-3 rounded-lg text-center font-semibold ${colorClass}`}>
+                {statusText}
+            </div>
+        )
+    }
+
     if (!appContext || !authContext) {
         return (
             <div className="space-y-6 text-white">
@@ -100,6 +124,14 @@ const AdminPage: React.FC = () => {
         <div className="space-y-6 text-white">
             <h2 className="text-3xl font-bold text-center font-amiri">👑 لوحة تحكم المشرف</h2>
             
+            <GlassCard>
+                <h3 className="text-xl font-bold mb-4">🩺 تشخيص النظام</h3>
+                {renderApiKeyStatus()}
+                <p className="text-xs text-center mt-3 text-white/70">
+                   هذه الأداة تساعدك على التأكد من أن مفتاح API الخاص بخدمات الذكاء الاصطناعي تم إعداده بشكل صحيح في بيئة النشر (Vercel).
+                </p>
+            </GlassCard>
+
              <GlassCard className="!bg-blue-900/30 !border-blue-400/50">
                 <div className="flex items-center gap-4 text-white">
                     <span className="text-4xl">💡</span>

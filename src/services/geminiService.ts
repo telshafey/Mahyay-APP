@@ -3,15 +3,21 @@ import { VerseReflection, PersonalizedDua } from "../types";
 
 let ai: GoogleGenAI | null = null;
 
-// FIX: Per coding guidelines, API key must come from process.env.API_KEY. This also resolves the TypeScript error.
-const apiKey = process.env.API_KEY;
+try {
+    const apiKey = process.env.API_KEY;
 
-if (apiKey) {
-    ai = new GoogleGenAI({ apiKey });
-} else {
-    // FIX: Updated warning message to reflect the correct environment variable.
-    console.warn("API_KEY is not set in environment variables. Gemini features will be disabled.");
+    // A robust check to prevent initialization if the key is missing, empty, or the literal string "undefined"
+    // which can be injected by the build process if the env var is not set.
+    if (apiKey && apiKey.trim().length > 5 && apiKey !== "undefined") {
+        ai = new GoogleGenAI({ apiKey });
+    } else {
+        // This error is intentional to be caught below and provide a clear warning.
+        throw new Error("API_KEY is missing, empty, or invalid.");
+    }
+} catch (error) {
+    console.warn(`Gemini service initialization failed. AI features will be disabled. Error: ${error instanceof Error ? error.message : String(error)}`);
 }
+
 
 const handleGeminiError = (error: unknown): string => {
     console.error("Error fetching from Gemini:", error);
@@ -31,7 +37,6 @@ const handleGeminiError = (error: unknown): string => {
 
 export const getVerseReflection = async (verse: string): Promise<{ data: VerseReflection | null, error: string | null }> => {
   if (!ai) {
-    // FIX: Updated error message to reflect the correct environment variable.
     const msg = "Gemini service is not initialized. The API_KEY may be missing or invalid.";
     console.warn(msg);
     return { data: null, error: msg };
@@ -80,7 +85,6 @@ export const getVerseReflection = async (verse: string): Promise<{ data: VerseRe
 
 export const getPersonalizedDua = async (prompt: string): Promise<{ data: PersonalizedDua | null, error: string | null }> => {
     if (!ai) {
-        // FIX: Updated error message to reflect the correct environment variable.
         const msg = "Gemini service is not initialized. The API_KEY may be missing or invalid.";
         console.warn(msg);
         return { data: null, error: msg };
@@ -136,7 +140,6 @@ export const getPersonalizedDua = async (prompt: string): Promise<{ data: Person
 
 export const getGoalInspiration = async (): Promise<{ data: {title: string; icon: string} | null; error: string | null; }> => {
     if (!ai) {
-        // FIX: Updated error message to reflect the correct environment variable.
         const msg = "Gemini service is not initialized. The API_KEY may be missing or invalid.";
         console.warn(msg);
         return { data: null, error: msg };
