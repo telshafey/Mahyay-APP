@@ -50,7 +50,7 @@ export async function subscribeUser(): Promise<PushSubscription> {
     const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
     subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey
+        applicationServerKey: applicationServerKey as any, // Cast to handle TS lib conflicts
     });
 
     // Send subscription to the backend

@@ -82,7 +82,7 @@ export const getVerseReflection = async (verse: string): Promise<{ data: VerseRe
         }
     });
     
-    const jsonText = response.text.trim();
+    const jsonText = (response.text ?? "").trim();
     const result = JSON.parse(jsonText);
 
     if (result && result.reflection && result.actionable_tip) {
@@ -135,7 +135,7 @@ export const getPersonalizedDua = async (prompt: string): Promise<{ data: Person
             }
         });
 
-        const jsonText = response.text.trim();
+        const jsonText = (response.text ?? "").trim();
         const result = JSON.parse(jsonText);
 
         if (result && result.dua && result.source_info) {
@@ -178,7 +178,7 @@ export const getGoalInspiration = async (): Promise<{ data: {title: string; icon
             }
         });
         
-        const jsonText = response.text.trim();
+        const jsonText = (response.text ?? "").trim();
         const result = JSON.parse(jsonText);
 
         if (result && result.title && result.icon) {

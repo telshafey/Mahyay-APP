@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { AppData, DailyData, PrayerFardStatus, Settings, Prayer, UserStats, IslamicOccasion, HijriMonthInfo, Wisdom, HijriYearInfo, PrayerStatus, PersonalGoal, GoalProgress } from '../types';
+import { AppData, DailyData, PrayerFardStatus, Settings, Prayer, IslamicOccasion, HijriMonthInfo, Wisdom, HijriYearInfo, PrayerStatus, PersonalGoal, GoalProgress } from '../types';
 import { PRAYERS, AZKAR_DATA, DAILY_DUAS, ISLAMIC_OCCASIONS, HIJRI_MONTHS_INFO, DAILY_WISDOMS, AZKAR_TYPES } from '../constants';
 import { calculateStats, toSnake, toCamel, convertKeys, safeLocalStorage } from '../utils';
 import { supabase } from '../supabase';
@@ -711,6 +711,9 @@ export const useAppData = () => {
         isNextDay = true;
     }
 
+    if (!nextTime) {
+        return { prayer: null, countdown: '00:00:00', isNextDay: false };
+    }
     const diff = nextTime.getTime() - now.getTime();
     const hours = String(Math.floor(diff / 3600000)).padStart(2, '0');
     const minutes = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');

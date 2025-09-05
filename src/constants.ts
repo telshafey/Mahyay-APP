@@ -1,4 +1,4 @@
-import { Prayer, Nawafil, AzkarType, AzkarItem, UserStats, UserChallenge, IslamicOccasion, Wisdom, HijriMonthInfo } from './types';
+import { Prayer, Nawafil, AzkarType, AzkarItem, UserChallenge, IslamicOccasion, Wisdom, HijriMonthInfo } from './types';
 
 export const PRAYERS: Prayer[] = [
     { 
@@ -188,7 +188,7 @@ export const REFLECTION_VERSES: { text: string; source: string }[] = [
     { text: "وَمَا تَفْعَلُوا مِنْ خَيْرٍ يَعْلَمْهُ اللَّهُ", source: "سورة البقرة - آية 197" },
     { text: "وَقُولُوا لِلنَّاسِ حُسْنًا", source: "سورة البقرة - آية 83" },
     { text: "إِنَّ اللَّهَ يُحِبُّ الْمُحْسِنِينَ", source: "سورة البقرة - آية 195" },
-    { text: "وَلَا تَيْأَسُوا مِن رَّوْحِ اللَّهِ", source: "سورة يوسف - آية 87" },
+    { text: "وَلَا تَيْأَسُوا مِن Rَّوْحِ اللَّهِ", source: "سورة يوسف - آية 87" },
 ];
 
 export const CHALLENGES: UserChallenge[] = [
