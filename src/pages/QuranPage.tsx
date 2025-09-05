@@ -1,4 +1,5 @@
 
+
 import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../contexts/AppContext';
 import GlassCard from '../components/GlassCard';
@@ -41,7 +42,9 @@ const QuranPage: React.FC = () => {
         if (response.data) {
             setReflectionData(response.data);
         } else {
-            setReflectionError("عذرًا، حدث خطأ أثناء جلب التأمل. يرجى المحاولة مرة أخرى.");
+            // The geminiService now provides detailed, user-friendly error messages.
+            const userFriendlyError = response.error || "عذرًا، حدث خطأ أثناء جلب التأمل. يرجى المحاولة مرة أخرى.";
+            setReflectionError(userFriendlyError);
             console.error("Reflection Error:", response.error);
         }
         setIsReflectionLoading(false);

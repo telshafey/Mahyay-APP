@@ -641,7 +641,9 @@ const GoalsPage: React.FC = () => {
         if (response.data) {
             setInspiration(response.data);
         } else {
-            setInspirationError(response.error || "عذراً، لم نتمكن من جلب إلهام في الوقت الحالي. حاول مرة أخرى.");
+            // The geminiService now provides detailed, user-friendly error messages.
+            const userFriendlyError = response.error || "عذراً، لم نتمكن من جلب إلهام في الوقت الحالي. حاول مرة أخرى.";
+            setInspirationError(userFriendlyError);
             console.error("Goal Inspiration Error:", response.error);
         }
         setIsInspiring(false);

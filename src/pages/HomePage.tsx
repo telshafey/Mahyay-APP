@@ -1,4 +1,5 @@
 
+
 import React, { useContext, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppContext } from '../contexts/AppContext';
@@ -28,16 +29,9 @@ const DuaCompanionModal: React.FC<{ onClose: () => void; }> = ({ onClose }) => {
         if (response.data) {
             setResult(response.data);
         } else {
-            let userFriendlyError = 'عذراً، لم نتمكن من صياغة الدعاء. يرجى المحاولة مرة أخرى بطلب مختلف.';
-            if (response.error) {
-                if (response.error.includes('initialized') || response.error.includes('API_KEY')) {
-                    userFriendlyError = 'خدمة الذكاء الاصطناعي غير مهيأة. يرجى مراجعة إعدادات التطبيق.';
-                } else if (response.error.includes('400') || response.error.includes('API key')) {
-                    userFriendlyError = 'حدث خطأ في الاتصال بالخدمة. قد تكون هناك مشكلة في الإعدادات أو مفتاح الوصول.';
-                } else if (response.error.includes('500')) {
-                    userFriendlyError = 'الخدمة تواجه ضغطاً حالياً. يرجى المحاولة مرة أخرى بعد قليل.';
-                }
-            }
+            // The geminiService now provides detailed, user-friendly error messages.
+            // We can display them directly.
+            const userFriendlyError = response.error || 'عذراً، لم نتمكن من صياغة الدعاء. يرجى المحاولة مرة أخرى بطلب مختلف.';
             setError(userFriendlyError);
             console.error("Dua Companion Error:", response.error);
         }

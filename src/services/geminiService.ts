@@ -2,31 +2,43 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { VerseReflection, PersonalizedDua } from "../types";
 
 let ai: GoogleGenAI | null = null;
+let initializationError: string | null = null;
 
+// This block runs once when the module is loaded.
 try {
     const apiKey = process.env.API_KEY;
 
-    // A robust check to prevent initialization if the key is missing, empty, or the literal string "undefined"
-    // which can be injected by the build process if the env var is not set.
-    if (apiKey && apiKey.trim().length > 5 && apiKey !== "undefined") {
-        ai = new GoogleGenAI({ apiKey });
-    } else {
-        // This error is intentional to be caught below and provide a clear warning.
-        throw new Error("API_KEY is missing, empty, or invalid.");
+    // Vite replaces process.env.API_KEY with the value at build time. 
+    // If VITE_API_KEY is not set on Vercel, it becomes 'undefined' as a string.
+    if (apiKey === 'undefined') {
+        throw new Error("خطأ في الإعداد: متغير VITE_API_KEY غير موجود في Vercel. يرجى إضافته في إعدادات المشروع (Project Settings > Environment Variables) ثم إعادة النشر (Redeploy).");
     }
+    
+    if (!apiKey || apiKey.trim().length === 0) {
+        throw new Error("خطأ في الإعداد: متغير VITE_API_KEY موجود ولكنه فارغ. يرجى إدخال قيمة مفتاح API الصحيحة في Vercel.");
+    }
+
+    if (apiKey.trim().length < 10) { // API keys are usually much longer
+         throw new Error("خطأ في الإعداد: مفتاح API الذي تم إدخاله قصير جدًا ويبدو غير صالح. يرجى التحقق منه في إعدادات Vercel.");
+    }
+
+    ai = new GoogleGenAI({ apiKey });
+
 } catch (error) {
-    console.warn(`Gemini service initialization failed. AI features will be disabled. Error: ${error instanceof Error ? error.message : String(error)}`);
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`Gemini service initialization failed: ${message}`);
+    initializationError = message;
 }
 
 
 const handleGeminiError = (error: unknown): string => {
     console.error("Error fetching from Gemini:", error);
-    let message = 'An unknown error occurred while contacting the AI service.';
+    let message = 'حدث خطأ غير معروف أثناء الاتصال بخدمة الذكاء الاصطناعي.';
     if (error instanceof Error) {
         if (error.message.includes('400') || error.message.includes('API key not valid')) {
-            message = "The request was rejected. This can be due to an invalid API key, billing issues, or safety filters.";
+            message = "تم رفض الطلب. قد يكون هذا بسبب مفتاح API غير صالح، أو مشاكل في الفوترة، أو فلاتر الأمان.";
         } else if (error.message.includes('500') || error.message.includes('503')) {
-            message = "The AI service is currently experiencing issues. Please try again later."
+            message = "خدمة الذكاء الاصطناعي تواجه مشاكل حاليًا. يرجى المحاولة مرة أخرى لاحقًا."
         } else {
             message = error.message;
         }
@@ -37,7 +49,7 @@ const handleGeminiError = (error: unknown): string => {
 
 export const getVerseReflection = async (verse: string): Promise<{ data: VerseReflection | null, error: string | null }> => {
   if (!ai) {
-    const msg = "Gemini service is not initialized. The API_KEY may be missing or invalid.";
+    const msg = initializationError || "خدمة الذكاء الاصطناعي غير مهيأة لسبب غير معروف.";
     console.warn(msg);
     return { data: null, error: msg };
   }
@@ -85,7 +97,7 @@ export const getVerseReflection = async (verse: string): Promise<{ data: VerseRe
 
 export const getPersonalizedDua = async (prompt: string): Promise<{ data: PersonalizedDua | null, error: string | null }> => {
     if (!ai) {
-        const msg = "Gemini service is not initialized. The API_KEY may be missing or invalid.";
+        const msg = initializationError || "خدمة الذكاء الاصطناعي غير مهيأة لسبب غير معروف.";
         console.warn(msg);
         return { data: null, error: msg };
     }
@@ -140,7 +152,7 @@ export const getPersonalizedDua = async (prompt: string): Promise<{ data: Person
 
 export const getGoalInspiration = async (): Promise<{ data: {title: string; icon: string} | null; error: string | null; }> => {
     if (!ai) {
-        const msg = "Gemini service is not initialized. The API_KEY may be missing or invalid.";
+        const msg = initializationError || "خدمة الذكاء الاصطناعي غير مهيأة لسبب غير معروف.";
         console.warn(msg);
         return { data: null, error: msg };
     }
