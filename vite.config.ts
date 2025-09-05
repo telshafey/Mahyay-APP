@@ -4,6 +4,11 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    // Per guidelines, the app must use process.env.API_KEY.
+    // This exposes the VITE_API_KEY environment variable to the app as process.env.API_KEY.
+    'process.env.API_KEY': JSON.stringify(process.env.VITE_API_KEY)
+  },
   plugins: [
     react(),
     VitePWA({ 
