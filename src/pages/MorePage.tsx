@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { MorePage as MorePageType, Settings } from '../types';
+import { MorePage as MorePageType, Settings, PersonalGoal, GoalType } from '../types';
 import { AppContext } from '../contexts/AppContext';
 import { AuthContext } from '../contexts/AuthContext';
 import { CHALLENGES, PRAYER_METHODS, QURAN_TOTAL_PAGES } from '../constants';
@@ -214,6 +214,7 @@ const AboutPage: React.FC = () => {
         "متابعة شاملة للصلوات: أوقات الصلوات الخمس مع السنن والنوافل",
         "أذكار مع الأدلة: أذكار يومية كاملة مع النصوص الشرعية والأحاديث",
         "تتبع القرآن الكريم: متابعة قراءة القرآن مع إمكانية تحديد الأهداف",
+        "أهدافك الشخصية: إضافة وتتبع أهدافك الإيمانية الخاصة",
         "نظام التحديات: تحديات إيمانية محفزة لبناء عادات قوية",
         "إحصائيات متقدمة: تتبع مفصل للتقدم مع نظام نقاط تحفيزي",
         "تصميم عربي أصيل: واجهة جميلة تحترم الهوية الإسلامية",
@@ -496,8 +497,8 @@ const SettingsPage: React.FC = () => {
 
              <div className="border-2 border-red-500/50 rounded-2xl p-4 space-y-4">
                 <h4 className="text-lg font-bold text-center text-red-300">منطقة الخطر</h4>
-                <button onClick={resetAllData} className="w-full bg-red-800/80 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                    🗑️ إعادة تعيين بيانات العبادة
+                <button onClick={() => context.resetAllData()} className="w-full bg-red-800/80 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                    🗑️ إعادة تعيين بيانات العبادة والأهداف
                 </button>
                 <button onClick={handleFullReset} className="w-full bg-red-900 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                     🔥 إعادة تعيين التطبيق بالكامل
@@ -508,11 +509,165 @@ const SettingsPage: React.FC = () => {
     )
 }
 
+const GOAL_ICONS = ['🎯', '📖', '🤲', '❤️', '💰', '🏃‍♂️', '🌱', '⭐', '📿', '🕌'];
+
+const GoalsPage: React.FC = () => {
+    const context = useContext(AppContext);
+    const [isFormVisible, setIsFormVisible] = useState(false);
+    const [goal, setGoal] = useState({ title: '', icon: GOAL_ICONS[0], type: 'daily' as GoalType, target: 1, unit: '', endDate: '' });
+    const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
+
+    if (!context) return null;
+    const { personalGoals, addPersonalGoal, goalProgress, updateTargetGoalProgress, toggleDailyGoalCompletion, dailyData, deletePersonalGoal } = context;
+
+    const handleFormSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!goal.title.trim()) {
+            alert('الرجاء إدخال عنوان الهدف.');
+            return;
+        }
+        const newGoal: Omit<PersonalGoal, 'id'|'createdAt'|'isArchived'|'completedAt'> = {
+            title: goal.title,
+            icon: goal.icon,
+            type: goal.type,
+            target: goal.type === 'daily' ? 1 : Number(goal.target),
+            unit: goal.unit || undefined,
+            endDate: goal.endDate || undefined,
+        };
+        addPersonalGoal(newGoal);
+        setGoal({ title: '', icon: GOAL_ICONS[0], type: 'daily', target: 1, unit: '', endDate: '' });
+        setIsFormVisible(false);
+    };
+
+    const activeGoals = personalGoals.filter(g => !g.isArchived);
+    const archivedGoals = personalGoals.filter(g => g.isArchived);
+    const displayedGoals = activeTab === 'active' ? activeGoals : archivedGoals;
+
+    return (
+        <div className="space-y-6 text-white">
+            {!isFormVisible && (
+                <button onClick={() => setIsFormVisible(true)} className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors text-lg">
+                    + إضافة هدف جديد
+                </button>
+            )}
+
+            {isFormVisible && (
+                <GlassCard className="animate-fade-in">
+                    <h3 className="text-xl font-bold mb-4 text-center">هدف جديد</h3>
+                    <form onSubmit={handleFormSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-semibold mb-1">عنوان الهدف</label>
+                            <input type="text" value={goal.title} onChange={e => setGoal({...goal, title: e.target.value})} className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2" placeholder="مثال: الاستغفار 100 مرة" />
+                        </div>
+                        <div>
+                             <label className="block text-sm font-semibold mb-1">اختر أيقونة</label>
+                             <div className="flex flex-wrap gap-2 bg-black/20 p-2 rounded-lg">
+                                {GOAL_ICONS.map(icon => (
+                                    <button type="button" key={icon} onClick={() => setGoal({...goal, icon})} className={`w-10 h-10 text-2xl rounded-lg transition-all ${goal.icon === icon ? 'bg-yellow-400/50 ring-2 ring-yellow-300' : 'bg-white/10'}`}>{icon}</button>
+                                ))}
+                             </div>
+                        </div>
+                         <div>
+                            <label className="block text-sm font-semibold mb-1">نوع الهدف</label>
+                            <div className="flex gap-2">
+                                <button type="button" onClick={() => setGoal({...goal, type: 'daily'})} className={`flex-1 py-2 rounded-lg ${goal.type === 'daily' ? 'bg-teal-500' : 'bg-black/30'}`}>تكرار يومي</button>
+                                <button type="button" onClick={() => setGoal({...goal, type: 'target'})} className={`flex-1 py-2 rounded-lg ${goal.type === 'target' ? 'bg-teal-500' : 'bg-black/30'}`}>كمية مستهدفة</button>
+                            </div>
+                        </div>
+                        {goal.type === 'target' && (
+                             <div className="grid grid-cols-2 gap-4 animate-fade-in">
+                                 <div>
+                                    <label className="block text-sm font-semibold mb-1">الكمية</label>
+                                    <input type="number" value={goal.target} min="1" onChange={e => setGoal({...goal, target: Number(e.target.value)})} className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold mb-1">الوحدة</label>
+                                    <input type="text" value={goal.unit} onChange={e => setGoal({...goal, unit: e.target.value})} className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2" placeholder="صفحة، مرة، جزء..."/>
+                                </div>
+                            </div>
+                        )}
+                        <div>
+                            <label className="block text-sm font-semibold mb-1">تاريخ الانتهاء (اختياري)</label>
+                            <input type="date" value={goal.endDate} onChange={e => setGoal({...goal, endDate: e.target.value})} className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2" />
+                        </div>
+                        <div className="flex gap-4 pt-4">
+                            <button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 font-bold py-3 rounded-lg">حفظ الهدف</button>
+                            <button type="button" onClick={() => setIsFormVisible(false)} className="flex-1 bg-gray-600 hover:bg-gray-700 py-3 rounded-lg">إلغاء</button>
+                        </div>
+                    </form>
+                </GlassCard>
+            )}
+
+            <GlassCard className="!p-2">
+                <div className="flex justify-around items-center">
+                    <button onClick={() => setActiveTab('active')} className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${activeTab === 'active' ? 'bg-yellow-400/80 text-green-900' : 'text-white/80 hover:bg-white/10'}`}>
+                        أهداف نشطة ({activeGoals.length})
+                    </button>
+                    <button onClick={() => setActiveTab('archived')} className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${activeTab === 'archived' ? 'bg-yellow-400/80 text-green-900' : 'text-white/80 hover:bg-white/10'}`}>
+                        أهداف مكتملة ({archivedGoals.length})
+                    </button>
+                </div>
+            </GlassCard>
+
+            {displayedGoals.length > 0 ? (
+                <div className="space-y-4">
+                    {displayedGoals.map(g => {
+                        const isCompletedToday = g.type === 'daily' && dailyData.dailyGoalProgress[g.id];
+                        const currentProgress = g.type === 'target' ? (goalProgress[g.id] || 0) : 0;
+                        const progressPercentage = g.type === 'target' ? (currentProgress / g.target) * 100 : (isCompletedToday ? 100 : 0);
+                        const daysRemaining = g.endDate ? Math.ceil((new Date(g.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+
+                        return (
+                            <GlassCard key={g.id} className="relative">
+                                <div className="flex items-start gap-4">
+                                    <div className="text-4xl p-3 rounded-xl bg-black/20">{g.icon}</div>
+                                    <div className="flex-grow">
+                                        <h4 className="font-bold text-lg">{g.title}</h4>
+                                        <div className="text-xs text-white/80 space-x-2 space-x-reverse">
+                                            <span>{g.type === 'daily' ? 'هدف يومي' : `الهدف: ${g.target} ${g.unit || ''}`}</span>
+                                            {daysRemaining !== null && daysRemaining >= 0 && <span className="text-yellow-300">| متبقي {daysRemaining} أيام</span>}
+                                            {daysRemaining !== null && daysRemaining < 0 && <span className="text-red-400">| انتهى الوقت</span>}
+                                        </div>
+                                        <div className="w-full bg-black/20 rounded-full h-2.5 mt-2">
+                                            <div className="bg-gradient-to-r from-teal-400 to-cyan-500 h-2.5 rounded-full transition-all" style={{width: `${progressPercentage}%`}}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {g.type === 'daily' ? (
+                                    <div className="mt-4 text-center">
+                                        <button onClick={() => toggleDailyGoalCompletion(g.id)} className={`w-full py-2 rounded-lg font-semibold transition-colors ${isCompletedToday ? 'bg-teal-500' : 'bg-black/30'}`}>
+                                            {isCompletedToday ? '✅ تم إنجاز اليوم' : 'إنجاز اليوم'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="mt-4 flex items-center justify-center gap-4">
+                                        <button onClick={() => updateTargetGoalProgress(g.id, currentProgress - 1)} className="w-10 h-10 rounded-full bg-white/10 text-xl hover:bg-white/20">-</button>
+                                        <span className="text-xl font-bold w-20 text-center">{currentProgress} / {g.target}</span>
+                                        <button onClick={() => updateTargetGoalProgress(g.id, currentProgress + 1)} className="w-10 h-10 rounded-full bg-white/10 text-xl hover:bg-white/20">+</button>
+                                    </div>
+                                )}
+                                <div className="absolute top-2 left-2">
+                                     <button onClick={() => {if(window.confirm('هل أنت متأكد من حذف هذا الهدف؟')) deletePersonalGoal(g.id)}} className="w-8 h-8 rounded-full bg-red-800/50 hover:bg-red-700 text-white text-xs">حذف</button>
+                                </div>
+                            </GlassCard>
+                        )
+                    })}
+                </div>
+            ) : (
+                <GlassCard className="text-center text-white/80 py-8">
+                    {activeTab === 'active' ? 'لا توجد أهداف نشطة. ابدأ بإضافة هدف جديد!' : 'لا توجد أهداف مكتملة بعد.'}
+                </GlassCard>
+            )}
+
+        </div>
+    );
+};
+
 
 const MorePage: React.FC = () => {
     const { page } = useParams<{ page: MorePageType }>();
 
-    const availablePages: MorePageType[] = ['stats', 'challenges', 'about', 'support', 'settings'];
+    const availablePages: MorePageType[] = ['stats', 'challenges', 'about', 'support', 'settings', 'goals'];
     const currentPage = page && availablePages.includes(page) ? page : 'stats';
 
 
@@ -522,6 +677,7 @@ const MorePage: React.FC = () => {
         about: AboutPage,
         support: SupportPage,
         settings: SettingsPage,
+        goals: GoalsPage,
     };
 
     const pageTitles: Record<MorePageType, string> = {
@@ -530,6 +686,7 @@ const MorePage: React.FC = () => {
         about: 'ℹ️ عن التطبيق',
         support: '🆘 الدعم والأسئلة الشائعة',
         settings: '⚙️ الإعدادات',
+        goals: '🎯 أهدافي الشخصية'
     }
 
     const CurrentPage = pageComponents[currentPage];

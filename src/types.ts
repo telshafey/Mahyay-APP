@@ -1,4 +1,5 @@
 
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -105,6 +106,7 @@ export interface DailyData {
   azkarStatus: AzkarStatusData;
   quranRead: number;
   quranKhatmat: number;
+  dailyGoalProgress: { [goalId: string]: boolean }; // for 'daily' type goals
 }
 
 export interface AppData {
@@ -112,7 +114,7 @@ export interface AppData {
 }
 
 export type ActivePage = 'home' | 'prayers' | 'azkar' | 'quran' | 'more';
-export type MorePage = 'stats' | 'challenges' | 'about' | 'support' | 'settings';
+export type MorePage = 'stats' | 'challenges' | 'about' | 'support' | 'settings' | 'goals';
 
 export interface UserStats {
   totalPoints: number;
@@ -169,6 +171,25 @@ export interface HijriYearInfo {
     length: number;
 }
 
+export type GoalType = 'daily' | 'target';
+
+export interface PersonalGoal {
+  id: string;
+  title: string;
+  icon: string;
+  type: GoalType;
+  target: number; // For daily, target is 1. For target, it's the total amount.
+  unit?: string; // e.g., 'صفحة', 'مرة'
+  endDate?: string; // ISO string 'YYYY-MM-DD'
+  createdAt: string; // ISO string
+  isArchived: boolean;
+  completedAt?: string; // For target goals
+}
+
+export interface GoalProgress {
+    [goalId: string]: number; // For target goals, this is the current value.
+}
+
 export interface AppContextType {
   dailyData: DailyData;
   settings: Settings;
@@ -196,6 +217,16 @@ export interface AppContextType {
   currentHijriMonthInfo: HijriMonthInfo | null;
   nextIslamicOccasion: IslamicOccasion | null;
   
+  // Goals
+  personalGoals: PersonalGoal[];
+  goalProgress: GoalProgress;
+  addPersonalGoal: (goal: Omit<PersonalGoal, 'id' | 'createdAt' | 'isArchived' | 'completedAt'>) => void;
+  updatePersonalGoal: (goalId: string, updates: Partial<PersonalGoal>) => void;
+  archivePersonalGoal: (goalId: string) => void;
+  updateTargetGoalProgress: (goalId: string, newValue: number) => void;
+  toggleDailyGoalCompletion: (goalId: string) => void;
+  deletePersonalGoal: (goalId: string) => void;
+
   // Location
   coordinates: { lat: number; lon: number } | null;
   locationError: string | null;

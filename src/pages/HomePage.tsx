@@ -124,8 +124,7 @@ const HomePage: React.FC = () => {
 
   if (!context) return <div>Loading...</div>;
 
-  // Fix: Destructure all required properties from context to ensure correct type inference.
-  const { dailyData, nextPrayer, stats, prayerTimes, locationError, getAzkarProgress } = context;
+  const { dailyData, nextPrayer, stats, prayerTimes, locationError, getAzkarProgress, personalGoals, goalProgress, toggleDailyGoalCompletion } = context;
   
   const todayPrayers = Object.values(dailyData.prayerData).filter((p: PrayerStatus) => p.fard !== 'not_prayed' && p.fard !== 'missed').length;
   const todayAzkar = Object.values(dailyData.azkarStatus).filter(s => s === true).length;
@@ -139,6 +138,7 @@ const HomePage: React.FC = () => {
   ];
   
   const activeChallenges = CHALLENGES.filter(c => c.status === 'active');
+  const activeGoals = personalGoals.filter(g => !g.isArchived && !g.completedAt).slice(0, 2);
 
   return (
     <div className="space-y-8">
@@ -179,6 +179,37 @@ const HomePage: React.FC = () => {
                 </div>
              </GlassCard>
         </section>
+        
+        {activeGoals.length > 0 && (
+            <section>
+                <SectionHeader title="🎯 أهدافي الشخصية" linkTo="/more/goals" />
+                <div className="space-y-4">
+                    {activeGoals.map(goal => {
+                        const progress = goal.type === 'target' ? ((goalProgress[goal.id] || 0) / goal.target) * 100 : (dailyData.dailyGoalProgress[goal.id] ? 100 : 0);
+                        return (
+                            <Link to="/more/goals" key={goal.id}>
+                                <GlassCard className="!p-3">
+                                    <div className="flex items-center gap-3 text-white">
+                                        <div className="text-3xl">{goal.icon}</div>
+                                        <div className="flex-grow">
+                                            <p className="font-bold">{goal.title}</p>
+                                            <div className="w-full bg-black/20 rounded-full h-2 mt-1">
+                                                <div className="bg-gradient-to-r from-teal-400 to-cyan-500 h-2 rounded-full" style={{width: `${progress}%`}}></div>
+                                            </div>
+                                        </div>
+                                        {goal.type === 'daily' && (
+                                            <button onClick={(e) => { e.preventDefault(); toggleDailyGoalCompletion(goal.id); }} className={`w-10 h-10 rounded-full flex items-center justify-center text-xl transition-colors ${dailyData.dailyGoalProgress[goal.id] ? 'bg-teal-500' : 'bg-white/10'}`}>
+                                                {dailyData.dailyGoalProgress[goal.id] ? '✓' : ''}
+                                            </button>
+                                        )}
+                                    </div>
+                                </GlassCard>
+                            </Link>
+                        )
+                    })}
+                </div>
+            </section>
+        )}
 
         <section>
             <SectionHeader title="🏆 التحديات النشطة" linkTo="/more/challenges" />
