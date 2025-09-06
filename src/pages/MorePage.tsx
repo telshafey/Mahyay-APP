@@ -1,8 +1,8 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { MorePage as MorePageType } from '../types';
+import { MorePageType } from '../types';
 
-import StatsAndChallengesPage from './more/StatsAndChallengesPage';
+import StatsPage from './more/StatsAndChallengesPage';
 import AboutPage from './more/AboutPage';
 import SupportPage from './more/SupportPage';
 import SettingsPage from './more/SettingsPage';
@@ -13,13 +13,12 @@ import TermsOfUsePage from './more/TermsOfUsePage';
 const MorePage: React.FC = () => {
     const { page } = useParams<{ page: MorePageType }>();
 
-    const availablePages: MorePageType[] = ['stats', 'challenges', 'about', 'support', 'settings', 'goals', 'privacy', 'terms'];
+    const availablePages: MorePageType[] = ['stats', 'about', 'support', 'settings', 'goals', 'privacy', 'terms'];
     const currentPage = page && availablePages.includes(page) ? page : 'stats';
 
 
-    const pageComponents: Record<MorePageType, React.ComponentType> = {
-        stats: StatsAndChallengesPage,
-        challenges: StatsAndChallengesPage,
+    const pageComponents: Record<string, React.ComponentType> = {
+        stats: StatsPage,
         about: AboutPage,
         support: SupportPage,
         settings: SettingsPage,
@@ -28,9 +27,8 @@ const MorePage: React.FC = () => {
         terms: TermsOfUsePage,
     };
 
-    const pageTitles: Record<MorePageType, string> = {
-        stats: '📊 الإحصائيات والتحديات',
-        challenges: '📊 الإحصائيات والتحديات',
+    const pageTitles: Record<string, string> = {
+        stats: '📊 الإحصائيات',
         about: 'ℹ️ عن التطبيق',
         support: '🆘 الدعم والأسئلة الشائعة',
         settings: '⚙️ الإعدادات',

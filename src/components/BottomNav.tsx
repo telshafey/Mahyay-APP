@@ -8,6 +8,7 @@ const BottomNav: React.FC = () => {
         { path: '/prayers', icon: '🕌', label: 'الصلوات' },
         { path: '/azkar', icon: '📿', label: 'الأذكار' },
         { path: '/quran', icon: '📖', label: 'القرآن' },
+        { path: '/challenges', icon: '🏆', label: 'التحديات' },
     ];
     
     return (

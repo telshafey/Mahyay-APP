@@ -1,35 +1,17 @@
-import { AuthError, Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 
-export interface UserProfile {
-  id: string;
-  name: string;
-  email: string | undefined;
-  picture: string;
-  role?: 'admin' | 'user';
+// --- Gemini API Related ---
+export interface VerseReflection {
+  reflection: string;
+  actionable_tip: string;
 }
 
-export interface AuthContextType {
-  profile: UserProfile | null;
-  session: Session | null;
-  isLoading: boolean;
-  signIn: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
-  signUp: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
-  signOut: () => Promise<{ error: AuthError | null }>;
+export interface PersonalizedDua {
+  dua: string;
+  source_info: string;
 }
 
-export interface SunnahInfo {
-  count: number;
-  evidence: string;
-}
-
-export interface Prayer {
-  name:string;
-  emoji: string;
-  virtue: string;
-  sunnahBefore: SunnahInfo | null;
-  sunnahAfter: SunnahInfo | null;
-}
-
+// --- Prayer Related ---
 export type PrayerFardStatus = 'not_prayed' | 'early' | 'ontime' | 'late' | 'missed';
 
 export interface PrayerStatus {
@@ -38,39 +20,42 @@ export interface PrayerStatus {
   sunnahAfter: boolean;
 }
 
-export interface PrayerData {
-  [prayerName: string]: PrayerStatus;
+export interface Prayer {
+  name: string;
+  emoji: string;
+  virtue: string;
+  sunnahBefore?: { count: number; evidence: string };
+  sunnahAfter?: { count: number; evidence: string };
 }
 
-export interface NawafilOption {
-  count: number;
-  evidence: string;
+export interface PrayerTimeData {
+  Fajr: string;
+  Dhuhr: string;
+  Asr: string;
+  Maghrib: string;
+  Isha: string;
+  Sunrise: string;
+  [key: string]: string;
 }
 
 export interface Nawafil {
   name: string;
   emoji: string;
-  time: string;
-  options?: NawafilOption[];
   isCustom?: boolean;
-  evidence?: string;
+  evidence: string;
+  options?: { count: number; evidence: string }[];
 }
 
 export interface NawafilStatus {
-  selectedOption?: number;
   count?: number;
+  selectedOption?: number;
 }
 
-export interface NawafilData {
-  [nawafilName: string]: NawafilStatus;
-}
-
+// --- Azkar Related ---
 export interface AzkarType {
   name: string;
   emoji: string;
   time: string;
-  startHour: number;
-  endHour: number;
 }
 
 export interface AzkarItem {
@@ -79,45 +64,85 @@ export interface AzkarItem {
   evidence: string;
 }
 
-export interface AzkarProgress {
-  [azkarIndex: number]: number; // count
+// --- User & Auth ---
+export interface UserProfile {
+  id: string;
+  name: string | null;
+  email: string | null;
+  picture: string | null;
+  role: 'admin' | 'user';
 }
 
-export interface AzkarProgressData {
-  [azkarName: string]: AzkarProgress;
+export interface AuthContextType {
+  session: Session | null;
+  profile: UserProfile | null;
+  isLoading: boolean;
+  signIn: (email: string, pass: string) => Promise<{ error: any }>;
+  signUp: (email: string, pass: string) => Promise<{ error: any }>;
+  signOut: () => Promise<{ error: any }>;
 }
 
-export interface AzkarStatusData {
-    [azkarName: string]: boolean; // isCompleted
+// --- Goals & Challenges ---
+export type GoalType = 'daily' | 'target';
+
+export interface PersonalGoal {
+  id: string;
+  title: string;
+  icon: string;
+  type: GoalType;
+  target: number;
+  unit?: string;
+  endDate?: string;
+  createdAt: string;
+  isArchived: boolean;
+  completedAt?: string | null;
 }
 
-export interface Settings {
-  quranGoal: number;
-  notifications: {
-      prayers: boolean;
-      azkar: boolean;
-  };
-  azkarMorningStart: string; // e.g., "04:00"
-  azkarEveningStart: string; // e.g., "16:00"
-  prayerMethod: number;
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  durationDays: number;
+  points: number;
+  type: 'prayer' | 'azkar' | 'quran' | 'custom';
+  target: number;
+  relatedItem?: string;
+  tracking: 'auto' | 'manual';
 }
 
+export interface UserChallenge {
+  id: number | string;
+  userId: string;
+  challengeId: string;
+  startDate: string;
+  status: 'active' | 'completed';
+  progress: number;
+  completedAt?: string | null;
+  lastLoggedDate?: string | null;
+}
+
+export interface DisplayChallenge extends Challenge {
+  progress: number;
+  userProgress?: UserChallenge | null;
+}
+
+
+// --- App Data & State ---
 export interface DailyData {
-  prayerData: PrayerData;
-  nawafilData: NawafilData;
-  azkarProgress: AzkarProgressData;
-  azkarStatus: AzkarStatusData;
+  date: string;
+  prayerData: { [key: string]: PrayerStatus };
+  azkarStatus: { [key: string]: boolean };
   quranRead: number;
   quranKhatmat: number;
-  dailyGoalProgress: { [goalId: string]: boolean }; // for 'daily' type goals
+  azkarProgress: { [azkarName: string]: { [itemIndex: number]: number } };
+  nawafilData: { [key: string]: NawafilStatus };
+  dailyGoalProgress: { [goalId: string]: boolean };
 }
 
-export interface AppData {
-    [dateKey: string]: Partial<DailyData>;
-}
-
-export type ActivePage = 'home' | 'prayers' | 'azkar' | 'quran' | 'more';
-export type MorePage = 'stats' | 'challenges' | 'about' | 'support' | 'settings' | 'goals' | 'privacy' | 'terms';
+export type AppData = {
+  [dateKey: string]: Partial<DailyData>;
+};
 
 export interface UserStats {
   totalPoints: number;
@@ -132,126 +157,82 @@ export interface UserStats {
   };
 }
 
-export interface UserChallenge {
-  id: string;
-  title: string;
-  desc: string;
-  icon: string;
-  progress: number;
-  total: number;
-  reward: string;
-  status: 'active' | 'available' | 'completed';
-}
-
-export interface Wisdom {
-    id: string;
-    text: string;
-    source: string;
-    type: 'quran' | 'hadith' | 'dua' | 'monthly_wisdom';
-}
-
-export interface IslamicOccasion {
-    id:string;
-    name: string;
-    hijriMonth: number;
-    hijriDay: number;
-    description: string;
-    evidence: string;
-    isRecurring?: boolean; // For events like White Days
+export interface Settings {
+  quranGoal: number;
+  prayerMethod: number;
+  azkarMorningStart: string; // "HH:mm"
+  azkarEveningStart: string; // "HH:mm"
+  notifications: {
+    prayers: boolean;
+    azkar: boolean;
+  };
 }
 
 export interface HijriMonthInfo {
+  number: number;
+  name: string;
+  year: number;
+  definition: string;
+  occasions: {
+    id: string;
     name: string;
-    number: number;
-    year: string;
-    definition: string;
-    occasions: IslamicOccasion[];
-    wisdoms: Wisdom[];
+    hijriDay: number;
+    description: string;
+  }[];
 }
 
-export interface HijriYearInfo {
-    year: string;
-    length: number;
-}
-
-export type GoalType = 'daily' | 'target';
-
-export interface PersonalGoal {
+export interface IslamicOccasion {
   id: string;
-  title: string;
-  icon: string;
-  type: GoalType;
-  target: number; // For daily, target is 1. For target, it's the total amount.
-  unit?: string; // e.g., 'صفحة', 'مرة'
-  endDate?: string; // ISO string 'YYYY-MM-DD'
-  createdAt: string; // ISO string
-  isArchived: boolean;
-  completedAt?: string; // For target goals
+  name: string;
+  hijriDay: number;
+  hijriMonth: number;
+  description: string;
 }
 
-export interface GoalProgress {
-    [goalId: string]: number; // For target goals, this is the current value.
+export interface PrayerTimesContextType {
+  prayerTimes: { [key: string]: string };
+  nextPrayer: { prayer: Prayer | null; countdown: string; isNextDay: boolean; };
+  coordinates: { latitude: number; longitude: number } | null;
+  locationError: string | null;
+  detectLocation: () => Promise<void>;
+  isPrayerTimesLoading: boolean;
 }
 
 export interface AppContextType {
   dailyData: DailyData;
+  stats: UserStats;
   settings: Settings;
   isDataLoading: boolean;
-  dataError: string | null;
-  prayerTimes: Record<string, string>;
-  updatePrayerStatus: (prayerName: string, status: PrayerFardStatus) => void;
-  updateSunnahStatus: (prayerName: string, sunnahType: 'sunnahBefore' | 'sunnahAfter') => void;
-  updateNawafilOption: (prayerName: string, optionIndex: number) => void;
-  updateQiyamCount: (prayerName: string, change: number) => void;
+  updatePrayerStatus: (prayerName: string, status: PrayerFardStatus) => Promise<boolean>;
+  updateSunnahStatus: (prayerName: string, type: 'sunnahBefore' | 'sunnahAfter') => Promise<boolean>;
+  updateNawafilOption: (nawafilName: string, optionIndex: number) => Promise<boolean>;
+  updateQiyamCount: (nawafilName: string, change: number) => Promise<boolean>;
+  dailyWisdom: { text: string; source: string } | null;
   getAzkarProgress: (azkarName: string) => number;
-  incrementAzkarCount: (azkarName: string, azkarIndex: number) => void;
+  toggleAzkarItemCompletion: (azkarName: string, itemIndex: number) => void;
   completeAzkarGroup: (azkarName: string) => void;
   updateQuranRead: (change: number) => void;
   completeKhatma: () => void;
   updateSettings: (newSettings: Partial<Settings>) => void;
+  resetAllData: () => Promise<boolean>;
   hijriDate: string;
-  gregorianDate: string;
   shortHijriDate: string;
-  shortGregorianDate: string;
-  dailyDua: { text: string; source: string; };
-  nextPrayer: { prayer: Prayer | null, countdown: string, isNextDay: boolean };
-  stats: UserStats;
-  weeklyPrayerCounts: { day: string; count: number; }[];
-  dailyWisdom: Wisdom | null;
-  hijriYearInfo: HijriYearInfo | null;
-  currentHijriMonthInfo: HijriMonthInfo | null;
-  nextIslamicOccasion: IslamicOccasion | null;
-  
-  // Goals
+  notification: { message: string; icon: string } | null;
   personalGoals: PersonalGoal[];
-  goalProgress: GoalProgress;
-  addPersonalGoal: (goal: Omit<PersonalGoal, 'id' | 'createdAt' | 'isArchived' | 'completedAt'>) => void;
-  updatePersonalGoal: (goalId: string, updates: Partial<PersonalGoal>) => void;
-  archivePersonalGoal: (goalId: string) => void;
+  goalProgress: { [goalId: string]: number };
+  addPersonalGoal: (goal: Omit<PersonalGoal, 'id' | 'createdAt' | 'isArchived' | 'completedAt'>) => Promise<boolean>;
   updateTargetGoalProgress: (goalId: string, newValue: number) => void;
   toggleDailyGoalCompletion: (goalId: string) => void;
-  deletePersonalGoal: (goalId: string) => void;
-
-  // Location
-  coordinates: { lat: number; lon: number } | null;
-  locationError: string | null;
-  detectLocation: () => void;
-
-  // Notifications
-  notification: { message: string; icon: string } | null;
-  showNotification: (message: string, icon: string) => void;
-
-  // Data Management
-  resetAllData: () => Promise<void>;
+  deletePersonalGoal: (goalId: string) => Promise<boolean>;
+  toggleGoalArchivedStatus: (goalId: string) => Promise<boolean>;
+  userChallenges: UserChallenge[];
+  startChallenge: (challengeId: string) => void;
+  logManualChallengeProgress: (challengeId: string) => void;
+  currentHijriMonthInfo: HijriMonthInfo | null;
+  nextIslamicOccasion: IslamicOccasion | null;
+  hijriYearInfo: { year: number; length: number } | null;
+  weeklyPrayerCounts: { day: string; count: number }[];
 }
 
-// AI Feature Types
-export interface VerseReflection {
-    reflection: string;
-    actionable_tip: string;
-}
-
-export interface PersonalizedDua {
-    dua: string;
-    source_info: string;
-}
+// --- Misc ---
+export type MorePageType = 'stats' | 'challenges' | 'about' | 'support' | 'settings' | 'goals' | 'privacy' | 'terms';

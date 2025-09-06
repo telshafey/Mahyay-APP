@@ -21,10 +21,17 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 export async function getSubscription(): Promise<PushSubscription | null> {
     if ('serviceWorker' in navigator && 'PushManager' in window) {
         try {
-            const registration = await navigator.serviceWorker.ready;
-            return registration.pushManager.getSubscription();
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (!registration) {
+                return null;
+            }
+            return await registration.pushManager.getSubscription();
         } catch (error) {
-            console.error('Error getting push subscription:', error);
+            if (error instanceof DOMException && error.name === 'SecurityError') {
+                console.warn("Could not get push subscription due to security policy:", error.message);
+            } else {
+                console.error('Error getting push subscription:', error);
+            }
             return null;
         }
     }
@@ -39,7 +46,21 @@ export async function subscribeUser(): Promise<PushSubscription> {
         throw new Error('VAPID public key not configured.');
     }
 
-    const registration = await navigator.serviceWorker.ready;
+    let registration;
+    try {
+        registration = await navigator.serviceWorker.getRegistration();
+    } catch (error) {
+        if (error instanceof DOMException && error.name === 'SecurityError') {
+            throw new Error('لا يمكن تفعيل الإشعارات في بيئة التشغيل هذه بسبب قيود الأمان.');
+        }
+        console.error('Failed to get service worker registration:', error);
+        throw new Error('فشل الوصول إلى عامل الخدمة (Service Worker).');
+    }
+    
+    if (!registration) {
+        throw new Error('Service worker is not registered. Cannot subscribe.');
+    }
+
     let subscription = await registration.pushManager.getSubscription();
     
     if (subscription) {
@@ -75,7 +96,22 @@ export async function unsubscribeUser(): Promise<void> {
         return;
     }
 
-    const registration = await navigator.serviceWorker.ready;
+    let registration;
+    try {
+        registration = await navigator.serviceWorker.getRegistration();
+    } catch(error) {
+        if (error instanceof DOMException && error.name === 'SecurityError') {
+            console.warn('Cannot access service worker registration due to security policy. Unsubscribe failed.', error.message);
+        } else {
+            console.error('Failed to get service worker registration during unsubscribe:', error);
+        }
+        return;
+    }
+    
+    if (!registration) {
+        console.log('No service worker registered, cannot unsubscribe.');
+        return;
+    }
     const subscription = await registration.pushManager.getSubscription();
 
     if (subscription) {

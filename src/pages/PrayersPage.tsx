@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
+import { usePrayerTimesContext } from '../contexts/PrayerTimesContext';
 import { PRAYERS, ADDITIONAL_PRAYERS } from '../constants';
 import { Prayer, PrayerFardStatus, Nawafil, NawafilStatus } from '../types';
 import GlassCard from '../components/GlassCard';
+import { safeLocalStorage } from '../utils';
 
 const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
-    const { dailyData, updatePrayerStatus, updateSunnahStatus, prayerTimes } = useAppContext();
+    const { dailyData, updatePrayerStatus, updateSunnahStatus } = useAppContext();
+    const { prayerTimes } = usePrayerTimesContext();
+    const [isUpdating, setIsUpdating] = useState(false);
     const status = dailyData.prayerData[prayer.name];
 
     const prayerTimeStr = prayerTimes[prayer.name];
@@ -18,6 +22,18 @@ const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
         if (now >= prayerDateTime) {
             isTimeActive = true;
         }
+    }
+    
+    const handleUpdateStatus = async (newStatus: PrayerFardStatus) => {
+        setIsUpdating(true);
+        await updatePrayerStatus(prayer.name, newStatus);
+        setIsUpdating(false);
+    }
+    
+    const handleUpdateSunnah = async (type: 'sunnahBefore' | 'sunnahAfter') => {
+        setIsUpdating(true);
+        await updateSunnahStatus(prayer.name, type);
+        setIsUpdating(false);
     }
 
     const statusButtons: { key: PrayerFardStatus; label: string; style: string }[] = [
@@ -42,8 +58,8 @@ const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
                 {statusButtons.map(btn => (
                     <button 
                         key={btn.key} 
-                        onClick={() => updatePrayerStatus(prayer.name, btn.key)} 
-                        disabled={!isTimeActive}
+                        onClick={() => handleUpdateStatus(btn.key)} 
+                        disabled={!isTimeActive || isUpdating}
                         className={`px-4 py-2 rounded-full font-semibold border transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${status.fard === btn.key ? `${btn.style} scale-110 shadow-lg` : 'bg-white/10 hover:bg-white/20 border-white/20'}`}
                     >
                         {btn.label}
@@ -56,7 +72,7 @@ const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
                     <GlassCard className={`!bg-black/20 transition-opacity ${!isTimeActive ? 'opacity-50' : ''}`}>
                         <label className={`flex items-center justify-between ${isTimeActive ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                             <span className="font-semibold">سنة قبلية ({prayer.sunnahBefore.count} ركعات)</span>
-                             <input type="checkbox" checked={status.sunnahBefore} onChange={() => updateSunnahStatus(prayer.name, 'sunnahBefore')} disabled={!isTimeActive} className="w-5 h-5 rounded accent-yellow-400 disabled:cursor-not-allowed"/>
+                             <input type="checkbox" checked={status.sunnahBefore} onChange={() => handleUpdateSunnah('sunnahBefore')} disabled={!isTimeActive || isUpdating} className="w-5 h-5 rounded accent-yellow-400 disabled:cursor-not-allowed"/>
                         </label>
                         <p className="text-xs text-white mt-2 font-amiri pr-2 border-r-2 border-yellow-400/50">{prayer.sunnahBefore.evidence}</p>
                     </GlassCard>
@@ -65,7 +81,7 @@ const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
                     <GlassCard className={`!bg-black/20 transition-opacity ${!isTimeActive ? 'opacity-50' : ''}`}>
                         <label className={`flex items-center justify-between ${isTimeActive ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                             <span className="font-semibold">سنة بعدية ({prayer.sunnahAfter.count} ركعات)</span>
-                             <input type="checkbox" checked={status.sunnahAfter} onChange={() => updateSunnahStatus(prayer.name, 'sunnahAfter')} disabled={!isTimeActive} className="w-5 h-5 rounded accent-yellow-400 disabled:cursor-not-allowed"/>
+                             <input type="checkbox" checked={status.sunnahAfter} onChange={() => handleUpdateSunnah('sunnahAfter')} disabled={!isTimeActive || isUpdating} className="w-5 h-5 rounded accent-yellow-400 disabled:cursor-not-allowed"/>
                         </label>
                         <p className="text-xs text-white mt-2 font-amiri pr-2 border-r-2 border-yellow-400/50">{prayer.sunnahAfter.evidence}</p>
                     </GlassCard>
@@ -84,6 +100,20 @@ const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
 const NawafilCard: React.FC<{ nawafil: Nawafil }> = ({ nawafil }) => {
     const { dailyData, updateNawafilOption, updateQiyamCount } = useAppContext();
     const status: NawafilStatus = dailyData.nawafilData[nawafil.name] || {};
+    const [isUpdating, setIsUpdating] = useState(false);
+    
+    const handleUpdateOption = async (index: number) => {
+        setIsUpdating(true);
+        await updateNawafilOption(nawafil.name, index);
+        setIsUpdating(false);
+    }
+    
+    const handleUpdateCount = async (change: number) => {
+        setIsUpdating(true);
+        await updateQiyamCount(nawafil.name, change);
+        setIsUpdating(false);
+    }
+
 
     return(
         <GlassCard className="!bg-black/30">
@@ -92,16 +122,16 @@ const NawafilCard: React.FC<{ nawafil: Nawafil }> = ({ nawafil }) => {
                 <div className="text-center">
                     <label className="text-white mb-2 block">عدد الركعات:</label>
                     <div className="flex items-center justify-center gap-4">
-                        <button onClick={() => updateQiyamCount(nawafil.name, -2)} className="w-10 h-10 rounded-full bg-white/10 text-white text-xl font-bold hover:bg-white/20">-</button>
+                        <button onClick={() => handleUpdateCount(-2)} disabled={isUpdating} className="w-10 h-10 rounded-full bg-white/10 text-white text-xl font-bold hover:bg-white/20 disabled:opacity-50">-</button>
                         <span className="text-2xl font-bold text-white w-16 text-center">{status.count || 0}</span>
-                        <button onClick={() => updateQiyamCount(nawafil.name, 2)} className="w-10 h-10 rounded-full bg-white/10 text-white text-xl font-bold hover:bg-white/20">+</button>
+                        <button onClick={() => handleUpdateCount(2)} disabled={isUpdating} className="w-10 h-10 rounded-full bg-white/10 text-white text-xl font-bold hover:bg-white/20 disabled:opacity-50">+</button>
                     </div>
                      <p className="font-amiri text-xs text-white mt-4">{nawafil.evidence}</p>
                 </div>
             ) : (
-                <div className="space-y-3">
+                <div className={`space-y-3 ${isUpdating ? 'opacity-50 pointer-events-none' : ''}`}>
                     {nawafil.options?.map((opt, index) => (
-                        <div key={index} onClick={() => updateNawafilOption(nawafil.name, index)} className={`p-3 rounded-lg cursor-pointer transition-all ${status.selectedOption === index ? 'bg-yellow-400/30 border border-yellow-300' : 'bg-white/5 hover:bg-white/10'}`}>
+                        <div key={index} onClick={() => handleUpdateOption(index)} className={`p-3 rounded-lg cursor-pointer transition-all ${status.selectedOption === index ? 'bg-yellow-400/30 border border-yellow-300' : 'bg-white/5 hover:bg-white/10'}`}>
                             <p className="font-semibold text-white">{opt.count} ركعات</p>
                             <p className="font-amiri text-xs text-white">{opt.evidence}</p>
                         </div>
@@ -114,16 +144,12 @@ const NawafilCard: React.FC<{ nawafil: Nawafil }> = ({ nawafil }) => {
 
 const PrayersPage: React.FC = () => {
   const getInitialPrayer = (): Prayer => {
-    try {
-        const savedPrayerName = sessionStorage.getItem('selectedPrayer');
-        if (savedPrayerName) {
-            const savedPrayer = PRAYERS.find(p => p.name === savedPrayerName);
-            if (savedPrayer) {
-                return savedPrayer;
-            }
+    const savedPrayerName = safeLocalStorage.getItem('selectedPrayer');
+    if (savedPrayerName) {
+        const savedPrayer = PRAYERS.find(p => p.name === savedPrayerName);
+        if (savedPrayer) {
+            return savedPrayer;
         }
-    } catch (error) {
-        console.error("Could not read from sessionStorage", error);
     }
     return PRAYERS[0];
   };
@@ -131,11 +157,7 @@ const PrayersPage: React.FC = () => {
   const [selectedPrayer, setSelectedPrayer] = useState<Prayer>(getInitialPrayer);
 
   useEffect(() => {
-    try {
-        sessionStorage.setItem('selectedPrayer', selectedPrayer.name);
-    } catch (error) {
-        console.error("Could not write to sessionStorage", error);
-    }
+    safeLocalStorage.setItem('selectedPrayer', selectedPrayer.name);
   }, [selectedPrayer]);
 
   return (
@@ -150,7 +172,9 @@ const PrayersPage: React.FC = () => {
                     </button>
                 ))}
             </div>
-            {selectedPrayer && <FardhPrayerDetail prayer={selectedPrayer} />}
+            <div key={selectedPrayer.name} className="animate-fade-in-down">
+                <FardhPrayerDetail prayer={selectedPrayer} />
+            </div>
         </GlassCard>
 
         <GlassCard>

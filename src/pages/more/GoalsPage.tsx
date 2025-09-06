@@ -7,14 +7,15 @@ import { getGoalInspiration } from '../../services/geminiService';
 const GOAL_ICONS = ['🎯', '📖', '🤲', '❤️', '💰', '🏃‍♂️', '🌱', '⭐', '📿', '🕌'];
 
 const GoalsPage: React.FC = () => {
-    const { personalGoals, addPersonalGoal, goalProgress, updateTargetGoalProgress, toggleDailyGoalCompletion, dailyData, deletePersonalGoal } = useAppContext();
+    const { personalGoals, addPersonalGoal, goalProgress, updateTargetGoalProgress, toggleDailyGoalCompletion, dailyData, deletePersonalGoal, toggleGoalArchivedStatus } = useAppContext();
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [goal, setGoal] = useState({ title: '', icon: GOAL_ICONS[0], type: 'daily' as GoalType, target: 1, unit: '', endDate: '' });
-    const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
+    const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
     
     const [inspiration, setInspiration] = useState<{title: string; icon: string} | null>(null);
     const [isInspiring, setIsInspiring] = useState(false);
     const [inspirationError, setInspirationError] = useState<string | null>(null);
+    const [isUpdatingId, setIsUpdatingId] = useState<string | null>(null);
     
     const handleInspireMe = async () => {
         setIsInspiring(true);
@@ -42,8 +43,7 @@ const GoalsPage: React.FC = () => {
         setIsFormVisible(true);
     }
 
-
-    const handleFormSubmit = (e: React.FormEvent) => {
+    const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!goal.title.trim()) {
             alert('الرجاء إدخال عنوان الهدف.');
@@ -57,14 +57,29 @@ const GoalsPage: React.FC = () => {
             unit: goal.unit || undefined,
             endDate: goal.endDate || undefined,
         };
-        addPersonalGoal(newGoal);
-        setGoal({ title: '', icon: GOAL_ICONS[0], type: 'daily', target: 1, unit: '', endDate: '' });
-        setIsFormVisible(false);
+        const success = await addPersonalGoal(newGoal);
+        if(success) {
+            setGoal({ title: '', icon: GOAL_ICONS[0], type: 'daily', target: 1, unit: '', endDate: '' });
+            setIsFormVisible(false);
+        }
     };
+    
+    const handleDeleteGoal = async (goalId: string) => {
+        if (!window.confirm('هل أنت متأكد من حذف هذا الهدف نهائيًا؟')) return;
+        setIsUpdatingId(goalId);
+        await deletePersonalGoal(goalId);
+        setIsUpdatingId(null);
+    }
+    
+    const handleToggleArchive = async (goalId: string) => {
+        setIsUpdatingId(goalId);
+        await toggleGoalArchivedStatus(goalId);
+        setIsUpdatingId(null);
+    }
 
     const activeGoals = personalGoals.filter(g => !g.isArchived);
-    const archivedGoals = personalGoals.filter(g => g.isArchived);
-    const displayedGoals = activeTab === 'active' ? activeGoals : archivedGoals;
+    const completedGoals = personalGoals.filter(g => g.isArchived);
+    const displayedGoals = activeTab === 'active' ? activeGoals : completedGoals;
 
     return (
         <div className="space-y-6 text-white">
@@ -150,8 +165,8 @@ const GoalsPage: React.FC = () => {
                     <button onClick={() => setActiveTab('active')} className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${activeTab === 'active' ? 'bg-yellow-400/80 text-green-900' : 'text-white/80 hover:bg-white/10'}`}>
                         أهداف نشطة ({activeGoals.length})
                     </button>
-                    <button onClick={() => setActiveTab('archived')} className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${activeTab === 'archived' ? 'bg-yellow-400/80 text-green-900' : 'text-white/80 hover:bg-white/10'}`}>
-                        أهداف مكتملة ({archivedGoals.length})
+                    <button onClick={() => setActiveTab('completed')} className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors ${activeTab === 'completed' ? 'bg-yellow-400/80 text-green-900' : 'text-white/80 hover:bg-white/10'}`}>
+                        أهداف مكتملة ({completedGoals.length})
                     </button>
                 </div>
             </GlassCard>
@@ -163,38 +178,57 @@ const GoalsPage: React.FC = () => {
                         const currentProgress = g.type === 'target' ? (goalProgress[g.id] || 0) : 0;
                         const progressPercentage = g.type === 'target' ? (currentProgress / g.target) * 100 : (isCompletedToday ? 100 : 0);
                         const daysRemaining = g.endDate ? Math.ceil((new Date(g.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+                        const isUpdatingThisGoal = isUpdatingId === g.id;
 
                         return (
-                            <GlassCard key={g.id} className="relative">
+                            <GlassCard key={g.id}>
                                 <div className="flex items-start gap-4">
                                     <div className="text-4xl p-3 rounded-xl bg-black/20">{g.icon}</div>
                                     <div className="flex-grow">
                                         <h4 className="font-bold text-lg">{g.title}</h4>
                                         <div className="text-xs text-white/80 space-x-2 space-x-reverse">
                                             <span>{g.type === 'daily' ? 'هدف يومي' : `الهدف: ${g.target} ${g.unit || ''}`}</span>
-                                            {daysRemaining !== null && daysRemaining >= 0 && <span className="text-yellow-300">| متبقي {daysRemaining} أيام</span>}
-                                            {daysRemaining !== null && daysRemaining < 0 && <span className="text-red-400">| انتهى الوقت</span>}
+                                            {daysRemaining !== null && daysRemaining >= 0 && !g.isArchived && <span className="text-yellow-300">| متبقي {daysRemaining} أيام</span>}
+                                            {daysRemaining !== null && daysRemaining < 0 && !g.isArchived && <span className="text-red-400">| انتهى الوقت</span>}
+                                            {g.completedAt && <span className="text-green-300">| أُنجز في: {new Date(g.completedAt).toLocaleDateString('ar-SA')}</span>}
                                         </div>
-                                        <div className="w-full bg-black/20 rounded-full h-2.5 mt-2">
-                                            <div className="bg-gradient-to-r from-teal-400 to-cyan-500 h-2.5 rounded-full transition-all" style={{width: `${progressPercentage}%`}}></div>
-                                        </div>
+                                        {!g.isArchived && (
+                                            <div className="w-full bg-black/20 rounded-full h-2.5 mt-2">
+                                                <div className="bg-gradient-to-r from-teal-400 to-cyan-500 h-2.5 rounded-full transition-all" style={{width: `${progressPercentage}%`}}></div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                                {g.type === 'daily' ? (
-                                    <div className="mt-4 text-center">
-                                        <button onClick={() => toggleDailyGoalCompletion(g.id)} className={`w-full py-2 rounded-lg font-semibold transition-colors ${isCompletedToday ? 'bg-teal-500' : 'bg-black/30'}`}>
-                                            {isCompletedToday ? '✅ تم إنجاز اليوم' : 'إنجاز اليوم'}
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="mt-4 flex items-center justify-center gap-4">
-                                        <button onClick={() => updateTargetGoalProgress(g.id, currentProgress - 1)} className="w-10 h-10 rounded-full bg-white/10 text-xl hover:bg-white/20">-</button>
-                                        <span className="text-xl font-bold w-20 text-center">{currentProgress} / {g.target}</span>
-                                        <button onClick={() => updateTargetGoalProgress(g.id, currentProgress + 1)} className="w-10 h-10 rounded-full bg-white/10 text-xl hover:bg-white/20">+</button>
-                                    </div>
-                                )}
-                                <div className="absolute top-2 left-2">
-                                     <button onClick={() => {if(window.confirm('هل أنت متأكد من حذف هذا الهدف؟')) deletePersonalGoal(g.id)}} className="w-8 h-8 rounded-full bg-red-800/50 hover:bg-red-700 text-white text-xs">حذف</button>
+                                
+                                <div className={`mt-4 pt-4 border-t border-white/10 space-y-3 transition-opacity ${isUpdatingThisGoal ? 'opacity-50' : ''}`}>
+                                    {g.isArchived ? (
+                                        <div className="flex gap-4">
+                                            <button onClick={() => handleToggleArchive(g.id)} disabled={isUpdatingThisGoal} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg text-sm disabled:cursor-not-allowed disabled:bg-gray-600">{isUpdatingThisGoal ? 'جاري الحفظ...' : '🔄 إعادة تفعيل'}</button>
+                                            <button onClick={() => handleDeleteGoal(g.id)} disabled={isUpdatingThisGoal} className="flex-1 bg-red-800/80 hover:bg-red-800 text-white font-bold py-2 rounded-lg text-sm disabled:cursor-not-allowed disabled:bg-gray-600">{isUpdatingThisGoal ? 'جاري الحفظ...' : '🗑️ حذف نهائي'}</button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {g.type === 'daily' ? (
+                                                <button onClick={() => toggleDailyGoalCompletion(g.id)} disabled={isUpdatingThisGoal} className={`w-full py-3 rounded-lg font-semibold transition-colors ${isCompletedToday ? 'bg-teal-500' : 'bg-black/30'}`}>
+                                                    {isCompletedToday ? '✅ تم إنجاز اليوم' : 'إنجاز اليوم'}
+                                                </button>
+                                            ) : (
+                                                <div className="flex items-center justify-center gap-4">
+                                                    <button onClick={() => updateTargetGoalProgress(g.id, currentProgress - 1)} disabled={isUpdatingThisGoal} className="w-10 h-10 rounded-full bg-white/10 text-xl hover:bg-white/20 disabled:opacity-50">-</button>
+                                                    <span className="text-xl font-bold w-20 text-center">{currentProgress} / {g.target}</span>
+                                                    <button onClick={() => updateTargetGoalProgress(g.id, currentProgress + 1)} disabled={isUpdatingThisGoal} className="w-10 h-10 rounded-full bg-white/10 text-xl hover:bg-white/20 disabled:opacity-50">+</button>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-4">
+                                                <button onClick={() => handleToggleArchive(g.id)} disabled={isUpdatingThisGoal || (g.type === 'target' && currentProgress < g.target)} className="flex-grow bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg text-sm disabled:bg-gray-500/50 disabled:cursor-not-allowed">
+                                                    {isUpdatingThisGoal ? 'جاري الحفظ...' : (g.type === 'target' && currentProgress < g.target ? 'أكمل الهدف أولاً' : '✅ إكمال ونقل للأرشيف')}
+                                                </button>
+                                                 <button onClick={() => handleDeleteGoal(g.id)} disabled={isUpdatingThisGoal} className="w-12 h-full bg-red-800/60 hover:bg-red-800/90 text-white font-bold py-2 rounded-lg text-lg disabled:cursor-not-allowed disabled:bg-gray-600">
+                                                    {isUpdatingThisGoal ? '...' : '🗑️'}
+                                                 </button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </GlassCard>
                         )
@@ -205,7 +239,6 @@ const GoalsPage: React.FC = () => {
                     {activeTab === 'active' ? 'لا توجد أهداف نشطة. ابدأ بإضافة هدف جديد!' : 'لا توجد أهداف مكتملة بعد.'}
                 </GlassCard>
             )}
-
         </div>
     );
 };

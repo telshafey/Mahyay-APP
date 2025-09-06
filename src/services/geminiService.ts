@@ -30,6 +30,20 @@ try {
     initializationError = message;
 }
 
+const cleanAndParseJson = (text: string | undefined): any => {
+    if (!text) {
+        throw new Error("استجابة فارغة من نموذج الذكاء الاصطناعي.");
+    }
+    // Handles markdown code block ```json ... ```
+    const cleanedText = text.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+    try {
+        return JSON.parse(cleanedText);
+    } catch (e) {
+        console.error("فشل في تحليل JSON، النص الخام:", text);
+        // This error message will be caught by the calling function's catch block
+        throw new Error("لم تأت الاستجابة من الذكاء الاصطناعي بصيغة JSON صالحة.");
+    }
+};
 
 const handleGeminiError = (error: unknown): string => {
     console.error("Error fetching from Gemini:", error);
@@ -58,37 +72,51 @@ export const getVerseReflection = async (verse: string): Promise<{ data: VerseRe
         model: 'gemini-2.5-flash',
         contents: `الآية: "${verse}"`,
         config: {
-          systemInstruction: `أنت عالم إسلامي حكيم ومتخصص في التفسير. مهمتك هي تقديم تأملات عميقة وعملية لآيات القرآن الكريم. يجب أن تكون الاستجابة بصيغة JSON حصرًا وباللغة العربية.
-الشكل المطلوب:
+          systemInstruction: `أنت عالم إسلامي حكيم. مهمتك هي تقديم تأملات لآيات القرآن. يجب أن تكون الاستجابة بصيغة JSON حصرًا وباللغة العربية.
+**قواعد صارمة:**
+1.  يجب أن يحتوي الـ JSON على مفتاحين بالضبط: "reflection" و "actionable_tip".
+2.  لا تحذف أي مفتاح أبدًا، حتى لو كان من الصعب توليد محتواه.
+3.  لا تضف أي نص خارج بنية الـ JSON.
+
+**الشكل المطلوب:**
 {
-  "reflection": "تأمل قصير (3-4 جمل) يربط الآية بمشاعر وحياة المسلم اليومية، ويركز على المعاني الإيمانية والروحية.",
-  "actionable_tip": "نصيحة عملية واحدة ومحددة (جملة واحدة) يمكن للمستخدم تطبيقها اليوم بناءً على فهمه للآية."
-}
-تأكد من أن النصيحة العملية قابلة للتنفيذ الفوري. لا تضف أي مقدمات أو خواتيم خارج بنية JSON.`,
+  "reflection": "تأمل قصير (3-4 جمل) يربط الآية بحياة المسلم اليومية.",
+  "actionable_tip": "نصيحة عملية واحدة ومحددة (جملة واحدة) يمكن للمستخدم تطبيقها اليوم بناءً على فهم الآية."
+}`,
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
             properties: {
-                reflection: {
-                    type: Type.STRING,
-                    description: "تأمل قصير (3-4 جمل) يربط الآية بمشاعر وحياة المسلم اليومية."
-                },
-                actionable_tip: {
-                    type: Type.STRING,
-                    description: "نصيحة عملية واحدة ومحددة (جملة واحدة) يمكن للمستخدم تطبيقها."
-                }
+                reflection: { type: Type.STRING, description: "تأمل الآية" },
+                actionable_tip: { type: Type.STRING, description: "نصيحة عملية" }
             }
           }
         }
     });
     
-    const jsonText = (response.text ?? "").trim();
-    const result = JSON.parse(jsonText);
+    const result = cleanAndParseJson(response.text);
 
     if (result && result.reflection && result.actionable_tip) {
         return { data: result, error: null };
     }
-    return { data: null, error: "The AI response was not in the expected format." };
+
+    console.warn("Unexpected AI response structure. Raw text:", response.text);
+    let detailedError = "لم تأت استجابة الذكاء الاصطناعي بالشكل المتوقع.";
+
+    if (result && typeof result === 'object') {
+        const missingKeys = [];
+        if (!result.reflection) missingKeys.push("'التأمل (reflection)'");
+        if (!result.actionable_tip) missingKeys.push("'النصيحة العملية (actionable_tip)'");
+        if (missingKeys.length > 0) {
+            detailedError = `الاستجابة من الذكاء الاصطناعي تفتقد الحقول التالية: ${missingKeys.join(' و ')}.`;
+        }
+    }
+    
+    const rawResponseSnippet = response.text ? response.text.substring(0, 100) : "فارغ";
+    detailedError += ` المحتوى المستلم جزئيًا: "${rawResponseSnippet}..."`;
+
+    return { data: null, error: detailedError };
+
   } catch (error) {
     const errorMessage = handleGeminiError(error);
     return { data: null, error: errorMessage };
@@ -135,13 +163,17 @@ export const getPersonalizedDua = async (prompt: string): Promise<{ data: Person
             }
         });
 
-        const jsonText = (response.text ?? "").trim();
-        const result = JSON.parse(jsonText);
+        const result = cleanAndParseJson(response.text);
 
         if (result && result.dua && result.source_info) {
             return { data: result, error: null };
         }
-        return { data: null, error: "The AI response was not in the expected format." };
+
+        console.warn("Unexpected AI response structure for Dua. Raw text:", response.text);
+        const rawResponseSnippet = response.text ? response.text.substring(0, 150) : "فارغ";
+        const detailedError = `فشل تحليل استجابة الدعاء. المحتوى المستلم: "${rawResponseSnippet}..."`;
+        return { data: null, error: detailedError };
+
 
     } catch (error) {
         const errorMessage = handleGeminiError(error);
@@ -178,13 +210,16 @@ export const getGoalInspiration = async (): Promise<{ data: {title: string; icon
             }
         });
         
-        const jsonText = (response.text ?? "").trim();
-        const result = JSON.parse(jsonText);
+        const result = cleanAndParseJson(response.text);
 
         if (result && result.title && result.icon) {
             return { data: result, error: null };
         }
-        return { data: null, error: "The AI response was not in the expected format." };
+
+        console.warn("Unexpected AI response structure for Goal. Raw text:", response.text);
+        const rawResponseSnippet = response.text ? response.text.substring(0, 150) : "فارغ";
+        const detailedError = `فشل تحليل استجابة الهدف. المحتوى المستلم: "${rawResponseSnippet}..."`;
+        return { data: null, error: detailedError };
 
     } catch (error) {
         const errorMessage = handleGeminiError(error);

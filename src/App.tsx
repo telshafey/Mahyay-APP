@@ -8,6 +8,9 @@ import BottomNav from './components/BottomNav';
 import ScrollToTop from './components/ScrollToTop';
 import NotificationToast from './components/NotificationToast';
 import AdminRoute from './components/AdminRoute';
+import { PrayerTimesContext } from './contexts/PrayerTimesContext';
+import { usePrayerTimes } from './hooks/usePrayerTimes';
+
 
 // Statically import page components.
 import HomePage from './pages/HomePage';
@@ -17,6 +20,7 @@ import QuranPage from './pages/QuranPage';
 import MorePage from './pages/MorePage';
 import AdminPage from './pages/AdminPage';
 import LoginPage from './pages/LoginPage';
+import ChallengesPage from './pages/ChallengesPage';
 // Import public pages
 import TermsOfUsePage from './pages/more/TermsOfUsePage';
 import PrivacyPolicyPage from './pages/more/PrivacyPolicyPage';
@@ -41,6 +45,15 @@ const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 }
 
+const PrayerTimesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const prayerTimesData = usePrayerTimes();
+    return (
+        <PrayerTimesContext.Provider value={prayerTimesData}>
+            {children}
+        </PrayerTimesContext.Provider>
+    );
+}
+
 const MainAppLayout: React.FC = () => {
   return (
       <div className="min-h-screen">
@@ -53,6 +66,7 @@ const MainAppLayout: React.FC = () => {
                         <Route path="/prayers" element={<PrayersPage />} />
                         <Route path="/azkar" element={<AzkarPage />} />
                         <Route path="/quran" element={<QuranPage />} />
+                        <Route path="/challenges" element={<ChallengesPage />} />
                         <Route path="/more/:page" element={<MorePage />} />
                         <Route path="/admin" element={
                             <AdminRoute>
@@ -88,7 +102,9 @@ const AppRoutes: React.FC = () => {
             {authContext.profile ? (
                 <Route path="/*" element={
                     <AppContextProvider>
-                        <MainAppLayout />
+                        <PrayerTimesProvider>
+                            <MainAppLayout />
+                        </PrayerTimesProvider>
                     </AppContextProvider>
                 } />
             ) : (

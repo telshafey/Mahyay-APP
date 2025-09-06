@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
+import { usePrayerTimesContext } from '../contexts/PrayerTimesContext';
 import { PRAYERS, AZKAR_TYPES, CHALLENGES } from '../constants';
-import { PrayerStatus } from '../types';
+import { PrayerStatus, DisplayChallenge } from '../types';
 import GlassCard from '../components/GlassCard';
 import ChallengeCard from '../components/ChallengeCard';
 
-import DuaCompanionModal from '../components/home/DuaCompanionModal';
 import LocationBanner from '../components/home/LocationBanner';
 import SectionHeader from '../components/home/SectionHeader';
 import VerseCard from '../components/home/VerseCard';
@@ -15,8 +15,12 @@ import DuaCompanionCard from '../components/home/DuaCompanionCard';
 import IslamicCalendar from '../components/home/IslamicCalendar';
 
 const HomePage: React.FC = () => {
-  const [isDuaModalOpen, setIsDuaModalOpen] = useState(false);
-  const { dailyData, nextPrayer, stats, prayerTimes, locationError, getAzkarProgress, personalGoals, goalProgress, toggleDailyGoalCompletion } = useAppContext();
+  const { 
+      dailyData, stats, 
+      getAzkarProgress, personalGoals, goalProgress, toggleDailyGoalCompletion,
+      userChallenges, startChallenge 
+  } = useAppContext();
+  const { prayerTimes, nextPrayer, locationError } = usePrayerTimesContext();
   
   const todayPrayers = Object.values(dailyData.prayerData).filter((p: PrayerStatus) => p.fard !== 'not_prayed' && p.fard !== 'missed').length;
   const todayAzkar = Object.values(dailyData.azkarStatus).filter(s => s === true).length;
@@ -29,12 +33,20 @@ const HomePage: React.FC = () => {
       { icon: '🌟', label: 'نقاط', value: stats.totalPoints }
   ];
   
-  const activeChallenges = CHALLENGES.filter(c => c.status === 'active');
+  const activeChallenges = useMemo((): DisplayChallenge[] => {
+    return userChallenges
+      .filter(uc => uc.status === 'active')
+      .map((uc): DisplayChallenge | null => {
+        const baseChallenge = CHALLENGES.find(c => c.id === uc.challengeId);
+        return baseChallenge ? { ...baseChallenge, progress: uc.progress, userProgress: uc } : null;
+      })
+      .filter((c): c is DisplayChallenge => Boolean(c));
+  }, [userChallenges]);
+  
   const activeGoals = personalGoals.filter(g => !g.isArchived && !g.completedAt).slice(0, 2);
 
   return (
     <>
-    {isDuaModalOpen && <DuaCompanionModal onClose={() => setIsDuaModalOpen(false)} />}
     <div className="space-y-8">
         {locationError && <LocationBanner message={locationError} />}
 
@@ -58,7 +70,7 @@ const HomePage: React.FC = () => {
         </section>
         
         <section>
-            <DuaCompanionCard onOpenModal={() => setIsDuaModalOpen(true)} />
+            <DuaCompanionCard />
         </section>
 
         <section>
@@ -110,13 +122,23 @@ const HomePage: React.FC = () => {
         )}
 
         <section>
-            <SectionHeader title="🏆 التحديات النشطة" linkTo="/more/challenges" />
+            <SectionHeader title="🏆 التحديات النشطة" linkTo="/challenges" />
             <div className="space-y-4">
                 {activeChallenges.slice(0, 2).map(challenge => (
-                    <Link to="/more/challenges" key={challenge.id}>
-                        <ChallengeCard challenge={challenge} />
-                    </Link>
+                    challenge && (
+                        <Link to="/challenges" key={challenge.id}>
+                            <ChallengeCard challenge={challenge} onStartChallenge={startChallenge} />
+                        </Link>
+                    )
                 ))}
+                 {activeChallenges.length === 0 && (
+                    <Link to="/challenges">
+                        <GlassCard className="text-center text-white/80 py-6">
+                            <p>لا توجد تحديات نشطة حاليًا.</p>
+                            <p className="font-bold text-yellow-300">اكتشف تحديات جديدة وابدأ رحلتك!</p>
+                        </GlassCard>
+                    </Link>
+                )}
             </div>
         </section>
       

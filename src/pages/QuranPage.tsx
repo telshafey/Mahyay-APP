@@ -1,59 +1,57 @@
-
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import GlassCard from '../components/GlassCard';
-import { getVerseReflection } from '../services/geminiService';
-import { REFLECTION_VERSES } from '../constants';
-import { VerseReflection } from '../types';
+import { REFLECTION_VERSES, CHALLENGES } from '../constants';
+import { DisplayChallenge } from '../types';
+import ChallengeCard from '../components/ChallengeCard';
+
 
 const QuranPage: React.FC = () => {
-    const { dailyData, settings, updateQuranRead, completeKhatma } = useAppContext();
+    const { dailyData, settings, updateQuranRead, completeKhatma, userChallenges, startChallenge } = useAppContext();
 
     const read = dailyData.quranRead || 0;
     const goal = settings.quranGoal || 10;
     const progress = goal > 0 ? Math.min((read / goal) * 100, 100) : 0;
     const khatmat = dailyData.quranKhatmat || 0;
 
-    const [reflectionVerse, setReflectionVerse] = useState<{ text: string; source: string; } | null>(null);
-    const [reflectionData, setReflectionData] = useState<VerseReflection | null>(null);
-    const [isReflectionLoading, setIsReflectionLoading] = useState(false);
-    const [reflectionError, setReflectionError] = useState<string | null>(null);
+    const [selectedReflection, setSelectedReflection] = useState<{ 
+        text: string; 
+        source: string; 
+        reflection: string; 
+        actionable_tip: string; 
+    } | null>(null);
+
+     const quranChallenges = useMemo(() => {
+        const quranChallengeIds = ['c5', 'c6']; // Surah Al-Kahf, Surah Al-Mulk
+        return CHALLENGES
+            .filter(base => quranChallengeIds.includes(base.id))
+            .map(baseChallenge => {
+                const userProgress = userChallenges.find(uc => uc.challengeId === baseChallenge.id && uc.status === 'active');
+                if (!userProgress) return null;
+                return {
+                    ...baseChallenge,
+                    progress: userProgress.progress,
+                    userProgress: userProgress,
+                } as DisplayChallenge;
+            })
+            .filter((c): c is DisplayChallenge => Boolean(c));
+    }, [userChallenges]);
+
 
     useEffect(() => {
-        if (progress >= 100 && !reflectionVerse) {
+        if (progress >= 100 && !selectedReflection) {
             const randomIndex = Math.floor(Math.random() * REFLECTION_VERSES.length);
-            setReflectionVerse(REFLECTION_VERSES[randomIndex]);
-            setReflectionData(null); 
-        } else if (progress < 100 && reflectionVerse) {
-            setReflectionVerse(null);
-            setReflectionData(null);
+            setSelectedReflection(REFLECTION_VERSES[randomIndex]);
+        } else if (progress < 100 && selectedReflection) {
+            setSelectedReflection(null);
         }
-    }, [progress, reflectionVerse]);
-
-    const handleGetReflection = async () => {
-        if (!reflectionVerse) return;
-        setIsReflectionLoading(true);
-        setReflectionData(null);
-        setReflectionError(null);
-        const response = await getVerseReflection(reflectionVerse.text);
-        if (response.data) {
-            setReflectionData(response.data);
-        } else {
-            // The geminiService now provides detailed, user-friendly error messages.
-            const userFriendlyError = response.error || "عذرًا، حدث خطأ أثناء جلب التأمل. يرجى المحاولة مرة أخرى.";
-            setReflectionError(userFriendlyError);
-            console.error("Reflection Error:", response.error);
-        }
-        setIsReflectionLoading(false);
-    };
-
+    }, [progress, selectedReflection]);
 
     const motivationalMessages = {
         0: 'ابدأ رحلتك مع القرآن الكريم اليوم، فكل حرف بحسنة.',
         25: 'بداية مباركة! استمر في القراءة لتنال الأجر.',
-        50: 'ما شاء الله، لقد قطعت نصف الطريق لهدفك اليومي.',
-        75: 'ممتاز! أنت على وشك إتمام وردك اليومي.',
+        50: 'ما شاء الله، لقد قطعت نصف الطريق. أكمل وردك وستُفتح لك تأملات روحية عند إتمام الهدف!',
+        75: 'ممتاز! أنت على وشك إتمام وردك اليومي. عند إكماله، ستفتح لك تأملات روحية في آية مختارة!',
         100: '🎉 أحسنت! لقد أتممت هدفك اليومي، تقبل الله منك.'
     };
 
@@ -109,6 +107,21 @@ const QuranPage: React.FC = () => {
                 </div>
             </GlassCard>
 
+            {quranChallenges.length > 0 && (
+                <GlassCard className="animate-fade-in !bg-gradient-to-br from-cyan-500/20 to-teal-500/30">
+                    <h3 className="text-xl font-bold text-center mb-2 text-cyan-300">🎯 تحديات قرآنية نشطة</h3>
+                    <p className="text-center text-sm text-white/80 mb-4">
+                        سجّل إنجازك في هذه التحديات مباشرة من هنا.
+                    </p>
+                    <div className="space-y-4">
+                        {quranChallenges.map(challenge => (
+                            <ChallengeCard key={challenge.id} challenge={challenge} onStartChallenge={startChallenge} />
+                        ))}
+                    </div>
+                </GlassCard>
+            )}
+
+
              <GlassCard className="!bg-black/20">
                 <h3 className="text-xl font-bold text-center mb-4 text-yellow-300">✨ فضل قراءة القرآن</h3>
                 <div className="font-amiri text-center">
@@ -117,60 +130,25 @@ const QuranPage: React.FC = () => {
                 </div>
             </GlassCard>
 
-            {reflectionVerse && (
+            {selectedReflection && (
             <GlassCard className="animate-fade-in !bg-gradient-to-br from-indigo-500/20 to-purple-500/30 !border-purple-400/50">
                 <h3 className="text-xl font-bold text-center mb-4 text-purple-300">✨ تأملات روحية</h3>
+                
                 <div className="text-center mb-6 p-4 bg-black/25 rounded-lg border-r-4 border-purple-400">
-                    <p className="font-amiri text-xl md:text-2xl text-white">"{reflectionVerse.text}"</p>
-                    <p className="text-sm text-purple-300 mt-2">{reflectionVerse.source}</p>
+                    <p className="font-amiri text-xl md:text-2xl text-white">"{selectedReflection.text}"</p>
+                    <p className="text-sm text-purple-300 mt-2">{selectedReflection.source}</p>
                 </div>
                 
-                {!reflectionData && !isReflectionLoading && (
-                    <div className="text-center">
-                        <button 
-                            onClick={handleGetReflection} 
-                            disabled={isReflectionLoading}
-                            className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-full transition-colors disabled:opacity-50"
-                        >
-                            {isReflectionLoading ? 'جاري التفكر...' : '💡 تدبّر الآية مع Gemini'}
-                        </button>
+                <div className="space-y-4 animate-fade-in">
+                    <div className="p-4 bg-black/20 rounded-lg">
+                        <h4 className="font-bold text-purple-300 mb-2">التأمل:</h4>
+                        <p className="text-white leading-relaxed font-amiri text-lg">{selectedReflection.reflection}</p>
                     </div>
-                )}
-                
-                {isReflectionLoading && (
-                     <div className="text-center p-4">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-300 mx-auto"></div>
-                        <p className="text-white/80 mt-2 text-sm">جاري جلب التأملات...</p>
+                     <div className="p-4 bg-black/20 rounded-lg">
+                        <h4 className="font-bold text-purple-300 mb-2">خطوة عملية:</h4>
+                        <p className="text-white leading-relaxed font-amiri text-lg">{selectedReflection.actionable_tip}</p>
                     </div>
-                )}
-
-                {reflectionError && (
-                    <div className="p-3 bg-red-900/50 rounded-lg text-center text-red-300 text-sm animate-fade-in">
-                        {reflectionError}
-                    </div>
-                )}
-
-                {reflectionData && (
-                    <div className="space-y-4 animate-fade-in">
-                        <div className="p-4 bg-black/20 rounded-lg">
-                            <h4 className="font-bold text-purple-300 mb-2">التأمل:</h4>
-                            <p className="text-white leading-relaxed font-amiri text-lg">{reflectionData.reflection}</p>
-                        </div>
-                         <div className="p-4 bg-black/20 rounded-lg">
-                            <h4 className="font-bold text-purple-300 mb-2">خطوة عملية:</h4>
-                            <p className="text-white leading-relaxed font-amiri text-lg">{reflectionData.actionable_tip}</p>
-                        </div>
-                        <div className="text-center">
-                             <button 
-                                onClick={handleGetReflection}
-                                disabled={isReflectionLoading} 
-                                className="text-sm bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-4 rounded-full transition-colors"
-                            >
-                                {isReflectionLoading ? '...' : '🔄 إعادة التأمل'}
-                            </button>
-                        </div>
-                    </div>
-                )}
+                </div>
             </GlassCard>
             )}
 

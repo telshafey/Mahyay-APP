@@ -53,7 +53,7 @@ const Header: React.FC = () => {
                                </NavLink>
                            )}
                            <NavLink to="/more/goals" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>🎯</span><span>أهدافي الشخصية</span></NavLink>
-                           <NavLink to="/more/stats" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>📊</span><span>الإحصائيات والتحديات</span></NavLink>
+                           <NavLink to="/more/stats" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>📊</span><span>الإحصائيات</span></NavLink>
                            <NavLink to="/more/about" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>ℹ️</span><span>عن التطبيق</span></NavLink>
                            <NavLink to="/more/support" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>🆘</span><span>الدعم والأسئلة</span></NavLink>
                            <NavLink to="/more/settings" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>⚙️</span><span>الإعدادات</span></NavLink>
@@ -81,16 +81,12 @@ const Header: React.FC = () => {
                 {/* Desktop View */}
                 <div className="hidden md:block">
                      <p className="font-semibold text-sm text-white whitespace-nowrap">
-                        <span className="opacity-90">{appContext.gregorianDate}</span>
-                        <span className="mx-2 opacity-50">|</span>
                         <span className="text-[#d4af37] font-amiri">{appContext.hijriDate}</span>
                     </p>
                 </div>
                 {/* Mobile View */}
                 <div className="md:hidden">
                      <p className="font-semibold text-xs text-white/90 whitespace-nowrap">
-                        <span>{appContext.shortGregorianDate} م</span>
-                        <span className="mx-1.5 opacity-50">|</span>
                         <span className="text-yellow-300">{appContext.shortHijriDate} هـ</span>
                     </p>
                 </div>

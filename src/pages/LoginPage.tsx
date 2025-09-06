@@ -10,6 +10,7 @@ const LoginPage: React.FC = () => {
     const [rememberMe, setRememberMe] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [signupSuccess, setSignupSuccess] = useState(false);
     
     const { profile, signIn, signUp } = useAuthContext();
     const navigate = useNavigate();
@@ -44,8 +45,7 @@ const LoginPage: React.FC = () => {
             }
             setError(userFriendlyError);
         } else if (isSignUp) {
-            alert("تم إنشاء حسابك بنجاح! يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب ثم تسجيل الدخول.");
-            setIsSignUp(false); // Switch to login view after successful signup
+            setSignupSuccess(true);
         }
         // On successful login, the onAuthStateChange listener will handle the redirect.
 
@@ -62,77 +62,99 @@ const LoginPage: React.FC = () => {
             </div>
 
             <GlassCard className="w-full max-w-sm animate-fade-in" style={{ animationDelay: '200ms' }}>
-                 <div className="flex justify-center mb-6 border-b-2 border-white/10">
-                    <button 
-                        onClick={() => { setIsSignUp(false); setError(null); }}
-                        className={`py-2 px-6 font-semibold transition-colors w-1/2 ${!isSignUp ? 'text-yellow-300 border-b-2 border-yellow-300' : 'text-white/70'}`}
-                    >
-                        تسجيل الدخول
-                    </button>
-                    <button 
-                        onClick={() => { setIsSignUp(true); setError(null); }}
-                        className={`py-2 px-6 font-semibold transition-colors w-1/2 ${isSignUp ? 'text-yellow-300 border-b-2 border-yellow-300' : 'text-white/70'}`}
-                    >
-                        إنشاء حساب
-                    </button>
-                </div>
-
-                <h2 className="text-2xl font-bold text-center text-white mb-6">
-                    {isSignUp ? 'حساب جديد' : 'مرحباً بعودتك'}
-                </h2>
-                
-                <form onSubmit={handleSubmit} className="space-y-4">
-                     {error && <p className="text-red-300 bg-red-900/50 p-3 rounded-lg text-center text-sm">{error}</p>}
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-semibold mb-2 text-white/90">
-                            البريد الإلكتروني
-                        </label>
-                        <input
-                            id="email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="example@email.com"
-                            className="w-full text-lg bg-black/30 rounded-lg py-2 px-4 border border-white/20 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder:text-white/60"
-                            required
-                        />
+                {signupSuccess ? (
+                     <div className="text-center p-4 animate-fade-in">
+                        <div className="text-6xl mb-4">📧</div>
+                        <h2 className="text-2xl font-bold text-yellow-300 mb-2">خطوة أخيرة!</h2>
+                        <p className="text-white/90">
+                            تم إنشاء حسابك بنجاح. لقد أرسلنا رابط تفعيل إلى بريدك الإلكتروني:
+                        </p>
+                        <p className="font-bold text-white my-3 break-all">{email}</p>
+                        <p className="text-sm text-white/80">
+                            يرجى الضغط على الرابط لتفعيل حسابك ثم العودة لتسجيل الدخول.
+                        </p>
+                        <button 
+                            onClick={() => { setSignupSuccess(false); setIsSignUp(false); }}
+                            className="mt-6 w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors text-lg"
+                        >
+                            العودة لتسجيل الدخول
+                        </button>
                     </div>
-                     <div>
-                        <label htmlFor="password" className="block text-sm font-semibold mb-2 text-white/90">
-                            كلمة المرور
-                        </label>
-                        <input
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
-                            className="w-full text-lg bg-black/30 rounded-lg py-2 px-4 border border-white/20 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder:text-white/60"
-                            required
-                        />
-                    </div>
+                ) : (
+                    <>
+                        <div className="flex justify-center mb-6 border-b-2 border-white/10">
+                            <button 
+                                onClick={() => { setIsSignUp(false); setError(null); }}
+                                className={`py-2 px-6 font-semibold transition-colors w-1/2 ${!isSignUp ? 'text-yellow-300 border-b-2 border-yellow-300' : 'text-white/70'}`}
+                            >
+                                تسجيل الدخول
+                            </button>
+                            <button 
+                                onClick={() => { setIsSignUp(true); setError(null); }}
+                                className={`py-2 px-6 font-semibold transition-colors w-1/2 ${isSignUp ? 'text-yellow-300 border-b-2 border-yellow-300' : 'text-white/70'}`}
+                            >
+                                إنشاء حساب
+                            </button>
+                        </div>
 
-                    <div className="flex items-center justify-between">
-                        <label htmlFor="remember-me" className="flex items-center gap-2 text-sm text-white/80 cursor-pointer">
-                            <input
-                                id="remember-me"
-                                type="checkbox"
-                                checked={rememberMe}
-                                onChange={(e) => setRememberMe(e.target.checked)}
-                                className="w-4 h-4 rounded accent-yellow-400 bg-black/30 border-white/20 focus:ring-yellow-400"
-                            />
-                            تذكرني
-                        </label>
-                    </div>
+                        <h2 className="text-2xl font-bold text-center text-white mb-6">
+                            {isSignUp ? 'حساب جديد' : 'مرحباً بعودتك'}
+                        </h2>
+                        
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {error && <p className="text-red-300 bg-red-900/50 p-3 rounded-lg text-center text-sm">{error}</p>}
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-semibold mb-2 text-white/90">
+                                    البريد الإلكتروني
+                                </label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="example@email.com"
+                                    className="w-full text-lg bg-black/30 rounded-lg py-2 px-4 border border-white/20 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder:text-white/60"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="password" className="block text-sm font-semibold mb-2 text-white/90">
+                                    كلمة المرور
+                                </label>
+                                <input
+                                    id="password"
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    className="w-full text-lg bg-black/30 rounded-lg py-2 px-4 border border-white/20 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder:text-white/60"
+                                    required
+                                />
+                            </div>
 
-                    <button 
-                        type="submit" 
-                        className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors text-lg disabled:opacity-50 flex justify-center items-center"
-                        disabled={loading || !email.trim() || !password.trim()}
-                    >
-                        {loading ? <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-900"></div> : (isSignUp ? 'إنشاء حساب' : 'دخول')}
-                    </button>
-                </form>
+                            <div className="flex items-center justify-between">
+                                <label htmlFor="remember-me" className="flex items-center gap-2 text-sm text-white/80 cursor-pointer">
+                                    <input
+                                        id="remember-me"
+                                        type="checkbox"
+                                        checked={rememberMe}
+                                        onChange={(e) => setRememberMe(e.target.checked)}
+                                        className="w-4 h-4 rounded accent-yellow-400 bg-black/30 border-white/20 focus:ring-yellow-400"
+                                    />
+                                    تذكرني
+                                </label>
+                            </div>
+
+                            <button 
+                                type="submit" 
+                                className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors text-lg disabled:opacity-50 flex justify-center items-center"
+                                disabled={loading || !email.trim() || !password.trim()}
+                            >
+                                {loading ? <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-900"></div> : (isSignUp ? 'إنشاء حساب' : 'دخول')}
+                            </button>
+                        </form>
+                    </>
+                )}
             </GlassCard>
             <div className="text-xs text-white/60 mt-8 text-center animate-fade-in" style={{ animationDelay: '400ms' }}>
                 <p className="mb-2">بياناتك محمية ومشفّرة بالكامل.</p>

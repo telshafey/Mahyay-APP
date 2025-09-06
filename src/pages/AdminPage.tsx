@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import GlassCard from '../components/GlassCard';
 
 const AdminPage: React.FC = () => {
@@ -6,6 +6,16 @@ const AdminPage: React.FC = () => {
     const [body, setBody] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [responseMessage, setResponseMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+    useEffect(() => {
+        if (responseMessage) {
+            const timer = setTimeout(() => {
+                setResponseMessage(null);
+            }, 5000); // Hide after 5 seconds
+    
+            return () => clearTimeout(timer); // Cleanup timer on unmount or if message changes
+        }
+    }, [responseMessage]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -89,7 +99,7 @@ const AdminPage: React.FC = () => {
                     </button>
 
                     {responseMessage && (
-                        <div className={`p-3 rounded-lg text-center font-semibold ${responseMessage.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
+                        <div className={`p-3 rounded-lg text-center font-semibold animate-fade-in ${responseMessage.type === 'success' ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
                             {responseMessage.message}
                         </div>
                     )}

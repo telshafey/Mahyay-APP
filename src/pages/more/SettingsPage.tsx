@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { PRAYER_METHODS } from '../../constants';
@@ -6,13 +6,17 @@ import GlassCard from '../../components/GlassCard';
 import SettingsCard from '../../components/more/SettingsCard';
 import PushNotificationManager from '../../components/more/PushNotificationManager';
 import { Settings } from '../../types';
+import { usePrayerTimesContext } from '../../contexts/PrayerTimesContext';
 
 
 const SettingsPage: React.FC = () => {
     const context = useAppContext();
     const authContext = useAuthContext();
+    const [isResettingData, setIsResettingData] = useState(false);
+    const [isFullResetting, setIsFullResetting] = useState(false);
     
-    const { settings, updateSettings, resetAllData, coordinates, locationError, detectLocation } = context;
+    const { settings, updateSettings, resetAllData } = context;
+    const { coordinates, locationError, detectLocation } = usePrayerTimesContext();
     const { profile, signOut } = authContext;
     
     const handleSettingsChange = (key: keyof Settings, value: any) => {
@@ -24,13 +28,24 @@ const SettingsPage: React.FC = () => {
         handleSettingsChange('quranGoal', newGoal);
     }
     
+    const handleDataReset = async () => {
+        if (!window.confirm("⚠️ تحذير! هل أنت متأكد من حذف بيانات العبادة والأهداف؟ لا يمكن التراجع عن هذا الإجراء.")) return;
+        setIsResettingData(true);
+        await resetAllData();
+        setIsResettingData(false);
+    }
+    
     const handleFullReset = async () => {
         if (!window.confirm("⚠️ تحذير! هل أنت متأكد من حذف ملفك الشخصي وجميع بيانات العبادة؟ لا يمكن التراجع عن هذا الإجراء.")) return;
         
-        await resetAllData();
-        await signOut();
-        
-        alert("تم إعادة تعيين التطبيق بالكامل.");
+        setIsFullResetting(true);
+        const success = await resetAllData();
+        if (success) {
+            await signOut();
+            alert("تم إعادة تعيين التطبيق بالكامل.");
+        }
+        // If it fails, the error notification will be shown and we stay on the page.
+        setIsFullResetting(false);
     }
 
     return (
@@ -40,7 +55,7 @@ const SettingsPage: React.FC = () => {
                      <div className="relative">
                          <img 
                             src={profile?.picture} 
-                            alt={profile?.name} 
+                            alt={profile?.name || 'User'} 
                             className="w-24 h-24 rounded-full border-4 border-white/50 object-cover shadow-lg"
                          />
                      </div>
@@ -130,11 +145,11 @@ const SettingsPage: React.FC = () => {
 
              <div className="border-2 border-red-500/50 rounded-2xl p-4 space-y-4">
                 <h4 className="text-lg font-bold text-center text-red-300">منطقة الخطر</h4>
-                <button onClick={() => context.resetAllData()} className="w-full bg-red-800/80 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                    🗑️ إعادة تعيين بيانات العبادة والأهداف
+                <button onClick={handleDataReset} disabled={isResettingData} className="w-full bg-red-800/80 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-wait">
+                    {isResettingData ? 'جاري الحذف...' : '🗑️ إعادة تعيين بيانات العبادة والأهداف'}
                 </button>
-                <button onClick={handleFullReset} className="w-full bg-red-900 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                    🔥 إعادة تعيين التطبيق بالكامل
+                <button onClick={handleFullReset} disabled={isFullResetting} className="w-full bg-red-900 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-wait">
+                    {isFullResetting ? 'جاري الحذف...' : '🔥 إعادة تعيين التطبيق بالكامل'}
                 </button>
                  <p className="text-xs text-center text-red-300">هذه الإجراءات نهائية ولا يمكن التراجع عنها.</p>
             </div>
