@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -54,7 +55,7 @@ const SettingsPage: React.FC = () => {
                  <div className="flex flex-col items-center text-center gap-4">
                      <div className="relative">
                          <img 
-                            src={profile?.picture} 
+                            src={profile?.picture || undefined} 
                             alt={profile?.name || 'User'} 
                             className="w-24 h-24 rounded-full border-4 border-white/50 object-cover shadow-lg"
                          />

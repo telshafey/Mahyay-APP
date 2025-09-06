@@ -1,9 +1,10 @@
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     AppContextType, DailyData, Settings, PrayerFardStatus, UserStats,
     PersonalGoal, UserChallenge, HijriMonthInfo, IslamicOccasion, PrayerStatus
 } from '../types';
-import { PRAYERS, QURAN_TOTAL_PAGES, CHALLENGES, AZKAR_DATA, HIJRI_MONTHS_DETAILS } from '../constants';
+import { PRAYERS, CHALLENGES, AZKAR_DATA, HIJRI_MONTHS_DETAILS } from '../constants';
 import { calculateStats, getMaxCount } from '../utils';
 import { supabase } from '../supabase';
 import { useAuthContext } from '../contexts/AuthContext';

@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import type { UserProfile, AuthContextType } from '../types';
 import { supabase } from '../supabase';
@@ -20,7 +21,7 @@ const createProfileFromSession = (session: Session | null): UserProfile | null =
     return {
         id: user.id,
         name: name,
-        email: user.email,
+        email: user.email || null,
         picture: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=d4af37`,
         role: role
     };

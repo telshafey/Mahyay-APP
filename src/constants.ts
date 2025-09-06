@@ -1,4 +1,5 @@
-import { Prayer, AzkarType, AzkarItem, Challenge, Nawafil, IslamicOccasion } from './types';
+
+import { Prayer, AzkarType, AzkarItem, Challenge, Nawafil } from './types';
 
 export const QURAN_TOTAL_PAGES = 604;
 
