@@ -13,19 +13,42 @@ export const usePrayerTimes = (): PrayerTimesContextType => {
 
     const detectLocation = useCallback(async () => {
         if (!navigator.geolocation) {
-            setLocationError("المتصفح لا يدعم تحديد الموقع. سيتم استخدام مواقيت القاهرة الافتراضية.");
+            setLocationError("المتصفح أو بيئة التشغيل لا تدعم تحديد الموقع. سيتم استخدام مواقيت القاهرة الافتراضية.");
             setCoordinates({ latitude: 30.0444, longitude: 31.2357 }); // Cairo fallback
             return;
         }
+
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000, // 10 seconds
+            maximumAge: 0,
+        };
+
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                setCoordinates({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+                setCoordinates({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                });
                 setLocationError(null);
             },
-            () => {
-                setLocationError("لم يتم السماح بالوصول للموقع. سيتم استخدام مواقيت القاهرة الافتراضية.");
+            (error) => {
+                let message = "لم نتمكن من تحديد موقعك. سيتم استخدام مواقيت القاهرة الافتراضية.";
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        message = "تم رفض إذن الوصول للموقع. لتحديد المواقيت بدقة، يرجى تفعيل إذن الموقع للتطبيق من إعدادات جهازك.";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message = "معلومات الموقع غير متاحة حاليًا. يرجى التحقق من تفعيل GPS والمحاولة مرة أخرى.";
+                        break;
+                    case error.TIMEOUT:
+                        message = "انتهى وقت طلب تحديد الموقع. يرجى المحاولة في مكان به إشارة أفضل.";
+                        break;
+                }
+                setLocationError(message);
                 setCoordinates({ latitude: 30.0444, longitude: 31.2357 }); // Cairo fallback
-            }
+            },
+            options
         );
     }, []);
 
