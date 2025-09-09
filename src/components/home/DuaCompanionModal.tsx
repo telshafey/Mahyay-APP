@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PersonalizedDua } from '../../types';
 import { getPersonalizedDua } from '../../services/geminiService';
-import GlassCard from '../GlassCard';
+import Modal from '../ui/Modal';
 
 const DuaCompanionModal: React.FC<{ onClose: () => void; }> = ({ onClose }) => {
     const [request, setRequest] = useState('');
@@ -37,66 +37,59 @@ const DuaCompanionModal: React.FC<{ onClose: () => void; }> = ({ onClose }) => {
     }
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fade-in" onClick={onClose}>
-            <GlassCard className="w-full max-w-lg !bg-gradient-to-br from-[#2d5a47] to-[#1e4d3b]" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold text-white font-amiri">✨ رفيق الدعاء</h3>
-                    <button onClick={onClose} className="text-white/80 hover:text-white font-bold text-2xl">&times;</button>
+        <Modal title="✨ رفيق الدعاء" onClose={onClose}>
+            {!result && !isLoading && (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <label htmlFor="dua-request" className="block text-white/90 text-center">
+                        اكتب ما في قلبك أو ما تحتاج للدعاء به (مثال: لدي اختبار غداً وأشعر بالقلق)
+                    </label>
+                    <textarea
+                        id="dua-request"
+                        value={request}
+                        onChange={(e) => setRequest(e.target.value)}
+                        rows={3}
+                        placeholder="اكتب هنا..."
+                        className="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white placeholder:text-white/60 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                    />
+                    <button 
+                        type="submit" 
+                        disabled={!request.trim()}
+                        className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                        صياغة الدعاء
+                    </button>
+                </form>
+            )}
+
+            {isLoading && (
+                <div className="text-center p-8 space-y-3">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto"></div>
+                    <p className="text-white font-semibold">لحظات من فضلك، جاري صياغة الدعاء...</p>
                 </div>
-                
-                {!result && !isLoading && (
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <label htmlFor="dua-request" className="block text-white/90 text-center">
-                            اكتب ما في قلبك أو ما تحتاج للدعاء به (مثال: لدي اختبار غداً وأشعر بالقلق)
-                        </label>
-                        <textarea
-                            id="dua-request"
-                            value={request}
-                            onChange={(e) => setRequest(e.target.value)}
-                            rows={3}
-                            placeholder="اكتب هنا..."
-                            className="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white placeholder:text-white/60 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                        />
-                        <button 
-                            type="submit" 
-                            disabled={!request.trim()}
-                            className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50"
-                        >
-                            صياغة الدعاء
-                        </button>
-                    </form>
-                )}
+            )}
+            
+            {error && (
+                <div className="p-4 bg-red-900/50 rounded-lg text-center text-red-300">
+                    <p>{error}</p>
+                     <button onClick={() => { setError(null); setIsLoading(false); setResult(null); }} className="mt-3 bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-4 rounded-full transition-colors text-sm">
+                        حاول مجدداً
+                    </button>
+                </div>
+            )}
 
-                {isLoading && (
-                    <div className="text-center p-8 space-y-3">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto"></div>
-                        <p className="text-white font-semibold">لحظات من فضلك، جاري صياغة الدعاء...</p>
+            {result && (
+                <div className="space-y-4 animate-fade-in">
+                    <div className="p-4 bg-black/30 rounded-lg border-r-4 border-yellow-400">
+                         <p className="font-amiri text-xl md:text-2xl leading-relaxed text-white text-center">"{result.dua}"</p>
                     </div>
-                )}
-                
-                {error && (
-                    <div className="p-4 bg-red-900/50 rounded-lg text-center text-red-300">
-                        <p>{error}</p>
-                         <button onClick={() => { setError(null); setIsLoading(false); setResult(null); }} className="mt-3 bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-4 rounded-full transition-colors text-sm">
-                            حاول مجدداً
-                        </button>
+                    <div className="text-center text-sm text-yellow-300 font-semibold">{result.source_info}</div>
+                    <div className="flex gap-4">
+                         <button onClick={handleCopy} className="flex-1 bg-green-600 hover:bg-green-700 font-bold py-3 rounded-lg">نسخ الدعاء</button>
+                         <button onClick={() => { setResult(null); setRequest(''); }} className="flex-1 bg-gray-600 hover:bg-gray-700 py-3 rounded-lg">طلب دعاء آخر</button>
                     </div>
-                )}
-
-                {result && (
-                    <div className="space-y-4 animate-fade-in">
-                        <div className="p-4 bg-black/30 rounded-lg border-r-4 border-yellow-400">
-                             <p className="font-amiri text-xl md:text-2xl leading-relaxed text-white text-center">"{result.dua}"</p>
-                        </div>
-                        <div className="text-center text-sm text-yellow-300 font-semibold">{result.source_info}</div>
-                        <div className="flex gap-4">
-                             <button onClick={handleCopy} className="flex-1 bg-green-600 hover:bg-green-700 font-bold py-3 rounded-lg">نسخ الدعاء</button>
-                             <button onClick={() => { setResult(null); setRequest(''); }} className="flex-1 bg-gray-600 hover:bg-gray-700 py-3 rounded-lg">طلب دعاء آخر</button>
-                        </div>
-                    </div>
-                )}
-            </GlassCard>
-        </div>
+                </div>
+            )}
+        </Modal>
     );
 };
 

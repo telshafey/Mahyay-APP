@@ -16,7 +16,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge, onStartChallen
     const isSaving = typeof challenge.userProgress?.id === 'string'; // Check for temporary ID from optimistic update
 
     const todayKey = new Date().toISOString().split('T')[0];
-    const hasLoggedToday = challenge.userProgress?.lastLoggedDate === todayKey;
+    const hasLoggedToday = challenge.userProgress?.last_logged_date === todayKey;
 
     let manualAction = {
         enabled: true,
@@ -91,4 +91,4 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge, onStartChallen
     );
 };
 
-export default ChallengeCard;
+export default React.memo(ChallengeCard);

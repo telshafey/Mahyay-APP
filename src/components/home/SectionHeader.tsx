@@ -10,4 +10,4 @@ const SectionHeader: React.FC<{ title: string; linkTo: string; }> = ({ title, li
     </div>
 );
 
-export default SectionHeader;
+export default React.memo(SectionHeader);

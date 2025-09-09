@@ -8,9 +8,9 @@ const VerseCard: React.FC = () => {
     return (
         <GlassCard className="text-center !bg-gradient-to-br !from-yellow-300/20 !to-yellow-500/30 !border-yellow-400/30">
             <p className="font-amiri text-2xl md:text-3xl leading-relaxed text-white font-bold mb-4">"{verse}"</p>
-            <p className="text-yellow-300 font-semibold mb-2">{source}</p>
+            <p className="text-yellow-300 font-semibold">{source}</p>
         </GlassCard>
     );
 }
 
-export default VerseCard;
+export default React.memo(VerseCard);

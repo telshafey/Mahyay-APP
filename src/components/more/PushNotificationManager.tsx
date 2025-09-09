@@ -9,6 +9,7 @@ const PushNotificationManager: React.FC = () => {
 
     useEffect(() => {
         const checkSubscription = async () => {
+            setIsLoading(true);
             const subscription = await getSubscription();
             setIsSubscribed(!!subscription);
             setIsLoading(false);
@@ -24,14 +25,19 @@ const PushNotificationManager: React.FC = () => {
                 await unsubscribeUser();
                 setIsSubscribed(false);
             } else {
-                await subscribeUser();
-                setIsSubscribed(true);
+                // For native platforms, we might need to re-check permissions if they were denied before
+                if (window.Capacitor?.isNativePlatform() && Notification.permission === 'denied') {
+                     setError('لقد قمت بحظر الإشعارات من إعدادات الهاتف. يرجى تفعيلها والمحاولة مرة أخرى.');
+                } else {
+                    await subscribeUser();
+                    setIsSubscribed(true);
+                }
             }
         } catch (err) {
             console.error("Failed to handle subscription", err);
             if (err instanceof Error) {
                  if (Notification.permission === 'denied') {
-                    setError('لقد قمت بحظر الإشعارات. يرجى تفعيلها من إعدادات المتصفح.');
+                    setError('لقد قمت بحظر الإشعارات. يرجى تفعيلها من إعدادات المتصفح أو الهاتف.');
                 } else {
                     setError(err.message);
                 }

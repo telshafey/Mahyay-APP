@@ -16,4 +16,4 @@ const DailyWisdomCard: React.FC = () => {
     );
 }
 
-export default DailyWisdomCard;
+export default React.memo(DailyWisdomCard);

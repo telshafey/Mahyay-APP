@@ -33,11 +33,31 @@ const LoadingScreen: React.FC = () => (
     </div>
 );
 
+const ErrorScreen: React.FC<{ message: string }> = ({ message }) => (
+    <div className="h-screen flex flex-col justify-center items-center text-center text-white bg-gradient-to-b from-[#1e4d3b] to-[#2d5a47] p-4">
+        <div className="text-5xl mb-4">😔</div>
+        <h1 className="font-amiri text-3xl mb-2">حدث خطأ أثناء تحميل التطبيق</h1>
+        <p className="bg-red-900/50 p-3 rounded-lg text-red-300 max-w-md">{message}</p>
+        <button 
+            onClick={() => window.location.reload()}
+            className="mt-6 bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-6 rounded-lg transition-colors"
+        >
+            إعادة تحميل الصفحة
+        </button>
+    </div>
+);
+
 const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const appData = useAppData();
+
     if (appData.isDataLoading) {
         return <LoadingScreen />;
     }
+
+    if (appData.appError) {
+        return <ErrorScreen message={appData.appError} />;
+    }
+
     return (
         <AppContext.Provider value={appData}>
             {children}

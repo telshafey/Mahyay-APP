@@ -49,13 +49,13 @@ const GoalsPage: React.FC = () => {
             alert('الرجاء إدخال عنوان الهدف.');
             return;
         }
-        const newGoal: Omit<PersonalGoal, 'id'|'createdAt'|'isArchived'|'completedAt'> = {
+        const newGoal: Omit<PersonalGoal, 'id' | 'user_id' | 'created_at' | 'is_archived' | 'completed_at'> = {
             title: goal.title,
             icon: goal.icon,
             type: goal.type,
             target: goal.type === 'daily' ? 1 : Number(goal.target),
             unit: goal.unit || undefined,
-            endDate: goal.endDate || undefined,
+            end_date: goal.endDate || undefined,
         };
         const success = await addPersonalGoal(newGoal);
         if(success) {
@@ -77,8 +77,8 @@ const GoalsPage: React.FC = () => {
         setIsUpdatingId(null);
     }
 
-    const activeGoals = personalGoals.filter(g => !g.isArchived);
-    const completedGoals = personalGoals.filter(g => g.isArchived);
+    const activeGoals = personalGoals.filter(g => !g.is_archived);
+    const completedGoals = personalGoals.filter(g => g.is_archived);
     const displayedGoals = activeTab === 'active' ? activeGoals : completedGoals;
 
     return (
@@ -173,26 +173,30 @@ const GoalsPage: React.FC = () => {
 
             {displayedGoals.length > 0 ? (
                 <div className="space-y-4">
-                    {displayedGoals.map(g => {
+                    {displayedGoals.map((g, index) => {
                         const isCompletedToday = g.type === 'daily' && dailyData.dailyGoalProgress[g.id];
                         const currentProgress = g.type === 'target' ? (goalProgress[g.id] || 0) : 0;
                         const progressPercentage = g.type === 'target' ? (currentProgress / g.target) * 100 : (isCompletedToday ? 100 : 0);
-                        const daysRemaining = g.endDate ? Math.ceil((new Date(g.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+                        const daysRemaining = g.end_date ? Math.ceil((new Date(g.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
                         const isUpdatingThisGoal = isUpdatingId === g.id;
 
                         return (
-                            <GlassCard key={g.id}>
+                            <GlassCard 
+                                key={g.id} 
+                                className="animate-fade-in" 
+                                style={{ animationDelay: `${index * 50}ms` }}
+                            >
                                 <div className="flex items-start gap-4">
                                     <div className="text-4xl p-3 rounded-xl bg-black/20">{g.icon}</div>
                                     <div className="flex-grow">
                                         <h4 className="font-bold text-lg">{g.title}</h4>
                                         <div className="text-xs text-white/80 space-x-2 space-x-reverse">
                                             <span>{g.type === 'daily' ? 'هدف يومي' : `الهدف: ${g.target} ${g.unit || ''}`}</span>
-                                            {daysRemaining !== null && daysRemaining >= 0 && !g.isArchived && <span className="text-yellow-300">| متبقي {daysRemaining} أيام</span>}
-                                            {daysRemaining !== null && daysRemaining < 0 && !g.isArchived && <span className="text-red-400">| انتهى الوقت</span>}
-                                            {g.completedAt && <span className="text-green-300">| أُنجز في: {new Date(g.completedAt).toLocaleDateString('ar-SA')}</span>}
+                                            {daysRemaining !== null && daysRemaining >= 0 && !g.is_archived && <span className="text-yellow-300">| متبقي {daysRemaining} أيام</span>}
+                                            {daysRemaining !== null && daysRemaining < 0 && !g.is_archived && <span className="text-red-400">| انتهى الوقت</span>}
+                                            {g.completed_at && <span className="text-green-300">| أُنجز في: {new Date(g.completed_at).toLocaleDateString('ar-SA')}</span>}
                                         </div>
-                                        {!g.isArchived && (
+                                        {!g.is_archived && (
                                             <div className="w-full bg-black/20 rounded-full h-2.5 mt-2">
                                                 <div className="bg-gradient-to-r from-teal-400 to-cyan-500 h-2.5 rounded-full transition-all" style={{width: `${progressPercentage}%`}}></div>
                                             </div>
@@ -201,7 +205,7 @@ const GoalsPage: React.FC = () => {
                                 </div>
                                 
                                 <div className={`mt-4 pt-4 border-t border-white/10 space-y-3 transition-opacity ${isUpdatingThisGoal ? 'opacity-50' : ''}`}>
-                                    {g.isArchived ? (
+                                    {g.is_archived ? (
                                         <div className="flex gap-4">
                                             <button onClick={() => handleToggleArchive(g.id)} disabled={isUpdatingThisGoal} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg text-sm disabled:cursor-not-allowed disabled:bg-gray-600">{isUpdatingThisGoal ? 'جاري الحفظ...' : '🔄 إعادة تفعيل'}</button>
                                             <button onClick={() => handleDeleteGoal(g.id)} disabled={isUpdatingThisGoal} className="flex-1 bg-red-800/80 hover:bg-red-800 text-white font-bold py-2 rounded-lg text-sm disabled:cursor-not-allowed disabled:bg-gray-600">{isUpdatingThisGoal ? 'جاري الحفظ...' : '🗑️ حذف نهائي'}</button>
@@ -214,16 +218,16 @@ const GoalsPage: React.FC = () => {
                                                 </button>
                                             ) : (
                                                 <div className="flex items-center justify-center gap-4">
-                                                    <button onClick={() => updateTargetGoalProgress(g.id, currentProgress - 1)} disabled={isUpdatingThisGoal} className="w-10 h-10 rounded-full bg-white/10 text-xl hover:bg-white/20 disabled:opacity-50">-</button>
+                                                    <button onClick={() => updateTargetGoalProgress(g.id, currentProgress - 1)} disabled={isUpdatingThisGoal} className="w-10 h-10 rounded-full bg-white/10 text-xl hover:bg-white/20 disabled:opacity-50" aria-label="إنقاص التقدم">-</button>
                                                     <span className="text-xl font-bold w-20 text-center">{currentProgress} / {g.target}</span>
-                                                    <button onClick={() => updateTargetGoalProgress(g.id, currentProgress + 1)} disabled={isUpdatingThisGoal} className="w-10 h-10 rounded-full bg-white/10 text-xl hover:bg-white/20 disabled:opacity-50">+</button>
+                                                    <button onClick={() => updateTargetGoalProgress(g.id, currentProgress + 1)} disabled={isUpdatingThisGoal} className="w-10 h-10 rounded-full bg-white/10 text-xl hover:bg-white/20 disabled:opacity-50" aria-label="زيادة التقدم">+</button>
                                                 </div>
                                             )}
                                             <div className="flex items-center gap-4">
                                                 <button onClick={() => handleToggleArchive(g.id)} disabled={isUpdatingThisGoal || (g.type === 'target' && currentProgress < g.target)} className="flex-grow bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg text-sm disabled:bg-gray-500/50 disabled:cursor-not-allowed">
                                                     {isUpdatingThisGoal ? 'جاري الحفظ...' : (g.type === 'target' && currentProgress < g.target ? 'أكمل الهدف أولاً' : '✅ إكمال ونقل للأرشيف')}
                                                 </button>
-                                                 <button onClick={() => handleDeleteGoal(g.id)} disabled={isUpdatingThisGoal} className="w-12 h-full bg-red-800/60 hover:bg-red-800/90 text-white font-bold py-2 rounded-lg text-lg disabled:cursor-not-allowed disabled:bg-gray-600">
+                                                 <button onClick={() => handleDeleteGoal(g.id)} disabled={isUpdatingThisGoal} className="w-12 h-full bg-red-800/60 hover:bg-red-800/90 text-white font-bold py-2 rounded-lg text-lg disabled:cursor-not-allowed disabled:bg-gray-600" aria-label="حذف الهدف">
                                                     {isUpdatingThisGoal ? '...' : '🗑️'}
                                                  </button>
                                             </div>

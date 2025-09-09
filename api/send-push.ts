@@ -2,6 +2,14 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
 
+// **ملاحظة للمطورين:**
+// لدعم الإشعارات الأصلية (Native) التي تم إضافتها عبر Capacitor،
+// يجب تحديث هذه الدالة لتشمل ما يلي:
+// 1. جلب التوكنات (tokens) الأصلية من قاعدة البيانات (التي لها type: 'native').
+// 2. استخدام حزم مثل `firebase-admin` (لأندرويد) لإرسال إشعارات إلى هذه التوكنات.
+// 3. يجب فصل منطق الإرسال: `web-push` يُستخدم لاشتراكات الويب (web push subscriptions)،
+//    و `firebase-admin` يُستخدم للتوكنات الأصلية (native tokens).
+
 // Initialize Supabase Admin Client
 const supabaseUrl = "https://pnydrxuwzifnmjpsykmf.supabase.co";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY; // This MUST be set in Vercel
@@ -52,8 +60,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const notificationPayload = JSON.stringify({ title, body });
         
-        // Send a notification to each subscriber
-        const sendPromises = subscriptions.map(s => 
+        // This currently only handles web push subscriptions. Native push requires different logic.
+        const webSubscriptions = subscriptions.filter(s => s.subscription_data && s.subscription_data.endpoint);
+        
+        // Send a notification to each web subscriber
+        const sendPromises = webSubscriptions.map(s => 
             webpush.sendNotification(s.subscription_data, notificationPayload)
             .catch(err => {
                 // If a subscription is expired or invalid, we should remove it from the DB
@@ -71,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         await Promise.all(sendPromises);
 
-        res.status(200).json({ message: `تم إرسال الإشعارات بنجاح إلى ${subscriptions.length} مشترك.` });
+        res.status(200).json({ message: `تم إرسال الإشعارات بنجاح إلى ${webSubscriptions.length} مشترك عبر الويب.` });
     } catch (error) {
         console.error('General error in send-push handler:', error);
         const message = error instanceof Error ? error.message : 'An unknown error occurred.';

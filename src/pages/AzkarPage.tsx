@@ -1,192 +1,208 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { AZKAR_TYPES, AZKAR_DATA, MISCELLANEOUS_AZKAR, CHALLENGES } from '../constants';
-import { AzkarType, AzkarItem, DisplayChallenge } from '../types';
+import { AZKAR_DATA } from '../constants';
+import { Zikr, DailyAzkarCategory, AzkarCategory } from '../types';
 import GlassCard from '../components/GlassCard';
-import { getMaxCount } from '../utils';
-import ChallengeCard from '../components/ChallengeCard';
+import Accordion from '../components/ui/Accordion';
 
+const ZikrItemCard: React.FC<{
+    zikr: Zikr;
+    categoryName: DailyAzkarCategory;
+}> = ({ zikr, categoryName }) => {
+    const { dailyData, incrementAzkarCount, completeZikr } = useAppContext();
+    
+    const currentCount = dailyData.azkarStatus[categoryName]?.[zikr.id] || 0;
+    const isDone = currentCount >= zikr.repeat;
 
-const AzkarItemCard: React.FC<{
-    item: AzkarItem;
-    index: number;
-    azkarName: string;
-}> = ({ item, index, azkarName }) => {
-    const { dailyData, toggleAzkarItemCompletion } = useAppContext();
-    const azkarProgress = dailyData.azkarProgress[azkarName] || {};
-    const maxCount = getMaxCount(item.repeat);
-    const currentCount = Math.min(azkarProgress[index] || 0, maxCount);
-    const isCompleted = currentCount >= maxCount;
+    const handleIncrement = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!isDone) {
+            incrementAzkarCount(categoryName, zikr.id);
+        }
+    };
+    
+    const handleComplete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!isDone) {
+            completeZikr(categoryName, zikr.id);
+        }
+    }
+
+    const progressPercentage = (currentCount / zikr.repeat) * 100;
+    
+    // New logic: Use counter for low repeats (<= 3), single button for high repeats.
+    const needsCounter = zikr.repeat > 1 && zikr.repeat <= 3;
 
     return (
-        <GlassCard className={`transition-all duration-300 ${isCompleted ? '!bg-green-500/20 border-green-400/30' : 'bg-black/20'}`}>
-            <p className="font-amiri text-xl md:text-2xl leading-relaxed text-white mb-6 text-center">{item.text}</p>
-            
-            <div className="flex flex-col items-center justify-center gap-4">
-                <button
-                    onClick={() => toggleAzkarItemCompletion(azkarName, index)}
-                    className={`px-6 py-3 rounded-full font-semibold text-lg transition-colors ${isCompleted ? 'bg-green-500/80 text-white' : 'bg-yellow-400/80 text-green-900 hover:bg-yellow-400'}`}
-                >
-                    {isCompleted ? '✅ تم' : 'إتمام الذكر'}
-                </button>
-                <p className="text-white font-semibold">{item.repeat}</p>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-white/10 text-center">
-                <p className="font-amiri text-sm text-white">
-                    <span className="font-bold text-yellow-300">📖 الدليل:</span> {item.evidence}
-                </p>
-            </div>
-        </GlassCard>
-    );
-};
-
-const AccordionItem: React.FC<{
-    title: string;
-    children: React.ReactNode;
-}> = ({ title, children }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    return (
-        <div className="bg-black/30 rounded-lg overflow-hidden transition-all duration-300">
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full text-right p-4 flex justify-between items-center text-white"
-            >
-                <span className="font-semibold text-lg">{title}</span>
-                <span className={`transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
-            </button>
-            <div
-                className={`transition-all duration-500 ease-in-out overflow-hidden ${isOpen ? 'max-h-screen' : 'max-h-0'}`}
-            >
-                <div className="p-4 pt-0 text-white space-y-3">
-                    {children}
-                </div>
+        <div className={`relative p-4 rounded-lg overflow-hidden transition-all duration-300 ${isDone ? 'bg-green-500/20' : 'bg-black/20'}`}>
+            <div 
+                className="absolute top-0 right-0 bottom-0 bg-green-500/30 transition-all duration-500"
+                style={{ width: `${isDone ? 100 : progressPercentage}%` }}
+            ></div>
+            <div className="relative z-10">
+                <p className="font-amiri text-lg leading-relaxed text-white mb-3 whitespace-pre-wrap">{zikr.text}</p>
+                {zikr.notes && <p className="text-sm text-yellow-300 mb-2">({zikr.notes})</p>}
+                <p className="text-xs text-white/80 mb-4 font-amiri pr-2 border-r-2 border-yellow-400/50">{zikr.reference}</p>
+                
+                {needsCounter ? (
+                    <div className="flex items-center justify-between">
+                        <button
+                            onClick={handleIncrement}
+                            disabled={isDone}
+                            className="w-24 h-12 rounded-lg bg-yellow-500 text-green-900 font-bold text-lg disabled:bg-gray-500/50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                        >
+                            {isDone ? 'أتممت ✅' : `سبّح (${currentCount})`}
+                        </button>
+                        <div className="text-center">
+                            <p className="text-2xl font-bold text-white">{zikr.repeat}</p>
+                            <p className="text-xs text-white/70">مرات</p>
+                        </div>
+                    </div>
+                ) : (
+                     <button
+                        onClick={handleComplete}
+                        disabled={isDone}
+                        className="w-full h-12 rounded-lg bg-yellow-500 text-green-900 font-bold text-lg disabled:bg-gray-500/50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                    >
+                        {isDone ? 'أتممت الذكر ✅' : 'أتممت الذكر'}
+                    </button>
+                )}
             </div>
         </div>
     );
 };
 
+const TabButton: React.FC<{
+    label: string;
+    icon: string;
+    isActive: boolean;
+    onClick: () => void;
+}> = ({ label, icon, isActive, onClick }) => (
+    <button onClick={onClick} className={`w-full py-2 px-1 text-xs sm:text-sm rounded-lg font-semibold transition-all duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 ${isActive ? 'bg-yellow-400/80 text-green-900 scale-105' : 'text-white/80 hover:bg-white/10'}`}>
+        <span>{icon}</span>
+        <span>{label}</span>
+    </button>
+);
 
 const AzkarPage: React.FC = () => {
-    const { settings, completeAzkarGroup, userChallenges, startChallenge } = useAppContext();
-    const [activeTab, setActiveTab] = useState<AzkarType>(AZKAR_TYPES[0]);
+    const { dailyData, settings } = useAppContext();
+    const [activeTab, setActiveTab] = useState<AzkarCategory['name']>('أذكار الصباح');
+    const [searchTerm, setSearchTerm] = useState('');
 
-     const azkarChallenges = useMemo(() => {
-        const azkarChallengeIds = ['c8']; // "لا حول ولا قوة إلا بالله"
-        return CHALLENGES
-            .filter(base => azkarChallengeIds.includes(base.id))
-            .map(baseChallenge => {
-                const userProgress = userChallenges.find(uc => uc.challengeId === baseChallenge.id && uc.status === 'active');
-                if (!userProgress) return null;
-                return {
-                    ...baseChallenge,
-                    progress: userProgress.progress,
-                    userProgress: userProgress,
-                } as DisplayChallenge;
-            })
-            .filter((c): c is DisplayChallenge => Boolean(c));
-    }, [userChallenges]);
-
+    const {
+        morning: morningAzkar,
+        evening: eveningAzkar,
+        sleep: sleepingAzkar,
+        wakeup: wakingAzkar,
+        general: generalAzkar
+    } = useMemo(() => ({
+        morning: AZKAR_DATA.find(c => c.name === 'أذكار الصباح')!,
+        evening: AZKAR_DATA.find(c => c.name === 'أذكار المساء')!,
+        sleep: AZKAR_DATA.find(c => c.name === 'أذكار النوم')!,
+        wakeup: AZKAR_DATA.find(c => c.name === 'أذكار الاستيقاظ')!,
+        general: AZKAR_DATA.find(c => c.name === 'أذكار عامة')!
+    }), []);
 
     useEffect(() => {
-        const currentHour = new Date().getHours();
-        const morningAzkar = AZKAR_TYPES.find(a => a.name === 'أذكار الصباح')!;
-        const eveningAzkar = AZKAR_TYPES.find(a => a.name === 'أذكار المساء')!;
-    
-        const [morningStartHour] = settings.azkarMorningStart.split(':').map(Number);
-        const [eveningStartHour] = settings.azkarEveningStart.split(':').map(Number);
-    
-        if (currentHour >= morningStartHour && currentHour < eveningStartHour) {
-            setActiveTab(morningAzkar);
+        const now = new Date();
+        const morningTime = settings.azkarMorningStart.split(':').map(Number);
+        const eveningTime = settings.azkarEveningStart.split(':').map(Number);
+        const morningDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), morningTime[0], morningTime[1]);
+        const eveningDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), eveningTime[0], eveningTime[1]);
+
+        if (now >= morningDate && now < eveningDate) {
+            setActiveTab('أذكار الصباح');
         } else {
-            setActiveTab(eveningAzkar);
+            setActiveTab('أذكار المساء');
         }
     }, [settings.azkarMorningStart, settings.azkarEveningStart]);
     
-    const azkarItems = AZKAR_DATA[activeTab.name] || [];
+    const filteredGeneralAzkar = useMemo(() => {
+        if (!searchTerm.trim()) return generalAzkar.items;
+        return generalAzkar.items.filter(zikr => 
+            zikr.text.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            zikr.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [searchTerm, generalAzkar.items]);
+    
+    const dailyCategories = useMemo(() => [
+        { name: morningAzkar.name, category: morningAzkar, icon: '🌅' },
+        { name: eveningAzkar.name, category: eveningAzkar, icon: '🌃' },
+        { name: sleepingAzkar.name, category: sleepingAzkar, icon: '😴' },
+        { name: wakingAzkar.name, category: wakingAzkar, icon: '🌤️' }
+    ], [morningAzkar, eveningAzkar, sleepingAzkar, wakingAzkar]);
 
-    const handleScrollToMiscellaneous = (e: React.MouseEvent<HTMLAnchorElement>) => {
-        e.preventDefault();
-        const element = document.getElementById('miscellaneous-azkar');
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const isCategoryComplete = (category: AzkarCategory) => {
+        const categoryProgress = dailyData.azkarStatus[category.name as DailyAzkarCategory];
+        if (!categoryProgress) return false;
+        return category.items.every(item => (categoryProgress[item.id] || 0) >= item.repeat);
+    }
+
+    const renderAzkarList = (category: AzkarCategory) => {
+        if (isCategoryComplete(category)) {
+            return (
+                <GlassCard className="text-center py-10 animate-fade-in !bg-green-500/20">
+                     <div className="text-6xl mb-4">🎉</div>
+                    <h3 className="text-2xl font-bold text-white">ما شاء الله! لقد أتممت {category.name}.</h3>
+                    <p className="text-white/80 mt-2">جزاك الله خيرًا، ونفعك بها.</p>
+                </GlassCard>
+            );
         }
+        return (
+            <div className="space-y-4">
+                {category.items.map(zikr => (
+                    <ZikrItemCard key={zikr.id} zikr={zikr} categoryName={category.name as DailyAzkarCategory} />
+                ))}
+            </div>
+        );
     };
 
     return (
         <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white text-center font-amiri">📿 الأذكار</h2>
-            
-             <GlassCard className="!p-0 !bg-black/30">
-                <a href="#miscellaneous-azkar" onClick={handleScrollToMiscellaneous} className="block p-4 text-center text-white hover:bg-white/10 rounded-lg transition-colors">
-                    <p className="font-semibold">
-                        👇 تصفح للأسفل للعثور على أدعية وأذكار متنوعة
-                    </p>
-                    <p className="text-sm text-white/80">
-                        مثل أذكار بعد الصلاة، دعاء السفر، ودعاء القنوت.
-                    </p>
-                </a>
-            </GlassCard>
+            <h2 className="text-3xl font-bold text-white text-center font-amiri">📿 الأذكار والأدعية</h2>
 
             <GlassCard className="!p-2">
-                <div className="flex flex-wrap justify-center gap-2">
-                    {AZKAR_TYPES.map(type => (
-                        <button
-                            key={type.name}
-                            onClick={() => setActiveTab(type)}
-                            className={`py-2 px-4 rounded-lg font-semibold transition-colors text-sm md:text-base ${activeTab.name === type.name ? 'bg-yellow-400/80 text-green-900' : 'text-white/80 hover:bg-white/10'}`}
-                        >
-                            {type.emoji} {type.name}
-                        </button>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-1">
+                    {dailyCategories.map(cat => (
+                         <TabButton key={cat.name} label={cat.name.replace('أذكار ', '')} icon={cat.icon} isActive={activeTab === cat.name} onClick={() => setActiveTab(cat.name)} />
                     ))}
+                    <TabButton label="عامة" icon="🤲" isActive={activeTab === 'أذكار عامة'} onClick={() => setActiveTab('أذكار عامة')} />
                 </div>
             </GlassCard>
             
-            <div className="flex justify-end">
-                <button
-                    onClick={() => completeAzkarGroup(activeTab.name)}
-                    className="bg-green-500/80 hover:bg-green-500 text-white font-bold py-2 px-5 rounded-full transition-colors"
-                >
-                    ✅ إكمال الكل
-                </button>
-            </div>
-
-            <div className="space-y-4">
-                {azkarItems.map((item, index) => (
-                    <AzkarItemCard key={index} item={item} index={index} azkarName={activeTab.name} />
-                ))}
-            </div>
-
-            <GlassCard id="miscellaneous-azkar">
-                <h3 className="text-2xl font-bold text-white text-center mb-4 font-amiri">أذكار وأدعية متنوعة</h3>
-                <div className="space-y-3">
-                    {MISCELLANEOUS_AZKAR.map(category => (
-                        <AccordionItem key={category.title} title={category.title}>
-                            {category.items.map((item, index) => (
-                                <div key={index} className="p-3 bg-black/30 rounded-lg border-r-4 border-yellow-400/50">
-                                    <p className="font-amiri text-lg mb-2">{item.text}</p>
-                                    <p className="text-xs text-yellow-300">الدليل: {item.evidence}</p>
+            {dailyCategories.map(cat => activeTab === cat.name && <div key={cat.name} className="animate-fade-in">{renderAzkarList(cat.category)}</div>)}
+            
+            {activeTab === 'أذكار عامة' && (
+                <div className="space-y-4 animate-fade-in">
+                     <GlassCard>
+                        <div className="relative">
+                            <input
+                                type="search"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="ابحث في الأذكار العامة..."
+                                className="w-full bg-black/30 border border-white/20 rounded-full px-5 py-3 pr-12 text-white placeholder:text-white/70 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                            />
+                             <div className="absolute top-1/2 right-4 -translate-y-1/2 text-white/80">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="http://www.w3.org/2000/svg" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            </div>
+                        </div>
+                    </GlassCard>
+                    {filteredGeneralAzkar.length > 0 ? (
+                        filteredGeneralAzkar.map(zikr => (
+                             <Accordion key={zikr.id} title={<span className="font-semibold">{zikr.notes || zikr.text.substring(0, 30)+'...'}</span>}>
+                                <div className="p-4 pt-0 text-white/90 border-t border-white/10 space-y-3">
+                                    <p className="font-amiri text-lg leading-relaxed text-white whitespace-pre-wrap">{zikr.text}</p>
+                                    <p className="text-xs text-yellow-300 font-amiri pr-2 border-r-2 border-yellow-400/50">{zikr.reference}</p>
                                 </div>
-                            ))}
-                        </AccordionItem>
-                    ))}
+                             </Accordion>
+                        ))
+                    ) : (
+                        <GlassCard className="text-center text-white/80 py-4">لم يتم العثور على نتائج لبحثك.</GlassCard>
+                    )}
                 </div>
-            </GlassCard>
-
-            {azkarChallenges.length > 0 && (
-                <GlassCard className="animate-fade-in !bg-gradient-to-br from-cyan-500/20 to-teal-500/30">
-                    <h3 className="text-xl font-bold text-center mb-2 text-cyan-300">🎯 تحديات أذكار نشطة</h3>
-                    <p className="text-center text-sm text-white/80 mb-4">
-                        سجّل إنجازك في هذه التحديات مباشرة من هنا.
-                    </p>
-                    <div className="space-y-4">
-                        {azkarChallenges.map(challenge => (
-                            <ChallengeCard key={challenge.id} challenge={challenge} onStartChallenge={startChallenge} />
-                        ))}
-                    </div>
-                </GlassCard>
             )}
-
         </div>
     );
 };

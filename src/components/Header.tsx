@@ -39,7 +39,7 @@ const Header: React.FC = () => {
         <header className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-l from-[#1e4d3b] to-[#2d5a47] text-white shadow-lg h-[60px] px-3 flex items-center justify-between border-b border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-2 w-1/3">
                  <div ref={dropdownRef} className="relative">
-                    <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center justify-center">
+                    <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center justify-center" aria-label="القائمة الشخصية">
                        {renderUserAvatar()}
                     </button>
                     {dropdownOpen && (
@@ -85,10 +85,9 @@ const Header: React.FC = () => {
                     </p>
                 </div>
                 {/* Mobile View */}
-                <div className="md:hidden">
-                     <p className="font-semibold text-xs text-white/90 whitespace-nowrap">
-                        <span className="text-yellow-300">{appContext.shortHijriDate} هـ</span>
-                    </p>
+                <div className="md:hidden text-center w-full">
+                    <p className="font-bold text-base leading-tight text-white">{appContext.hijriDateParts.day}</p>
+                    <p className="font-semibold text-[10px] leading-tight text-yellow-300 whitespace-nowrap">{appContext.hijriDateParts.month}</p>
                 </div>
             </div>
         </header>

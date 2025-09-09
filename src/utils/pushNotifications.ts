@@ -1,4 +1,7 @@
 import { supabase } from '../supabase';
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications, Token } from '@capacitor/push-notifications';
+import { safeLocalStorage } from '../utils';
 
 // This key is now hardcoded with a valid, generated key to simplify setup.
 const VAPID_PUBLIC_KEY = "BCs87e2h7RTg3f2TpZ3bkY8cx6wV5az1qW2eR4t_Y7uI9o-p_L-k_J-h_G-f_D-s_A";
@@ -18,7 +21,11 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-export async function getSubscription(): Promise<PushSubscription | null> {
+export async function getSubscription(): Promise<PushSubscription | string | null> {
+    if (Capacitor.isNativePlatform()) {
+        return safeLocalStorage.getItem('nativePushToken');
+    }
+
     if ('serviceWorker' in navigator && 'PushManager' in window) {
         try {
             const registration = await navigator.serviceWorker.getRegistration();
@@ -38,59 +45,98 @@ export async function getSubscription(): Promise<PushSubscription | null> {
     return null;
 }
 
-export async function subscribeUser(): Promise<PushSubscription> {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        throw new Error('Push notifications are not supported by this browser.');
-    }
-    if (!VAPID_PUBLIC_KEY) {
-        throw new Error('VAPID public key not configured.');
-    }
+export async function subscribeUser(): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
 
-    let registration;
-    try {
-        registration = await navigator.serviceWorker.getRegistration();
-    } catch (error) {
-        if (error instanceof DOMException && error.name === 'SecurityError') {
-            throw new Error('لا يمكن تفعيل الإشعارات في بيئة التشغيل هذه بسبب قيود الأمان.');
+    if (Capacitor.isNativePlatform()) {
+        let permStatus = await PushNotifications.checkPermissions();
+        if (permStatus.receive === 'prompt') {
+            permStatus = await PushNotifications.requestPermissions();
         }
-        console.error('Failed to get service worker registration:', error);
-        throw new Error('فشل الوصول إلى عامل الخدمة (Service Worker).');
+        if (permStatus.receive !== 'granted') {
+            throw new Error('تم رفض إذن استقبال الإشعارات من الهاتف.');
+        }
+        
+        await PushNotifications.removeAllListeners();
+        
+        PushNotifications.addListener('registration', async (token: Token) => {
+            console.log('Native Push registration success, token:', token.value);
+            safeLocalStorage.setItem('nativePushToken', token.value);
+            const { error } = await supabase.from('push_subscriptions').insert({
+                user_id: user?.id,
+                subscription_data: { 
+                    token: token.value,
+                    type: 'native',
+                    platform: Capacitor.getPlatform()
+                },
+            });
+
+            if (error) {
+                 console.error('Failed to save native token to Supabase:', error);
+            }
+        });
+        
+        PushNotifications.addListener('registrationError', (error) => {
+            console.error('Error on native registration:', error);
+            throw new Error('فشل تسجيل الإشعارات مع خدمة الهاتف.');
+        });
+        
+        await PushNotifications.register();
+
+    } else if ('serviceWorker' in navigator && 'PushManager' in window) {
+        if (!VAPID_PUBLIC_KEY) {
+            throw new Error('VAPID public key not configured.');
+        }
+
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration) {
+            throw new Error('Service worker is not registered. Cannot subscribe.');
+        }
+
+        let subscription = await registration.pushManager.getSubscription();
+        if (subscription) {
+            console.log('User is already subscribed via Web Push.');
+            return;
+        }
+
+        const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+        subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: applicationServerKey as any,
+        });
+
+        const { error } = await supabase.from('push_subscriptions').insert({
+            user_id: user?.id,
+            subscription_data: subscription.toJSON(),
+        });
+
+        if (error) {
+            console.error('Failed to save web push subscription to Supabase:', error);
+            await subscription.unsubscribe();
+            throw new Error('Failed to save push subscription to the server.');
+        }
+
+        console.log('User subscribed successfully via Web Push.');
+    } else {
+         throw new Error('Push notifications are not supported by this browser.');
     }
-    
-    if (!registration) {
-        throw new Error('Service worker is not registered. Cannot subscribe.');
-    }
-
-    let subscription = await registration.pushManager.getSubscription();
-    
-    if (subscription) {
-        console.log('User is already subscribed.');
-        return subscription;
-    }
-
-    const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-    subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: applicationServerKey as any, // Cast to handle TS lib conflicts
-    });
-
-    // Send subscription to the backend
-    const { error } = await supabase.from('push_subscriptions').insert({
-        subscription_data: subscription.toJSON(), // Use toJSON() to get a plain object
-    });
-
-    if (error) {
-        console.error('Failed to save subscription to Supabase:', error);
-        // If saving fails, we should unsubscribe the user to avoid inconsistent state.
-        await subscription.unsubscribe();
-        throw new Error('Failed to save push subscription to the server.');
-    }
-
-    console.log('User subscribed successfully.');
-    return subscription;
 }
 
 export async function unsubscribeUser(): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+        const token = safeLocalStorage.getItem('nativePushToken');
+        if (token) {
+            const { error } = await supabase.from('push_subscriptions').delete().eq('subscription_data->>token', token);
+            if (error) {
+                console.error('Failed to delete native token from Supabase:', error);
+            }
+            safeLocalStorage.removeItem('nativePushToken');
+        }
+        await PushNotifications.removeAllListeners();
+        console.log('User unsubscribed from native push notifications.');
+        return;
+    }
+
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         console.warn('Push notifications not supported, cannot unsubscribe.');
         return;
@@ -100,11 +146,7 @@ export async function unsubscribeUser(): Promise<void> {
     try {
         registration = await navigator.serviceWorker.getRegistration();
     } catch(error) {
-        if (error instanceof DOMException && error.name === 'SecurityError') {
-            console.warn('Cannot access service worker registration due to security policy. Unsubscribe failed.', error.message);
-        } else {
-            console.error('Failed to get service worker registration during unsubscribe:', error);
-        }
+        console.error('Failed to get service worker registration during unsubscribe:', error);
         return;
     }
     
@@ -115,25 +157,22 @@ export async function unsubscribeUser(): Promise<void> {
     const subscription = await registration.pushManager.getSubscription();
 
     if (subscription) {
-        // Remove subscription from the backend first
         const { error } = await supabase
             .from('push_subscriptions')
             .delete()
             .eq('subscription_data->>endpoint', subscription.endpoint);
         
         if (error) {
-            console.error('Failed to delete subscription from Supabase:', error);
-            // We proceed to unsubscribe locally anyway
+            console.error('Failed to delete web subscription from Supabase:', error);
         }
 
-        // Unsubscribe from push manager
         const successful = await subscription.unsubscribe();
         if (successful) {
-            console.log('User unsubscribed successfully.');
+            console.log('User unsubscribed from web push successfully.');
         } else {
             console.error('Failed to unsubscribe user locally.');
         }
     } else {
-        console.log('User was not subscribed.');
+        console.log('User was not subscribed to web push.');
     }
 }

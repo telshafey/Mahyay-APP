@@ -13,4 +13,4 @@ const StatCard: React.FC<{ icon: string; label: string; value: string | number; 
     </GlassCard>
 );
 
-export default StatCard;
+export default React.memo(StatCard);

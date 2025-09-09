@@ -1,125 +1,149 @@
-import { AppData, UserStats, DailyData, PrayerStatus, UserChallenge } from "./types";
-import { QURAN_TOTAL_PAGES, CHALLENGES } from "./constants";
+import { AppData, AppStats, UserChallenge, DailyAzkarCategory } from './types';
+import { CHALLENGES, QURAN_TOTAL_PAGES, QURAN_SURAHS, AZKAR_DATA } from './constants';
 
-export const getMaxCount = (repeatText: string): number => {
-    if (repeatText.includes('ثلاث')) return 3;
-    if (repeatText.includes('أربع')) return 4;
-    if (repeatText.includes('مائة')) return 100;
-    const numberMatch = repeatText.match(/\d+/);
-    if (numberMatch) return parseInt(numberMatch[0], 10);
-    return 1;
+export const safeLocalStorage = {
+    getItem(key: string): string | null {
+        try {
+            return window.localStorage.getItem(key);
+        } catch (e) {
+            console.warn(`Could not get item from localStorage: ${key}`, e);
+            return null;
+        }
+    },
+    setItem(key: string, value: string): void {
+        try {
+            window.localStorage.setItem(key, value);
+        } catch (e) {
+            console.warn(`Could not set item in localStorage: ${key}`, e);
+        }
+    },
+    removeItem(key: string): void {
+        try {
+            window.localStorage.removeItem(key);
+        } catch (e) {
+            console.warn(`Could not remove item from localStorage: ${key}`, e);
+        }
+    },
 };
 
-export const timeAgo = (date: Date): string => {
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    if (seconds < 60) return 'الآن';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `قبل ${minutes} دقيقة`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `قبل ${hours} ساعة`;
-    const days = Math.floor(hours / 24);
-    return `قبل ${days} يوم`;
+export const getMaxCount = (repeat: string | number): number => {
+    if (typeof repeat === 'number') {
+        return repeat;
+    }
+    const match = repeat.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 1;
 };
 
-const getDateKey = (date: Date): string => {
-  return date.toISOString().split('T')[0];
+export const getAbsolutePageApproximation = (position: { surah: number, ayah: number }): number => {
+    if (!position || !position.surah) return 1;
+    
+    const surahInfo = QURAN_SURAHS[position.surah - 1];
+    if (!surahInfo) return 1;
+
+    const nextSurahInfo = QURAN_SURAHS[position.surah] || { startPage: QURAN_TOTAL_PAGES + 1 };
+    
+    const pagesInSurah = nextSurahInfo.startPage - surahInfo.startPage;
+    
+    // For single-page surahs, or if ayahs count is 0, return start page.
+    if (pagesInSurah <= 0 || surahInfo.ayahs === 0) {
+        return surahInfo.startPage;
+    }
+    
+    const progressInSurah = position.ayah / surahInfo.ayahs;
+    const pageOffset = Math.floor(progressInSurah * pagesInSurah);
+    
+    return surahInfo.startPage + pageOffset;
 };
 
-export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]): UserStats => {
+
+export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]): AppStats => {
     let totalPoints = 0;
-    let streak = 0;
     let weeklyPrayers = 0;
     let monthlyPrayers = 0;
     let quranPages = 0;
     let completedAzkar = 0;
-
     const today = new Date();
-    let consecutiveDays = 0;
+    
+    const sortedDates = Object.keys(appData).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
-    const allData = Object.entries(appData);
+    const dailyAzkarCategories: DailyAzkarCategory[] = ['أذكار الصباح', 'أذكار المساء', 'أذكار النوم', 'أذكار الاستيقاظ'];
 
-    // Calculate total pages first from all history
-    allData.forEach(([, data]: [string, Partial<DailyData>]) => {
-        quranPages += data.quranRead || 0;
+    sortedDates.forEach(dateKey => {
+        const dayData = appData[dateKey];
+        if (!dayData) return;
+        const date = new Date(dateKey);
+        
+        const prayersToday = Object.values(dayData.prayerData || {}).filter(p => ['early', 'ontime'].includes(p.fard)).length;
+        totalPoints += prayersToday * 10;
+        
+        const diffDays = (today.getTime() - date.getTime()) / (1000 * 3600 * 24);
+        if (diffDays < 7) weeklyPrayers += prayersToday;
+        if (date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) monthlyPrayers += prayersToday;
+
+        let azkarCategoriesCompletedToday = 0;
+        const azkarStatusForDay = dayData.azkarStatus || {};
+
+        for (const categoryName of dailyAzkarCategories) {
+            const categoryData = AZKAR_DATA.find(c => c.name === categoryName);
+            if(categoryData) {
+                const userProgress = azkarStatusForDay[categoryName];
+                if (userProgress && categoryData.items.every(item => (userProgress[item.id] || 0) >= item.repeat)) {
+                    azkarCategoriesCompletedToday++;
+                }
+            }
+        }
+        
+        completedAzkar += azkarCategoriesCompletedToday;
+        totalPoints += azkarCategoriesCompletedToday * 15;
+
+        const pagesReadToday = dayData.quranPagesRead || 0;
+        quranPages += pagesReadToday;
+        totalPoints += pagesReadToday * 2;
     });
 
-    for (let i = 0; i < 30; i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() - i);
-        const key = getDateKey(date);
-        const data = appData[key];
+    userChallenges.forEach(uc => {
+        if (uc.status === 'completed') {
+            const baseChallenge = CHALLENGES.find(c => c.id === uc.challenge_id);
+            if (baseChallenge) totalPoints += baseChallenge.points;
+        }
+    });
 
-        if (data) {
-            const prayersDone = Object.values(data.prayerData || {}).filter((p: PrayerStatus) => p.fard === 'early' || p.fard === 'ontime').length;
-            
-            if (i === consecutiveDays && prayersDone >= 3) {
-                consecutiveDays++;
-            }
-
-            if (i < 7) weeklyPrayers += prayersDone;
-            monthlyPrayers += prayersDone;
-            
-            const azkarDone = Object.values(data.azkarStatus || {}).filter(s => s).length;
-            completedAzkar += azkarDone;
-            
-            totalPoints += (prayersDone * 10) + (azkarDone * 15) + ((data.quranRead || 0) * 2);
-        } else {
-            if(i === consecutiveDays){
-                // streak broken
+    let streak = 0;
+    const reversedDates = Object.keys(appData).sort((a,b) => new Date(b).getTime() - new Date(a).getTime());
+    if (reversedDates.length > 0) {
+        const lastDate = new Date(reversedDates[0]);
+        const diff = Math.floor((new Date().setHours(0,0,0,0) - lastDate.setHours(0,0,0,0)) / (1000 * 3600 * 24));
+        if (diff <= 1) {
+            for (let i = 0; i < reversedDates.length; i++) {
+                const dayData = appData[reversedDates[i]];
+                const prayers = Object.values(dayData?.prayerData || {}).filter(p => ['early', 'ontime'].includes(p.fard)).length;
+                if (prayers >= 3) {
+                    streak++;
+                    if (i + 1 < reversedDates.length) {
+                        const d1 = new Date(reversedDates[i]);
+                        const d2 = new Date(reversedDates[i+1]);
+                        const dayDiff = Math.round((d1.getTime() - d2.getTime()) / (1000 * 3600 * 24));
+                        if (dayDiff > 1) break;
+                    }
+                } else break;
             }
         }
     }
-    streak = consecutiveDays;
 
-    // Add points from completed challenges
-    const completedChallengePoints = userChallenges
-        .filter(uc => uc.status === 'completed')
-        .reduce((acc, uc) => {
-            const baseChallenge = CHALLENGES.find(c => c.id === uc.challengeId);
-            return acc + (baseChallenge?.points || 0);
-        }, 0);
-    
-    totalPoints += completedChallengePoints;
-    
     const pagesReadInCurrent = quranPages % QURAN_TOTAL_PAGES;
-    const khatmaProgressPercentage = (pagesReadInCurrent / QURAN_TOTAL_PAGES) * 100;
+    const percentage = (pagesReadInCurrent / QURAN_TOTAL_PAGES) * 100;
 
-    return { 
-        totalPoints, 
-        streak, 
-        weeklyPrayers, 
-        monthlyPrayers, 
-        quranPages, 
-        completedAzkar,
-        khatmaProgress: {
-            pagesReadInCurrent,
-            percentage: khatmaProgressPercentage
-        }
-    };
+    return { totalPoints, streak, weeklyPrayers, monthlyPrayers, quranPages, completedAzkar, khatmaProgress: { pagesReadInCurrent, percentage } };
 };
 
-// A robust wrapper for localStorage to handle potential browser restrictions or errors.
-export const safeLocalStorage = {
-  getItem: (key: string): string | null => {
-    try {
-      return window.localStorage.getItem(key);
-    } catch (e) {
-      console.warn(`Failed to read from localStorage key "${key}"`, e);
-      return null;
-    }
-  },
-  setItem: (key: string, value: string): void => {
-    try {
-      window.localStorage.setItem(key, value);
-    } catch (e) {
-      console.warn(`Failed to write to localStorage key "${key}"`, e);
-    }
-  },
-  removeItem: (key: string): void => {
-    try {
-      window.localStorage.removeItem(key);
-    } catch (e) {
-      console.warn(`Failed to remove from localStorage key "${key}"`, e);
-    }
-  }
+
+/**
+ * Checks if a given Hijri year is a leap year.
+ * The formula is based on the algorithm used in common Hijri calendar implementations.
+ * A Hijri year is leap if (11 * year + 14) % 30 < 11.
+ * @param {number} year The Hijri year to check.
+ * @returns {boolean} True if the year is a leap year, false otherwise.
+ */
+export const isHijriLeapYear = (year: number): boolean => {
+    return (11 * year + 14) % 30 < 11;
 };

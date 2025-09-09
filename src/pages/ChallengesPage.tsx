@@ -15,7 +15,7 @@ const ChallengesPage: React.FC = () => {
         const available: DisplayChallenge[] = [];
 
         for (const baseChallenge of CHALLENGES) {
-            const userProgress = userChallenges.find(uc => uc.challengeId === baseChallenge.id);
+            const userProgress = userChallenges.find(uc => uc.challenge_id === baseChallenge.id);
             const progress = userProgress ? userProgress.progress : 0;
             const challengeWithProgress: DisplayChallenge = { ...baseChallenge, progress, userProgress };
 
@@ -65,7 +65,15 @@ const ChallengesPage: React.FC = () => {
                 </GlassCard>
 
                 {displayedChallenges.length > 0 ? (
-                    displayedChallenges.map(c => <ChallengeCard key={c.id} challenge={c} onStartChallenge={startChallenge} />)
+                    displayedChallenges.map((c, index) => (
+                        <div 
+                            key={c.id} 
+                            className="animate-fade-in" 
+                            style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                            <ChallengeCard challenge={c} onStartChallenge={startChallenge} />
+                        </div>
+                    ))
                 ) : (
                     <GlassCard className="text-center text-white/80 py-8">
                         لا توجد تحديات في هذا القسم حالياً.

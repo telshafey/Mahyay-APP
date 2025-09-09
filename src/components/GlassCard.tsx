@@ -1,9 +1,14 @@
-
-
 import React from 'react';
 
-// FIX: Added the 'id' prop to the component's props to allow it to be used for anchoring, resolving the TypeScript error in AzkarPage.tsx.
-const GlassCard: React.FC<{ children: React.ReactNode; className?: string; onClick?: (e: React.MouseEvent<HTMLDivElement>) => void; style?: React.CSSProperties; id?: string }> = ({ children, className = '', onClick, style, id }) => {
+interface GlassCardProps {
+    children: React.ReactNode;
+    className?: string;
+    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+    style?: React.CSSProperties;
+    id?: string;
+}
+
+const GlassCard: React.FC<GlassCardProps> = ({ children, className = '', onClick, style, id }) => {
     return (
         <div 
             id={id}
@@ -16,4 +21,4 @@ const GlassCard: React.FC<{ children: React.ReactNode; className?: string; onCli
     );
 };
 
-export default GlassCard;
+export default React.memo(GlassCard);

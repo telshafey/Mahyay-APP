@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { PRAYERS, PRAYER_NAMES_API_MAP } from '../constants';
 import { Prayer, PrayerTimeData, PrayerTimesContextType } from '../types';
 import { useAppContext } from '../contexts/AppContext';
+import { Capacitor } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
 
 export const usePrayerTimes = (): PrayerTimesContextType => {
     const { settings } = useAppContext();
@@ -12,44 +14,72 @@ export const usePrayerTimes = (): PrayerTimesContextType => {
     const [countdown, setCountdown] = useState('');
 
     const detectLocation = useCallback(async () => {
-        if (!navigator.geolocation) {
-            setLocationError("المتصفح أو بيئة التشغيل لا تدعم تحديد الموقع. سيتم استخدام مواقيت القاهرة الافتراضية.");
-            setCoordinates({ latitude: 30.0444, longitude: 31.2357 }); // Cairo fallback
-            return;
-        }
-
-        const options = {
-            enableHighAccuracy: true,
-            timeout: 10000, // 10 seconds
-            maximumAge: 0,
+        const cairoFallback = () => {
+             setCoordinates({ latitude: 30.0444, longitude: 31.2357 }); // Cairo fallback
         };
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                setCoordinates({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                });
-                setLocationError(null);
-            },
-            (error) => {
-                let message = "لم نتمكن من تحديد موقعك. سيتم استخدام مواقيت القاهرة الافتراضية.";
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        message = "تم رفض إذن الوصول للموقع. لتحديد المواقيت بدقة، يرجى تفعيل إذن الموقع للتطبيق من إعدادات جهازك.";
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        message = "معلومات الموقع غير متاحة حاليًا. يرجى التحقق من تفعيل GPS والمحاولة مرة أخرى.";
-                        break;
-                    case error.TIMEOUT:
-                        message = "انتهى وقت طلب تحديد الموقع. يرجى المحاولة في مكان به إشارة أفضل.";
-                        break;
+        if (Capacitor.isNativePlatform()) {
+             try {
+                let permissionStatus = await Geolocation.checkPermissions();
+                if (permissionStatus.location !== 'granted') {
+                    permissionStatus = await Geolocation.requestPermissions();
                 }
-                setLocationError(message);
-                setCoordinates({ latitude: 30.0444, longitude: 31.2357 }); // Cairo fallback
-            },
-            options
-        );
+
+                if (permissionStatus.location === 'granted') {
+                    const position = await Geolocation.getCurrentPosition({
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                    });
+                    setCoordinates({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                    });
+                    setLocationError(null);
+                } else {
+                    setLocationError("تم رفض إذن الوصول للموقع من إعدادات الهاتف. سيتم استخدام مواقيت القاهرة الافتراضية.");
+                    cairoFallback();
+                }
+            } catch (error) {
+                console.error("Capacitor Geolocation error:", error);
+                setLocationError("لم نتمكن من تحديد موقعك عبر خدمات الهاتف. سيتم استخدام مواقيت القاهرة الافتراضية.");
+                cairoFallback();
+            }
+        } else {
+            if (!navigator.geolocation) {
+                setLocationError("المتصفح لا يدعم تحديد الموقع. سيتم استخدام مواقيت القاهرة الافتراضية.");
+                cairoFallback();
+                return;
+            }
+
+            const options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setCoordinates({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                    });
+                    setLocationError(null);
+                },
+                (error) => {
+                    let message = "لم نتمكن من تحديد موقعك. سيتم استخدام مواقيت القاهرة الافتراضية.";
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            message = "تم رفض إذن الوصول للموقع. لتحديد المواقيت بدقة، يرجى تفعيل إذن الموقع للتطبيق من إعدادات جهازك.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message = "معلومات الموقع غير متاحة حاليًا. يرجى التحقق من تفعيل GPS والمحاولة مرة أخرى.";
+                            break;
+                        case error.TIMEOUT:
+                            message = "انتهى وقت طلب تحديد الموقع. يرجى المحاولة في مكان به إشارة أفضل.";
+                            break;
+                    }
+                    setLocationError(message);
+                    cairoFallback();
+                },
+                options
+            );
+        }
     }, []);
 
     useEffect(() => {

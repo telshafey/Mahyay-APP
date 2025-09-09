@@ -19,7 +19,8 @@ const IslamicCalendar: React.FC = () => {
         <GlassCard>
             <div className="text-center text-white mb-4">
                 <h3 className="font-amiri text-2xl font-bold">{currentHijriMonthInfo.name}</h3>
-                <p className="text-white/95 mb-2">{currentHijriMonthInfo.year} هـ</p>
+                {/* FIX: The 'year' property is available on `hijriYearInfo`, not `currentHijriMonthInfo`. */}
+                <p className="text-white/95 mb-2">{hijriYearInfo?.year} هـ</p>
                 <p className="text-sm text-white/95 max-w-md mx-auto">{currentHijriMonthInfo.definition}</p>
             </div>
             
@@ -60,4 +61,4 @@ const IslamicCalendar: React.FC = () => {
     );
 };
 
-export default IslamicCalendar;
+export default React.memo(IslamicCalendar);

@@ -122,9 +122,9 @@ const NawafilCard: React.FC<{ nawafil: Nawafil }> = ({ nawafil }) => {
                 <div className="text-center">
                     <label className="text-white mb-2 block">عدد الركعات:</label>
                     <div className="flex items-center justify-center gap-4">
-                        <button onClick={() => handleUpdateCount(-2)} disabled={isUpdating} className="w-10 h-10 rounded-full bg-white/10 text-white text-xl font-bold hover:bg-white/20 disabled:opacity-50">-</button>
+                        <button onClick={() => handleUpdateCount(-2)} disabled={isUpdating} className="w-10 h-10 rounded-full bg-white/10 text-white text-xl font-bold hover:bg-white/20 disabled:opacity-50" aria-label="إنقاص عدد الركعات">-</button>
                         <span className="text-2xl font-bold text-white w-16 text-center">{status.count || 0}</span>
-                        <button onClick={() => handleUpdateCount(2)} disabled={isUpdating} className="w-10 h-10 rounded-full bg-white/10 text-white text-xl font-bold hover:bg-white/20 disabled:opacity-50">+</button>
+                        <button onClick={() => handleUpdateCount(2)} disabled={isUpdating} className="w-10 h-10 rounded-full bg-white/10 text-white text-xl font-bold hover:bg-white/20 disabled:opacity-50" aria-label="زيادة عدد الركعات">+</button>
                     </div>
                      <p className="font-amiri text-xs text-white mt-4">{nawafil.evidence}</p>
                 </div>
