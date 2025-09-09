@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calculateStats } from './utils';
-import { AppData, UserChallenge } from './types';
-import { AZKAR_DATA } from '../constants';
+import { AppData, UserChallenge, AzkarCategory } from './types';
+import { AZKAR_DATA } from './constants';
 
 describe('calculateStats', () => {
 
@@ -27,7 +27,7 @@ describe('calculateStats', () => {
         // FIX: Corrected azkarStatus to match the type `{ [key: string]: { [zikrId: number]: number } }`.
         // The previous boolean value was causing a type error.
         // This mock data represents a completed morning azkar and an incomplete evening azkar.
-        const morningAzkarItems = AZKAR_DATA.find(c => c.name === 'أذكار الصباح')!.items;
+        const morningAzkarItems = AZKAR_DATA.find((c: AzkarCategory) => c.name === 'أذكار الصباح')!.items;
         const completeMorningAzkarStatus = Object.fromEntries(
             morningAzkarItems.map(item => [item.id, item.repeat])
         );

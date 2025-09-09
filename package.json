@@ -19,6 +19,7 @@
     "@capacitor/push-notifications": "^6.0.0",
     "@google/genai": "^1.16.0",
     "@supabase/supabase-js": "^2.43.4",
+    "hijri-date": "^0.2.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^6.23.1",

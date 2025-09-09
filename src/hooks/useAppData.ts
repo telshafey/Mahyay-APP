@@ -348,7 +348,6 @@ export const useAppData = (): AppContextType => {
         const parts = formatter.formatToParts(new Date());
         const day = parts.find(p => p.type === 'day')?.value || '';
         const month = parts.find(p => p.type === 'month')?.value || '';
-        const year = parts.find(p => p.type === 'year')?.value || '';
 
 
         const todayValue = hDate.valueOf();

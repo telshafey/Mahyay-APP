@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { PersonalGoal, PersonalGoalsContextType, UserProfile } from '../types';
 
@@ -133,7 +133,7 @@ export const usePersonalGoals = (profile: UserProfile | null): PersonalGoalsCont
     // not the `personal_goals` table. So it's passed down to be handled by `useAppData`.
     // We provide a placeholder here, the real implementation is in `useAppData`.
     // Fix: Made the function async to match the type definition '(goalId: string) => Promise<void>'.
-    const toggleDailyGoalCompletion = async (goalId: string) => {
+    const toggleDailyGoalCompletion = async (_goalId: string) => {
         // This function's logic is implemented in useAppData as it modifies daily data.
         console.warn("toggleDailyGoalCompletion should be handled by the main app data hook.");
     };
