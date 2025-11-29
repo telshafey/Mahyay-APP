@@ -44,7 +44,6 @@ export const getAbsolutePageApproximation = (position: { surah: number, ayah: nu
     
     const pagesInSurah = nextSurahInfo.startPage - surahInfo.startPage;
     
-    // For single-page surahs, or if ayahs count is 0, return start page.
     if (pagesInSurah <= 0 || surahInfo.ayahs === 0) {
         return surahInfo.startPage;
     }
@@ -136,14 +135,6 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
     return { totalPoints, streak, weeklyPrayers, monthlyPrayers, quranPages, completedAzkar, khatmaProgress: { pagesReadInCurrent, percentage } };
 };
 
-
-/**
- * Checks if a given Hijri year is a leap year.
- * The formula is based on the algorithm used in common Hijri calendar implementations.
- * A Hijri year is leap if (11 * year + 14) % 30 < 11.
- * @param {number} year The Hijri year to check.
- * @returns {boolean} True if the year is a leap year, false otherwise.
- */
 export const isHijriLeapYear = (year: number): boolean => {
     return (11 * year + 14) % 30 < 11;
 };

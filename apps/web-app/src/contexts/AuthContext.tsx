@@ -1,2 +1,3 @@
-// This file is a duplicate of packages/core/src/contexts/AuthContext.tsx and has been removed to maintain a single source of truth.
-// The web app should import AuthProvider and useAuthContext directly from '@mahyay/core'.
+// This file is deprecated. Please use AuthProvider and useAuthContext from '@mahyay/core'.
+// Keeping this file empty/commented to prevent duplicate context issues during migration.
+export {};
