@@ -1,18 +1,1 @@
-{
-  "name": "mahyay-monorepo",
-  "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "web": "npm run dev -w web-app",
-    "native": "npm run start -w native-app",
-    "build:web": "npm run build -w web-app",
-    "build": "npm run build -w web-app && rm -rf dist && cp -r apps/web-app/dist dist"
-  },
-  "devDependencies": {
-    "typescript": "^5.2.2",
-    "@vercel/node": "^3.0.0"
-  }
-}
+full contents of package.json

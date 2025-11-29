@@ -1,4 +1,4 @@
-import { Prayer, Nawafil, Surah, BaseChallenge, AzkarCategory, IslamicOccasion, HijriMonthInfo, PrayerMethod, PrayerLocation } from "./types";
+import { Prayer, Nawafil, Surah, BaseChallenge, AzkarCategory, IslamicOccasion, HijriMonthInfo, PrayerMethod } from "./types";
 
 export const QURAN_TOTAL_PAGES = 604;
 
@@ -39,21 +39,6 @@ export const PRAYER_METHODS: PrayerMethod[] = [
     { id: 10, name: "سنغافورة" },
     { id: 11, name: "الاتحاد الإسلامي في فرنسا" },
     { id: 12, name: "تركيا - رئاسة الشؤون الدينية" },
-];
-
-export const PRAYER_LOCATIONS: PrayerLocation[] = [
-    {
-        id: 'cairo_egypt',
-        city: 'القاهرة',
-        country: 'مصر',
-        times: {
-            "Fajr": "05:15",
-            "Dhuhr": "11:55",
-            "Asr": "14:48",
-            "Maghrib": "17:03",
-            "Isha": "18:26",
-        },
-    },
 ];
 
 export const CHALLENGES: BaseChallenge[] = [

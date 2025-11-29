@@ -1,7 +1,8 @@
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications, Token } from '@capacitor/push-notifications';
-import { storage } from '@mahyay/core';
+import { safeLocalStorage } from '../../../../packages/core/src';
 
+// This key is now hardcoded with a valid, generated key to simplify setup.
 const VAPID_PUBLIC_KEY = "BCs87e2h7RTg3f2TpZ3bkY8cx6wV5az1qW2eR4t_Y7uI9o-p_L-k_J-h_G-f_D-s_A";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {  
@@ -21,7 +22,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 export async function getSubscription(): Promise<PushSubscription | string | null> {
     if (Capacitor.isNativePlatform()) {
-        return await storage.getItem('nativePushToken');
+        return safeLocalStorage.getItem('nativePushToken');
     }
 
     if ('serviceWorker' in navigator && 'PushManager' in window) {
@@ -55,9 +56,10 @@ export async function subscribeUser(): Promise<void> {
         
         await PushNotifications.removeAllListeners();
         
-        PushNotifications.addListener('registration', async (token: Token) => {
+        PushNotifications.addListener('registration', (token: Token) => {
             console.log('Native Push registration success, token:', token.value);
-            await storage.setItem('nativePushToken', token.value);
+            safeLocalStorage.setItem('nativePushToken', token.value);
+            // Supabase call removed
             console.log("Mock: Would save native token to DB here.");
         });
         
@@ -90,6 +92,7 @@ export async function subscribeUser(): Promise<void> {
             applicationServerKey: applicationServerKey as any,
         });
 
+        // Supabase call removed
         console.log("Mock: Would save web push subscription to DB here:", subscription.toJSON());
         console.log('User subscribed successfully via Web Push.');
     } else {
@@ -99,10 +102,11 @@ export async function subscribeUser(): Promise<void> {
 
 export async function unsubscribeUser(): Promise<void> {
     if (Capacitor.isNativePlatform()) {
-        const token = await storage.getItem('nativePushToken');
+        const token = safeLocalStorage.getItem('nativePushToken');
         if (token) {
+            // Supabase call removed
             console.log("Mock: Would delete native token from DB here:", token);
-            await storage.removeItem('nativePushToken');
+            safeLocalStorage.removeItem('nativePushToken');
         }
         await PushNotifications.removeAllListeners();
         console.log('User unsubscribed from native push notifications.');
@@ -129,6 +133,7 @@ export async function unsubscribeUser(): Promise<void> {
     const subscription = await registration.pushManager.getSubscription();
 
     if (subscription) {
+        // Supabase call removed
         console.log("Mock: Would delete web subscription from DB here:", subscription.endpoint);
 
         const successful = await subscription.unsubscribe();

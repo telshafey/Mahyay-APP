@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAppContext, useAuthContext, usePrayerTimesContext, Settings } from '@mahyay/core';
+import { useAppContext, useAuthContext, usePrayerTimesContext, Settings } from '../../../../packages/core/src';
 import GlassCard from '../../components/GlassCard';
 import SettingsCard from '../../components/more/SettingsCard';
 import PushNotificationManager from '../../components/more/PushNotificationManager';
@@ -61,42 +61,19 @@ const SettingsPage: React.FC = () => {
             </GlassCard>
 
             <SettingsCard title="إعدادات الموقع" icon="📍">
-                <div className="text-center space-y-3">
+                <div className="text-center space-y-2">
                     {coordinates && !locationError && (
-                        <p className="p-3 bg-green-900/50 rounded-lg text-green-300 font-semibold text-sm">✅ يتم استخدام موقعك الحالي لدقة المواقيت.</p>
+                        <p className="text-green-300 font-semibold">✅ يتم استخدام موقعك الحالي لدقة المواقيت.</p>
                     )}
                     {locationError && (
-                        <p className="p-3 bg-yellow-900/50 rounded-lg text-yellow-300 text-sm font-semibold">{locationError}</p>
+                        <p className="text-yellow-300 text-sm font-semibold">{locationError}</p>
                     )}
                     <button
                         onClick={detectLocation}
                         className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
                     >
-                        🔄 إعادة تحديد الموقع
+                        إعادة تحديد الموقع
                     </button>
-                    <div className="pt-4 border-t border-white/10 space-y-2">
-                        <p className="text-sm text-white/80">أو أدخل موقعك يدويًا (سيتم استخدامه عند فشل التحديد التلقائي):</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <input 
-                                type="text" 
-                                value={settings.country} 
-                                onBlur={(e) => handleSettingsChange('country', e.target.value)}
-                                onChange={(e) => {/* controlled component, but only save on blur */}}
-                                defaultValue={settings.country}
-                                className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white"
-                                placeholder="الدولة (e.g. Egypt)"
-                            />
-                            <input 
-                                type="text" 
-                                value={settings.city} 
-                                onBlur={(e) => handleSettingsChange('city', e.target.value)} 
-                                onChange={(e) => {/* controlled component, but only save on blur */}}
-                                defaultValue={settings.city}
-                                className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white"
-                                 placeholder="المدينة (e.g. Cairo)"
-                            />
-                        </div>
-                    </div>
                 </div>
             </SettingsCard>
             

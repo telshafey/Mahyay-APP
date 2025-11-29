@@ -1,15 +1,11 @@
-
-
 import React, { useState } from 'react';
 import { useAppContext } from '../../contexts/AppContext';
-// FIX: Import renamed PrayerMethod type
 import { PrayerMethod } from '../../types';
 import GlassCard from '../../components/GlassCard';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/admin/FormField';
 
 const PrayerMethodsManagementPage: React.FC = () => {
-    // FIX: Use correct property names from context
     const { prayerMethods, addPrayerMethod, updatePrayerMethod, deletePrayerMethod } = useAppContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingMethod, setEditingMethod] = useState<PrayerMethod | null>(null);
@@ -30,10 +26,9 @@ const PrayerMethodsManagementPage: React.FC = () => {
         }
     };
     
-    // FIX: Simplify handleSave logic
-    const handleSave = async (data: PrayerMethod) => {
-        if (editingMethod) {
-            await updatePrayerMethod({ ...editingMethod, ...data });
+    const handleSave = async (data: Omit<PrayerMethod, 'id'> | PrayerMethod) => {
+        if ('id' in data) {
+            await updatePrayerMethod(data);
         } else {
             await addPrayerMethod(data);
         }
@@ -89,8 +84,7 @@ const PrayerMethodsManagementPage: React.FC = () => {
 const PrayerMethodFormModal: React.FC<{
     method: PrayerMethod | null;
     onClose: () => void;
-    // FIX: Simplify onSave prop type
-    onSave: (data: PrayerMethod) => void;
+    onSave: (data: Omit<PrayerMethod, 'id'> | PrayerMethod) => void;
 }> = ({ method, onClose, onSave }) => {
     const [formData, setFormData] = useState({
         name: method?.name || '',
@@ -104,8 +98,11 @@ const PrayerMethodFormModal: React.FC<{
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // FIX: Simplify submission logic
-        onSave(formData);
+        if (method) {
+            onSave({ ...method, ...formData });
+        } else {
+            onSave(formData);
+        }
     };
 
     return (

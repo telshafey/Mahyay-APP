@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { UserProfile, AppStats } from '../../types';
 import { calculateStats } from '../../utils';
@@ -25,7 +24,7 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ user, onClose }) =>
     // NOTE FOR DEVELOPMENT:
     // In a real application, you would fetch the specific user's appData and userChallenges here.
     // For now, we are simulating this by reusing the mock data for every user to demonstrate the modal's functionality.
-    const userStats: AppStats = useMemo(() => calculateStats(MOCK_APP_DATA, MOCK_USER_CHALLENGES, CHALLENGES), []);
+    const userStats: AppStats = useMemo(() => calculateStats(MOCK_APP_DATA, MOCK_USER_CHALLENGES), []);
     
     const activeChallenges = useMemo(() => {
         return MOCK_USER_CHALLENGES

@@ -66,9 +66,7 @@ const GoalsPage: React.FC = () => {
                     <form onSubmit={handleFormSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-semibold mb-1">عنوان الهدف</label>
-                            <div className="flex gap-2">
-                                <input type="text" value={goal.title} onChange={e => setGoal({...goal, title: e.target.value})} className="flex-grow bg-black/30 border border-white/20 rounded-lg px-3 py-2" placeholder="مثال: الاستغفار 100 مرة" />
-                            </div>
+                            <input type="text" value={goal.title} onChange={e => setGoal({...goal, title: e.target.value})} className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2" placeholder="مثال: الاستغفار 100 مرة" />
                         </div>
                         <div>
                              <label className="block text-sm font-semibold mb-1">اختر أيقونة</label>

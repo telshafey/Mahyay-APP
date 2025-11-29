@@ -1,6 +1,4 @@
-// FIX: Import types for local use and re-export them for other modules.
-import type { Session, AuthResponse, AuthError } from '@supabase/supabase-js';
-export type { Session, AuthResponse, AuthError };
+import { Session } from '@supabase/supabase-js';
 
 // Gemini Service Types
 export interface VerseReflection {
@@ -13,50 +11,23 @@ export interface PersonalizedDua {
   source_info: string;
 }
 
-export interface ApiSuggestion {
-    suggested_url: string;
-    description: string;
-}
-
 // AI Admin Update Types
 export type AiUpdateAction = 'add' | 'update' | 'remove';
 
 export interface AiUpdate<T> {
     action: AiUpdateAction;
-    item?: Partial<T>; // For updates or removals
+    item: Partial<T>; // For updates or removals
     newItem?: T;      // For additions
     reason: string;
 }
 
-export interface IslamicOccasion {
-  id: string;
-  name: string;
-  hijriDay: number;
-  hijriMonth: number;
-  description: string;
-  date?: Date; // Added for sorting
-}
-
-export interface Prayer {
-  name: string;
-  emoji: string;
-  sunnahBefore?: { count: number; evidence: string };
-  sunnahAfter?: { count: number; evidence: string };
-  virtue: string;
-}
-
-export type DailyAzkarCategory = 'أذكار الصباح' | 'أذكار المساء' | 'أذكار النوم' | 'أذكار الاستيقاظ' | 'أذكار عامة';
-
-export interface Zikr {
-    id: number;
-    category: string;
-    text: string;
-    repeat: number;
-    reference: string;
-    notes?: string;
-}
+export type AiUpdateInsight = AiUpdate<{
+    setting: string;
+    value: any;
+}>;
 
 export type AiUpdateOccasion = AiUpdate<IslamicOccasion>;
+export type AiUpdatePrayerMethod = AiUpdate<PrayerMethod>;
 export type AiUpdatePrayer = AiUpdate<Prayer>;
 export type AiUpdateZikr = AiUpdate<Zikr>;
 
@@ -70,16 +41,17 @@ export interface PrayerStatus {
   sunnahAfter: boolean;
 }
 
+export interface Prayer {
+  name: string;
+  emoji: string;
+  sunnahBefore?: { count: number; evidence: string };
+  sunnahAfter?: { count: number; evidence: string };
+  virtue: string;
+}
+
 export interface PrayerMethod {
     id: number;
     name: string;
-}
-
-export interface PrayerLocation {
-    id: string;
-    city: string;
-    country: string;
-    times: { [key: string]: string };
 }
 
 export interface Nawafil {
@@ -129,10 +101,6 @@ export interface Settings {
       community: boolean;
   };
   hijriDateAdjustment: number;
-  city: string;
-  country: string;
-  // FIX: Add 'defaultLocationId' to the Settings interface.
-  defaultLocationId?: string;
 }
 
 // Stats
@@ -205,6 +173,7 @@ export interface Surah {
     startPage: number;
 }
 
+
 // UI & Misc
 export interface Notification {
     message: string;
@@ -229,16 +198,25 @@ export interface UserProfile {
 }
 
 export interface AuthContextType {
-    session: Session | null;
-    profile: UserProfile | null;
+    profile: UserProfile;
+    viewAsUser: boolean;
+    toggleViewMode: () => void;
+    signOut: () => Promise<void>;
     isLoading: boolean;
-    signIn: (email: string, password: string) => Promise<AuthResponse>;
-    signUp: (email: string, password: string) => Promise<AuthResponse>;
-    signOut: () => Promise<{ error: AuthError | null }>;
-    toggleRole: () => Promise<void>;
+    signInWithGoogle: () => Promise<{ error: Error | null; }>;
 }
 
+
 // Islamic Calendar Types
+export interface IslamicOccasion {
+  id: string;
+  name: string;
+  hijriDay: number;
+  hijriMonth: number;
+  description: string;
+  date?: Date; // Added for sorting
+}
+
 export interface HijriMonthInfo {
   name: string;
   definition: string;
@@ -250,14 +228,6 @@ export interface HijriYearInfo {
     length: number;
 }
 
-export interface ApiHijriDate {
-    date: string;
-    format: string;
-    day: string;
-    weekday: { en: string; ar: string; };
-    month: { number: number; en: string; ar: string; };
-    year: string;
-}
 
 // App Context
 export interface PersonalGoalsContextType {
@@ -270,10 +240,22 @@ export interface PersonalGoalsContextType {
     toggleGoalArchivedStatus: (goalId: string) => Promise<boolean>;
 }
 
+export type DailyAzkarCategory = 'أذكار الصباح' | 'أذكار المساء' | 'أذكار النوم' | 'أذكار الاستيقاظ' | 'أذكار عامة';
+
+export interface Zikr {
+    id: number;
+    category: string;
+    text: string;
+    repeat: number;
+    reference: string;
+    notes?: string;
+}
+
 export interface AzkarCategory {
     name: DailyAzkarCategory | string;
     items: Zikr[];
 }
+
 
 export interface AppContextType {
     settings: Settings;
@@ -295,13 +277,10 @@ export interface AppContextType {
     challenges: BaseChallenge[];
     islamicOccasions: IslamicOccasion[];
     prayerMethods: PrayerMethod[];
-    prayerLocations: PrayerLocation[];
     prayers: Prayer[];
     nawafilPrayers: Nawafil[];
     azkarData: AzkarCategory[];
     quranSurahs: Surah[];
-    apiHijriDate: ApiHijriDate | null;
-    setApiHijriDate: (date: ApiHijriDate | null) => void;
     updateSettings: (newSettings: Partial<Settings>) => Promise<void>;
     updatePrayerStatus: (prayerName: string, status: PrayerFardStatus) => Promise<void>;
     updateSunnahStatus: (prayerName: string, type: 'sunnahBefore' | 'sunnahAfter') => Promise<void>;
@@ -313,6 +292,7 @@ export interface AppContextType {
     logManualChallengeProgress: (challengeId: string) => Promise<boolean>;
     incrementAzkarCount: (categoryName: DailyAzkarCategory, zikrId: number) => Promise<void>;
     completeZikr: (categoryName: DailyAzkarCategory, zikrId: number) => Promise<void>;
+    updateFeatureToggles: (toggles: { challenges: boolean; community: boolean }) => void;
     // Personal Goals
     personalGoals: PersonalGoal[];
     goalProgress: { [goalId: string]: number };
@@ -322,14 +302,13 @@ export interface AppContextType {
     deletePersonalGoal: (goalId: string) => Promise<boolean>;
     toggleGoalArchivedStatus: (goalId: string) => Promise<boolean>;
     // Admin functions
-    updateFeatureToggles: (toggles: { challenges: boolean; community: boolean }) => void;
     addChallenge: (item: Omit<BaseChallenge, 'id'>) => Promise<void>;
     updateChallenge: (item: BaseChallenge) => Promise<void>;
     deleteChallenge: (id: string) => Promise<void>;
     addIslamicOccasion: (item: Omit<IslamicOccasion, 'id'>) => Promise<void>;
     updateIslamicOccasion: (item: IslamicOccasion) => Promise<void>;
     deleteIslamicOccasion: (id: string) => Promise<void>;
-    addPrayerMethod: (item: PrayerMethod) => Promise<void>;
+    addPrayerMethod: (item: Omit<PrayerMethod, 'id'>) => Promise<void>;
     updatePrayerMethod: (item: PrayerMethod) => Promise<void>;
     deletePrayerMethod: (id: number) => Promise<void>;
     addFaq: (item: Omit<FAQ, 'id'>) => Promise<void>;
@@ -343,10 +322,8 @@ export interface AppContextType {
     deleteZikr: (categoryName: AzkarCategory['name'], zikrId: number) => Promise<void>;
     addAzkarCategory: (name: AzkarCategory['name']) => Promise<void>;
     deleteAzkarCategory: (name: AzkarCategory['name']) => Promise<void>;
-    addPrayerLocation: (item: Omit<PrayerLocation, 'id'>) => Promise<void>;
-    updatePrayerLocation: (item: PrayerLocation) => Promise<void>;
-    deletePrayerLocation: (id: string) => Promise<void>;
 }
+
 
 // Prayer Times Context
 export interface PrayerTimesContextType {
@@ -360,5 +337,4 @@ export interface PrayerTimesContextType {
     locationError: string | null;
     detectLocation: () => Promise<void>;
     isPrayerTimesLoading: boolean;
-    apiHijriDate: ApiHijriDate | null;
 }

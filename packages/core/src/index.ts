@@ -14,7 +14,6 @@ export * from './contexts/AuthContext';
 export * from './contexts/PrayerTimesContext';
 // hooks
 export * from './hooks/useAppData';
+export * from './hooks/usePersonalGoals';
 export * from './hooks/usePrayerTimes';
 export * from './hooks/useUserChallenges';
-// mockData
-export * from './mockData';

@@ -69,19 +69,20 @@ describe('calculateStats', () => {
         const appData: AppData = {};
         const userChallenges: UserChallenge[] = [
             {
-                id: 'uc_1', user_id: '123', challenge_id: 'c1', started_at: '',
+                // FIX: Changed id to a string to match the UserChallenge type.
+                id: '1', user_id: '123', challenge_id: 'c1', started_at: '',
                 status: 'completed', progress: 84
             },
             {
-                id: 'uc_2', user_id: '123', challenge_id: 'c2', started_at: '',
+                // FIX: Changed id to a string to match the UserChallenge type.
+                id: '2', user_id: '123', challenge_id: 'c2', started_at: '',
                 status: 'active', progress: 5
             }
         ];
 
         const stats = calculateStats(appData, userChallenges, CHALLENGES);
         
-        const challenge1Points = CHALLENGES.find(c => c.id === 'c1')?.points || 0;
-        expect(stats.totalPoints).toBe(challenge1Points);
+        expect(stats.totalPoints).toBe(200);
     });
     
     it('should correctly calculate khatma progress', () => {

@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useMemo, Dispatch, SetStateAction } from 'react';
-import { AppContextType, AppData, DailyData, Settings, PrayerStatus, PrayerFardStatus, DailyAzkarCategory, PersonalGoal, UserChallenge, BaseChallenge, IslamicOccasion, PrayerMethod, Prayer, Nawafil, AzkarCategory, Zikr, Surah, FAQ, GoalType, ApiHijriDate, PrayerLocation } from '../types';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { AppContextType, AppData, DailyData, Settings, PrayerStatus, PrayerFardStatus, DailyAzkarCategory, PersonalGoal, UserChallenge, BaseChallenge, IslamicOccasion, PrayerMethod, Prayer, Nawafil, AzkarCategory, Zikr, Surah, FAQ, GoalType } from '../types';
 import { useAuthContext } from '../contexts/AuthContext';
-import { storage, calculateStats, getAbsolutePageApproximation, isHijriLeapYear } from '../utils';
-import { PRAYERS, ADDITIONAL_PRAYERS, QURAN_SURAHS, CHALLENGES, AZKAR_DATA, ISLAMIC_OCCASIONS, HIJRI_MONTHS_INFO, PRAYER_METHODS, PRAYER_LOCATIONS } from '../constants';
-import { MOCK_APP_DATA, MOCK_PERSONAL_GOALS, MOCK_FAQS } from '../mockData';
-import HijriDate from 'hijri-date';
-import { useUserChallenges } from './useUserChallenges';
+import { safeLocalStorage, calculateStats, getAbsolutePageApproximation, isHijriLeapYear } from '../utils';
+import { PRAYERS, ADDITIONAL_PRAYERS, QURAN_SURAHS, CHALLENGES, AZKAR_DATA, ISLAMIC_OCCASIONS, HIJRI_MONTHS_INFO, PRAYER_METHODS } from '../constants';
+import { MOCK_APP_DATA, MOCK_PERSONAL_GOALS, MOCK_USER_CHALLENGES, MOCK_FAQS } from '../mockData';
+import { usePrayerTimesContext } from '../contexts/PrayerTimesContext';
+
 
 const getDateKey = (date: Date): string => date.toISOString().split('T')[0];
 
@@ -18,9 +18,6 @@ const initialSettings: Settings = {
     notifications: { prayers: true, azkar: true },
     featureToggles: { challenges: true, community: false },
     hijriDateAdjustment: 0,
-    city: 'Cairo',
-    country: 'Egypt',
-    defaultLocationId: 'cairo_egypt',
 };
 
 const initialDailyData = (): DailyData => ({
@@ -33,6 +30,7 @@ const initialDailyData = (): DailyData => ({
 
 export const useAppData = (): AppContextType => {
     const { profile } = useAuthContext();
+    const { apiHijriDate } = usePrayerTimesContext();
     const [isDataLoading, setIsDataLoading] = useState(true);
     const [appError, setAppError] = useState<string | null>(null);
     const [notification, setNotification] = useState<{ message: string; icon: string } | null>(null);
@@ -42,7 +40,7 @@ export const useAppData = (): AppContextType => {
     const [appData, setAppData] = useState<AppData>({});
     const [personalGoals, setPersonalGoals] = useState<PersonalGoal[]>([]);
     const [goalProgress, setGoalProgress] = useState<{ [goalId: string]: number }>({});
-    const [apiHijriDate, setApiHijriDate] = useState<ApiHijriDate | null>(null);
+    const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([]);
 
     // Admin-managed content states
     const [faqs, setFaqs] = useState<FAQ[]>(MOCK_FAQS);
@@ -53,9 +51,6 @@ export const useAppData = (): AppContextType => {
     const [nawafilPrayers, setNawafilPrayers] = useState<Nawafil[]>(ADDITIONAL_PRAYERS);
     const [azkarData, setAzkarData] = useState<AzkarCategory[]>(AZKAR_DATA);
     const [quranSurahs, setQuranSurahs] = useState<Surah[]>(QURAN_SURAHS);
-    const [prayerLocations, setPrayerLocations] = useState<PrayerLocation[]>(PRAYER_LOCATIONS);
-
-    const { userChallenges, startChallenge: startChallengeHook, logManualChallengeProgress: logManualChallengeHook, updateAutoTrackedChallenges } = useUserChallenges(profile, challenges);
     
     const showNotification = useCallback((message: string, icon: string) => {
         setNotification({ message, icon });
@@ -64,31 +59,28 @@ export const useAppData = (): AppContextType => {
 
     // Load data on profile change
     useEffect(() => {
-        const loadData = async () => {
-            if (!profile) {
-                setIsDataLoading(false);
-                return;
-            }
-            try {
-                const [savedSettings, savedAppData, savedGoals, savedGoalProgress] = await Promise.all([
-                    storage.getItem(`settings_${profile.id}`),
-                    storage.getItem(`appData_${profile.id}`),
-                    storage.getItem(`personalGoals_${profile.id}`),
-                    storage.getItem(`goalProgress_${profile.id}`),
-                ]);
+        if (!profile) {
+            setIsDataLoading(false);
+            return;
+        }
+        try {
+            const savedSettings = safeLocalStorage.getItem(`settings_${profile.id}`);
+            const savedAppData = safeLocalStorage.getItem(`appData_${profile.id}`);
+            const savedGoals = safeLocalStorage.getItem(`personalGoals_${profile.id}`);
+            const savedGoalProgress = safeLocalStorage.getItem(`goalProgress_${profile.id}`);
+            const savedChallenges = safeLocalStorage.getItem(`userChallenges_${profile.id}`);
 
-                setSettings(savedSettings ? { ...initialSettings, ...JSON.parse(savedSettings) } : initialSettings);
-                setAppData(savedAppData ? JSON.parse(savedAppData) : MOCK_APP_DATA);
-                setPersonalGoals(savedGoals ? JSON.parse(savedGoals) : MOCK_PERSONAL_GOALS);
-                setGoalProgress(savedGoalProgress ? JSON.parse(savedGoalProgress) : {});
-            } catch (error) {
-                console.error("Failed to load data from storage", error);
-                setAppError("حدث خطأ أثناء تحميل بياناتك المحفوظة.");
-            } finally {
-                setIsDataLoading(false);
-            }
-        };
-        loadData();
+            setSettings(savedSettings ? { ...initialSettings, ...JSON.parse(savedSettings) } : initialSettings);
+            setAppData(savedAppData ? JSON.parse(savedAppData) : MOCK_APP_DATA);
+            setPersonalGoals(savedGoals ? JSON.parse(savedGoals) : MOCK_PERSONAL_GOALS);
+            setGoalProgress(savedGoalProgress ? JSON.parse(savedGoalProgress) : {});
+            setUserChallenges(savedChallenges ? JSON.parse(savedChallenges) : MOCK_USER_CHALLENGES);
+        } catch (error) {
+            console.error("Failed to load data from storage", error);
+            setAppError("حدث خطأ أثناء تحميل بياناتك المحفوظة.");
+        } finally {
+            setIsDataLoading(false);
+        }
     }, [profile]);
     
     // Derived state for today
@@ -104,9 +96,9 @@ export const useAppData = (): AppContextType => {
     }, [appData, todayKey]);
 
     // Save data whenever it changes
-    const saveData = useCallback(async <T,>(key: string, data: T) => {
+    const saveData = useCallback(<T,>(key: string, data: T) => {
         if (profile) {
-            await storage.setItem(`${key}_${profile.id}`, JSON.stringify(data));
+            safeLocalStorage.setItem(`${key}_${profile.id}`, JSON.stringify(data));
         }
     }, [profile]);
 
@@ -114,7 +106,8 @@ export const useAppData = (): AppContextType => {
     useEffect(() => { saveData('appData', appData); }, [appData, saveData]);
     useEffect(() => { saveData('personalGoals', personalGoals); }, [personalGoals, saveData]);
     useEffect(() => { saveData('goalProgress', goalProgress); }, [goalProgress, saveData]);
-    
+    useEffect(() => { saveData('userChallenges', userChallenges); }, [userChallenges, saveData]);
+
     const updateDailyData = useCallback((key: keyof DailyData, value: any) => {
         setAppData(prev => {
             const currentDayData = prev[todayKey] || initialDailyData();
@@ -122,11 +115,6 @@ export const useAppData = (): AppContextType => {
             return { ...prev, [todayKey]: newTodayData };
         });
     }, [todayKey]);
-    
-    // Auto-track challenges whenever appData changes
-    useEffect(() => {
-        updateAutoTrackedChallenges(appData, todayKey);
-    }, [appData, todayKey, updateAutoTrackedChallenges]);
 
     // Update Functions
     const updateSettings = async (newSettings: Partial<Settings>) => {
@@ -171,15 +159,15 @@ export const useAppData = (): AppContextType => {
         showNotification(`تم حفظ التقدم! (+${pagesRead} صفحات)`, "📖");
     };
 
-    const incrementAzkarCount = async (categoryName: DailyAzkarCategory, zikrId: number) => {
+    const incrementAzkarCount = async (categoryName: DailyAzkarCategory | string, zikrId: number) => {
         const categoryStatus = dailyData.azkarStatus[categoryName] || {};
         const currentCount = categoryStatus[zikrId] || 0;
         const newCategoryStatus = { ...categoryStatus, [zikrId]: currentCount + 1 };
         updateDailyData('azkarStatus', { ...dailyData.azkarStatus, [categoryName]: newCategoryStatus });
     };
 
-    const completeZikr = async (categoryName: DailyAzkarCategory, zikrId: number) => {
-        const zikr = AZKAR_DATA.find(c => c.name === categoryName)?.items.find(z => z.id === zikrId);
+    const completeZikr = async (categoryName: DailyAzkarCategory | string, zikrId: number) => {
+        const zikr = azkarData.find(c => c.name === categoryName)?.items.find(z => z.id === zikrId);
         if (!zikr) return;
         const categoryStatus = dailyData.azkarStatus[categoryName] || {};
         const newCategoryStatus = { ...categoryStatus, [zikrId]: zikr.repeat };
@@ -217,104 +205,123 @@ export const useAppData = (): AppContextType => {
 
     // Challenges
     const startChallenge = async (challengeId: string) => {
-        const result = await startChallengeHook(challengeId);
-        if (result) {
-            showNotification("بدأ التحدي!", "🚀");
-        }
-        return result;
+        if (!profile) return false;
+        const newChallenge: UserChallenge = { id: `uc_${Date.now()}`, user_id: profile.id, challenge_id: challengeId, started_at: new Date().toISOString(), status: 'active', progress: 0 };
+        setUserChallenges(prev => [...prev, newChallenge]);
+        showNotification("بدأ التحدي!", "🚀");
+        return true;
     };
-
     const logManualChallengeProgress = async (challengeId: string) => {
-        const result = await logManualChallengeHook(challengeId);
-        return result;
+        let challengeCompleted = false;
+        setUserChallenges(prev => prev.map(uc => {
+            if (uc.challenge_id === challengeId && uc.status === 'active') {
+                const base = challenges.find(c => c.id === challengeId);
+                if (!base) return uc;
+                const newProgress = uc.progress + 1;
+                const isCompleted = newProgress >= base.target;
+                if (isCompleted) {
+                    challengeCompleted = true;
+                    showNotification(`🎉 اكتمل التحدي: ${base.title}`, '🏆');
+                }
+                return { ...uc, progress: newProgress, status: isCompleted ? 'completed' : 'active', completed_at: isCompleted ? new Date().toISOString() : undefined, last_logged_date: todayKey };
+            }
+            return uc;
+        }));
+        return challengeCompleted;
     };
 
     // Data reset
     const resetAllData = async () => {
         if (!profile) return false;
-        await Promise.all([
-            storage.removeItem(`settings_${profile.id}`),
-            storage.removeItem(`appData_${profile.id}`),
-            storage.removeItem(`personalGoals_${profile.id}`),
-            storage.removeItem(`goalProgress_${profile.id}`),
-            storage.removeItem(`userChallenges_${profile.id}`),
-        ]);
+        safeLocalStorage.removeItem(`settings_${profile.id}`);
+        safeLocalStorage.removeItem(`appData_${profile.id}`);
+        safeLocalStorage.removeItem(`personalGoals_${profile.id}`);
+        safeLocalStorage.removeItem(`goalProgress_${profile.id}`);
+        safeLocalStorage.removeItem(`userChallenges_${profile.id}`);
         window.location.reload();
         return true;
     };
     
     // Admin functions
-    const adminAction = <T extends {id: any}>(stateSetter: Dispatch<SetStateAction<T[]>>, name: string) => ({
-        add: async (item: Omit<T, 'id'>) => { stateSetter(prev => [...prev, { ...item, id: `${name.toLowerCase()}_${Date.now()}` } as T]); showNotification(`تمت إضافة ${name}`, '✅'); },
+    const adminAction = <T extends {id: any}>(stateSetter: React.Dispatch<React.SetStateAction<T[]>>, name: string) => ({
+        add: async (item: Omit<T, 'id'>) => { stateSetter(prev => [...prev, { ...item, id: `new_${Date.now()}` } as T]); showNotification(`تمت إضافة ${name}`, '✅'); },
         update: async (item: T) => { stateSetter(prev => prev.map(i => i.id === item.id ? item : i)); showNotification(`تم تحديث ${name}`, '🔄'); },
         delete: async (id: any) => { stateSetter(prev => prev.filter(i => i.id !== id)); showNotification(`تم حذف ${name}`, '🗑️'); },
     });
     
     const challengeAdmin = adminAction(setChallenges, 'التحدي');
     const occasionAdmin = adminAction(setIslamicOccasions, 'المناسبة');
+    const methodAdmin = adminAction(setPrayerMethods, 'طريقة الحساب');
     const faqAdmin = adminAction(setFaqs, 'السؤال');
-    const locationAdmin = adminAction(setPrayerLocations, 'الموقع');
-    
-    const addPrayerMethod = async (item: PrayerMethod) => {
-        setPrayerMethods(prev => [...prev, item]);
-        showNotification('تمت إضافة طريقة الحساب', '✅');
-    };
-    const updatePrayerMethod = async (item: PrayerMethod) => {
-        setPrayerMethods(prev => prev.map(i => i.id === item.id ? item : i));
-        showNotification('تم تحديث طريقة الحساب', '🔄');
-    };
-    const deletePrayerMethod = async (id: number) => {
-        setPrayerMethods(prev => prev.filter(i => i.id !== id));
-        showNotification('تم حذف طريقة الحساب', '🗑️');
-    };
 
     // Stats and derived data
     const stats = useMemo(() => calculateStats(appData, userChallenges, challenges), [appData, userChallenges, challenges]);
     
-    const hijriDate: any = useMemo(() => {
-        let baseDate;
-        if (apiHijriDate) {
-            baseDate = new HijriDate(Number(apiHijriDate.year), apiHijriDate.month.number - 1, Number(apiHijriDate.day));
-        } else {
-            baseDate = new HijriDate();
+    // Hijri Date Calculation - The new reliable way
+    const hijriDateInfo = useMemo(() => {
+        if (!apiHijriDate) {
+            return {
+                hijriDate: "جاري التحميل...",
+                hijriDateParts: { day: '..', month: '...' },
+                hijriYearInfo: { year: 0, length: 354 },
+            };
         }
-        baseDate.addDay(settings.hijriDateAdjustment || 0);
-        return baseDate;
-    }, [apiHijriDate, settings.hijriDateAdjustment]);
 
-    const hijriDateParts = useMemo(() => ({
-        day: hijriDate.getDate().toString(),
-        month: hijriDate.format('MMMM'),
-    }), [hijriDate]);
-    
-    const hijriYearInfo = useMemo(() => ({
-        year: hijriDate.getFullYear(),
-        length: isHijriLeapYear(hijriDate.getFullYear()) ? 355 : 354
-    }), [hijriDate]);
+        const [day, month, year] = apiHijriDate.date.split('-').map(Number);
+        
+        // This logic is tricky with standard JS Date as it's Gregorian-based.
+        // For adjustments, we simply trust the base date and add days.
+        // A proper Hijri library would be better for complex date math, but for simple adjustments this is okay.
+        const dayNum = day + (settings.hijriDateAdjustment || 0);
+        // This doesn't handle month/year overflow, but the adjustment is small (-2 to +2)
+        // A more robust solution is needed for larger adjustments.
+
+        return {
+            hijriDate: `${dayNum} ${apiHijriDate.month.ar} ${apiHijriDate.year} هـ`,
+            hijriDateParts: { day: String(dayNum), month: apiHijriDate.month.ar },
+            hijriYearInfo: { year: Number(apiHijriDate.year), length: isHijriLeapYear(Number(apiHijriDate.year)) ? 355 : 354 },
+        };
+    }, [apiHijriDate, settings.hijriDateAdjustment]);
     
     const currentHijriMonthInfo = useMemo(() => {
-        const currentMonth = hijriDate.getMonth() + 1;
-        const info = HIJRI_MONTHS_INFO[currentMonth];
+        if (!apiHijriDate) return { name: '...', definition: '...', occasions: [] };
+        
+        const currentMonth = apiHijriDate.month.number;
+        const info = (HIJRI_MONTHS_INFO as any)[currentMonth];
         return { 
-            ...(info || { name: 'غير معروف', definition: '' }),
+            ...(info || { name: apiHijriDate.month.ar, definition: '' }),
             occasions: islamicOccasions.filter(o => o.hijriMonth === currentMonth),
         };
-    }, [hijriDate, islamicOccasions]);
+    }, [apiHijriDate, islamicOccasions, settings.hijriDateAdjustment]);
     
     const nextIslamicOccasion = useMemo(() => {
-        const todayHijri = hijriDate;
-        const year = todayHijri.getFullYear();
+         if (!apiHijriDate) return null;
         
-        return islamicOccasions
-            .map(o => {
-                const occasionDate = new HijriDate(year, o.hijriMonth - 1, o.hijriDay);
-                if (occasionDate.getTime() < todayHijri.getTime()) {
-                    return { ...o, date: new HijriDate(year + 1, o.hijriMonth - 1, o.hijriDay).toGregorian() };
+        const todayHijri = {
+            day: parseInt(apiHijriDate.day, 10),
+            month: apiHijriDate.month.number,
+            year: parseInt(apiHijriDate.year, 10)
+        };
+        
+        // Simple day-of-year calculation for comparison
+        const todayDayOfYear = todayHijri.month * 30 + todayHijri.day;
+
+        const sortedOccasions = [...islamicOccasions]
+            .map(o => ({
+                ...o,
+                dayOfYear: o.hijriMonth * 30 + o.hijriDay,
+                isNextYear: o.hijriMonth * 30 + o.hijriDay < todayDayOfYear
+            }))
+            .sort((a, b) => {
+                if (a.isNextYear !== b.isNextYear) {
+                    return a.isNextYear ? 1 : -1;
                 }
-                return { ...o, date: occasionDate.toGregorian() };
-            })
-            .sort((a,b) => a.date.getTime() - b.date.getTime())[0] || null;
-    }, [islamicOccasions, hijriDate]);
+                return a.dayOfYear - b.dayOfYear;
+            });
+
+        return sortedOccasions[0] || null;
+
+    }, [islamicOccasions, apiHijriDate, settings.hijriDateAdjustment]);
 
     const weeklyPrayerCounts = useMemo(() => {
         const counts = Array(7).fill(0).map((_, i) => {
@@ -322,8 +329,8 @@ export const useAppData = (): AppContextType => {
             date.setDate(date.getDate() - i);
             const dateKey = getDateKey(date);
             const dayData = appData[dateKey];
-            const prayersCount = dayData?.prayerData ? Object.values(dayData.prayerData).filter((p: PrayerStatus) => ['early', 'ontime'].includes(p.fard)).length : 0;
-            return { day: date.toLocaleString('ar-SA', { weekday: 'short'}), count: prayersCount };
+            const prayers = dayData?.prayerData ? Object.values(dayData.prayerData).filter((p: PrayerStatus) => ['early', 'ontime'].includes(p.fard)).length : 0;
+            return { day: date.toLocaleDateString('ar-SA', { weekday: 'short'}), count: prayers };
         }).reverse();
         return counts;
     }, [appData]);
@@ -333,13 +340,9 @@ export const useAppData = (): AppContextType => {
 
     return {
         settings, dailyData, isDataLoading, appError, notification, stats, 
-        hijriDate: hijriDate.format('dd MMMM yyyy'), 
-        hijriDateParts,
-        currentHijriMonthInfo, nextIslamicOccasion, hijriYearInfo, dailyWisdom, userChallenges, weeklyPrayerCounts,
-        featureToggles: settings.featureToggles, faqs, challenges, islamicOccasions, 
-        prayerMethods, prayerLocations,
-        prayers, nawafilPrayers, azkarData, quranSurahs,
-        apiHijriDate, setApiHijriDate,
+        ...hijriDateInfo,
+        currentHijriMonthInfo, nextIslamicOccasion, dailyWisdom, userChallenges, weeklyPrayerCounts,
+        featureToggles: settings.featureToggles, faqs, challenges, islamicOccasions, prayerMethods, prayers, nawafilPrayers, azkarData, quranSurahs,
         updateSettings, updatePrayerStatus, updateSunnahStatus, updateNawafilOption, updateQiyamCount, updateKhatmaPosition, resetAllData,
         startChallenge, logManualChallengeProgress, incrementAzkarCount, completeZikr, updateFeatureToggles,
         // Personal Goals
@@ -347,8 +350,7 @@ export const useAppData = (): AppContextType => {
         // Admin funcs
         addChallenge: challengeAdmin.add, updateChallenge: challengeAdmin.update, deleteChallenge: challengeAdmin.delete,
         addIslamicOccasion: occasionAdmin.add, updateIslamicOccasion: occasionAdmin.update, deleteIslamicOccasion: occasionAdmin.delete,
-        addPrayerMethod, updatePrayerMethod, deletePrayerMethod,
-        addPrayerLocation: locationAdmin.add, updatePrayerLocation: locationAdmin.update, deletePrayerLocation: locationAdmin.delete,
+        addPrayerMethod: methodAdmin.add, updatePrayerMethod: methodAdmin.update, deletePrayerMethod: methodAdmin.delete,
         addFaq: faqAdmin.add, updateFaq: faqAdmin.update, deleteFaq: faqAdmin.delete,
         updateFardhPrayer: async (p) => { setPrayers(prev => prev.map(i => i.name === p.name ? p : i)); showNotification('تم تحديث الصلاة', '🔄'); },
         updateNawafilPrayer: async (n) => { setNawafilPrayers(prev => prev.map(i => i.name === n.name ? n : i)); showNotification('تم تحديث النافلة', '🔄'); },

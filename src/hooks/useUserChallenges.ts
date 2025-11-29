@@ -1,7 +1,15 @@
 
 
+
+
+
+
+
+
+
+
 import { useState, useEffect, useCallback, Dispatch, SetStateAction } from 'react';
-import { UserChallenge, UserProfile, AppData, BaseChallenge, DailyData } from '../types';
+import { UserChallenge, UserProfile, AppData, BaseChallenge, PrayerStatus, DailyData } from '../types';
 import { MOCK_USER_CHALLENGES } from '../mockData';
 import { AZKAR_DATA } from '../constants';
 import { safeLocalStorage } from '../utils';
@@ -61,7 +69,7 @@ export const useUserChallenges = (profile: UserProfile | null, challenges: BaseC
         if (!baseChallenge) return false;
 
         const newChallenge: UserChallenge = {
-            id: `uc_${Date.now()}`,
+            id: String(Date.now()),
             user_id: profile.id,
             challenge_id: challengeId,
             started_at: new Date().toISOString(),
@@ -124,7 +132,9 @@ export const useUserChallenges = (profile: UserProfile | null, challenges: BaseC
 
             let newProgress = uc.progress;
             
-            if (baseChallenge.relatedItem === 'quran') {
+            if (baseChallenge.relatedItem === 'quran' && todayData.quranPagesRead !== undefined) {
+                 // Quran challenge progress is total pages read
+                // FIX: Add type annotation for `day` to resolve error.
                 newProgress = Object.values(appData).reduce((sum, day: Partial<DailyData>) => sum + (day.quranPagesRead || 0), 0);
             } else if (baseChallenge.relatedItem === 'azkar_morning' && todayData.azkarStatus?.['أذكار الصباح']) {
                 const category = AZKAR_DATA.find(c => c.name === 'أذكار الصباح');
@@ -132,12 +142,13 @@ export const useUserChallenges = (profile: UserProfile | null, challenges: BaseC
                 if(category && progress && category.items.every(item => (progress[item.id] || 0) >= item.repeat)) {
                     if (uc.last_logged_date !== todayKey) {
                         newProgress = uc.progress + 1;
+                        hasChanged = true;
                     }
                 }
             }
              // Add other auto-tracking logic here...
 
-            if (newProgress !== uc.progress) {
+            if (newProgress > uc.progress) {
                 hasChanged = true;
                 const isCompleted = newProgress >= baseChallenge.target;
                 return {

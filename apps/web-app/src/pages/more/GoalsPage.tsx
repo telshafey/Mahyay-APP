@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PersonalGoal, GoalType, useAppContext, getGoalInspiration } from '@mahyay/core';
+import { PersonalGoal, GoalType, useAppContext, getGoalInspiration } from '../../../../packages/core/src';
 import GlassCard from '../../components/GlassCard';
 
 const GOAL_ICONS = ['🎯', '📖', '🤲', '❤️', '💰', '🏃‍♂️', '🌱', '⭐', '📿', '🕌'];
@@ -79,7 +79,7 @@ const GoalsPage: React.FC = () => {
                             <label className="block text-sm font-semibold mb-1">عنوان الهدف</label>
                             <div className="flex gap-2">
                                 <input type="text" value={goal.title} onChange={e => setGoal({...goal, title: e.target.value})} className="flex-grow bg-black/30 border border-white/20 rounded-lg px-3 py-2" placeholder="مثال: الاستغفار 100 مرة" />
-                                <button type="button" onClick={handleGetInspiration} disabled={isInspiring} className="px-3 bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50 text-2xl" title="ألهمني!">
+                                <button type="button" onClick={handleGetInspiration} disabled={isInspiring} className="px-3 bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50 text-2xl">
                                     {isInspiring ? '...' : '✨'}
                                 </button>
                             </div>

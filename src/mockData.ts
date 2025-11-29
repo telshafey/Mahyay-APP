@@ -1,5 +1,3 @@
-
-
 import { AppData, PersonalGoal, UserChallenge, FAQ } from './types';
 
 // Helper to get past dates

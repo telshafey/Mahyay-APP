@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAppContext } from '@mahyay/core';
+import { useAppContext } from '../../../../../packages/core/src';
 import GlassCard from '../GlassCard';
 
 const DailyWisdomCard: React.FC = () => {

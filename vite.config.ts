@@ -7,15 +7,6 @@ export default defineConfig({
   define: {
     'process.env.API_KEY': JSON.stringify(process.env.VITE_API_KEY),
   },
-  server: {
-    proxy: {
-      '/aladhan-api': {
-        target: 'https://api.aladhan.com/v1',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/aladhan-api/, ''),
-      },
-    }
-  },
   test: {
     globals: true,
     environment: 'jsdom',

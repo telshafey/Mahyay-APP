@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAppContext, useAuthContext } from '@mahyay/core';
 
 const Header: React.FC = () => {
@@ -26,8 +26,6 @@ const Header: React.FC = () => {
         setDropdownOpen(false);
         navigate('/login');
     }
-
-    const gregorianDate = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
 
     const renderUserAvatar = () => {
       if (profile?.picture) {
@@ -57,10 +55,15 @@ const Header: React.FC = () => {
                              <p className="text-sm text-gray-500">{profile?.role === 'admin' ? `صلاحيات المدير` : 'مستخدم'}</p>
                            </div>
 
-                           <button onClick={() => { navigate('/more/settings'); setDropdownOpen(false); }} className="w-full text-right flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors">
-                               <span>⚙️</span>
-                               <span>الإعدادات</span>
-                           </button>
+                           {profile?.role === 'admin' && (
+                               <button onClick={() => { navigate('/admin'); setDropdownOpen(false); }} className="w-full text-right flex items-center gap-3 px-4 py-3 font-bold bg-yellow-100/50 hover:bg-yellow-200/50 transition-colors">
+                                   👑 الانتقال لوحة التحكم
+                               </button>
+                           )}
+
+                           <NavLink to="/more/goals" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>🎯</span><span>أهدافي الشخصية</span></NavLink>
+                           <NavLink to="/more/stats" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>📊</span><span>الإحصائيات</span></NavLink>
+                           <NavLink to="/more/settings" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>⚙️</span><span>الإعدادات</span></NavLink>
                            
                            <div className="border-t border-gray-200 mt-1 pt-1">
                              <button onClick={handleSignOut} className="w-full text-right flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-100/50 transition-colors">
@@ -85,14 +88,16 @@ const Header: React.FC = () => {
             </div>
             
             <div className="flex items-center justify-end w-1/3 text-right">
+                {/* Desktop View */}
                 <div className="hidden md:block">
-                     <p className="font-semibold text-xs text-white whitespace-nowrap">
-                        {gregorianDate} | <span className="text-[#d4af37] font-amiri">{appContext.hijriDate}</span>
+                     <p className="font-semibold text-sm text-white whitespace-nowrap">
+                        <span className="text-[#d4af37] font-amiri">{appContext.hijriDate}</span>
                     </p>
                 </div>
+                {/* Mobile View */}
                 <div className="md:hidden text-center w-full">
-                    <p className="font-bold text-[11px] leading-tight text-white">{gregorianDate}</p>
-                    <p className="font-semibold text-[11px] leading-tight text-yellow-300 whitespace-nowrap">{appContext.hijriDate}</p>
+                    <p className="font-bold text-base leading-tight text-white">{appContext.hijriDateParts.day}</p>
+                    <p className="font-semibold text-[10px] leading-tight text-yellow-300 whitespace-nowrap">{appContext.hijriDateParts.month}</p>
                 </div>
             </div>
         </header>

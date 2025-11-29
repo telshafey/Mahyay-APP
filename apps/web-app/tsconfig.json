@@ -1,16 +1,12 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "composite": true,
-    "baseUrl": ".",
+    "composite": false,
     "paths": {
       "@mahyay/core": ["../../packages/core/src"],
       "@mahyay/core/*": ["../../packages/core/src/*"]
-    },
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "skipLibCheck": true
+    }
   },
-  "include": ["src", "../../packages/core/src"],
+  "include": ["src", "index.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

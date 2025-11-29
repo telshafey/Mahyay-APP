@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { usePrayerTimesContext } from '../contexts/PrayerTimesContext';
 import { PRAYERS, AZKAR_DATA } from '../constants';
@@ -76,6 +76,7 @@ const HomePage: React.FC = () => {
                         <p className="text-xs font-semibold">📖 صفحات قرآن</p>
                     </div>
                      <div className="p-3 bg-black/20 rounded-lg">
+                        {/* FIX: Add type annotation for `p` to resolve error. */}
                         <p className="text-2xl font-bold">{Object.values(dailyData.prayerData).filter((p: PrayerStatus) => p.fard === 'early' || p.fard === 'ontime').length}/5</p>
                         <p className="text-xs font-semibold">🕌 صلوات</p>
                     </div>
@@ -105,7 +106,7 @@ const HomePage: React.FC = () => {
                    ))}
                 </div>
             </GlassCard>
-
+            
             <div className="grid md:grid-cols-2 gap-6">
                 <GlassCard>
                     <SectionHeader title="📿 الأذكار" linkTo="/azkar" />
@@ -139,7 +140,6 @@ const HomePage: React.FC = () => {
             </div>
             
             <IslamicCalendar />
-            
         </div>
     );
 };

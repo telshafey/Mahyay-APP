@@ -4,12 +4,12 @@ import GlassCard from '../../components/GlassCard';
 import Checkbox from '../../components/ui/Checkbox';
 
 const GeneralSettingsPage: React.FC = () => {
-    const { settings, updateFeatureToggles, prayerLocations, updateSettings } = useAppContext();
+    const { settings, updateSettings } = useAppContext();
     const { featureToggles } = settings;
 
     const handleToggle = (feature: keyof typeof featureToggles) => {
         const newToggles = { ...featureToggles, [feature]: !featureToggles[feature] };
-        updateFeatureToggles(newToggles);
+        updateSettings({ ...settings, featureToggles: newToggles });
     };
 
     return (
@@ -43,26 +43,10 @@ const GeneralSettingsPage: React.FC = () => {
                     </div>
                 </div>
             </GlassCard>
-            
+
             <GlassCard>
-                 <h3 className="text-xl font-bold text-white mb-4">🌍 إعدادات المواقيت الاحتياطية</h3>
-                 <div className="space-y-2">
-                    <label htmlFor="default_location" className="text-sm font-semibold mb-2 block">الموقع الاحتياطي</label>
-                    <select 
-                        id="default_location" 
-                        value={settings.defaultLocationId || ''} 
-                        onChange={e => updateSettings({ defaultLocationId: e.target.value })} 
-                        className="w-full mt-1 bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white"
-                    >
-                        <option value="" disabled style={{ backgroundColor: '#1e4d3b' }}>اختر موقعًا احتياطيًا...</option>
-                        {prayerLocations.map(loc => (
-                            <option key={loc.id} value={loc.id} style={{ backgroundColor: '#1e4d3b' }}>
-                                {loc.city}, {loc.country}
-                            </option>
-                        ))}
-                    </select>
-                    <p className="text-xs text-white/70 mt-1">سيتم استخدام هذا الموقع في حال فشل جلب المواقيت تلقائيًا.</p>
-                 </div>
+                 <h3 className="text-xl font-bold text-white mb-4">خيارات أخرى</h3>
+                 <p className="text-white/80 text-center py-4">سيتم إضافة المزيد من الإعدادات العامة هنا في المستقبل.</p>
             </GlassCard>
         </div>
     );

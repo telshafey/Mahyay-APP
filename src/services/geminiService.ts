@@ -1,7 +1,7 @@
 
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { VerseReflection, PersonalizedDua, IslamicOccasion, AiUpdateOccasion, ApiSuggestion } from "../types";
+import { VerseReflection, PersonalizedDua, IslamicOccasion, AiUpdateOccasion } from "./types";
 
 let ai: GoogleGenAI | null = null;
 let initializationError: string | null = null;
@@ -22,40 +22,25 @@ try {
     initializationError = `Gemini service initialization failed: ${message}`;
 }
 
-// FIX: Updated cleanAndParseJson to robustly handle both raw JSON strings and markdown-wrapped JSON.
 const cleanAndParseJson = (text: string | undefined): any => {
     if (!text) {
         throw new Error("استجابة فارغة من نموذج الذكاء الاصطناعي.");
     }
 
-    // Attempt to find the JSON block, which might be wrapped in markdown
-    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```|(\{[\s\S]*\})|(\[[\s\S]*\])/);
-
-    if (!jsonMatch) {
-        // With responseMimeType: "application/json", the response should be a clean JSON string.
-        // We can try parsing it directly.
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            console.error("Could not find or parse JSON block in Gemini response:", text);
-            throw new Error("لم يتم العثور على كتلة JSON في استجابة الذكاء الاصطناعي أو أن الصيغة غير صالحة.");
-        }
-    }
-    
-    // The actual JSON string is in one of the capturing groups
-    const jsonString = jsonMatch[1] || jsonMatch[2] || jsonMatch[3];
-
-    if (!jsonString) {
-        console.error("Could not extract JSON string from Gemini response:", text);
-        throw new Error("فشل استخلاص نص JSON من استجابة الذكاء الاصطناعي.");
-    }
-
     try {
-        return JSON.parse(jsonString);
+        return JSON.parse(text);
     } catch (e) {
-        console.error("Failed to parse extracted JSON from Gemini. Raw text:", text);
-        console.error("Extracted string for parsing:", jsonString);
-        throw new Error("صيغة JSON المستخرجة من استجابة الذكاء الاصطناعي غير صالحة.");
+        console.error("Could not parse JSON directly, trying to extract from markdown. Raw text:", text);
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
+            try {
+                return JSON.parse(jsonMatch[1]);
+            } catch (e2) {
+                console.error("Failed to parse extracted JSON. Extracted string:", jsonMatch[1]);
+                throw new Error("صيغة JSON المستخرجة من استجابة الذكاء الاصطناعي غير صالحة.");
+            }
+        }
+        throw new Error("لم يتم العثور على كتلة JSON صالحة في استجابة الذكاء الاصطناعي.");
     }
 };
 
@@ -106,14 +91,12 @@ export const getVerseReflection = async (verse: string): Promise<{ data: VerseRe
         }
     });
     
-    // FIX: Access response text via the .text property
     const result = cleanAndParseJson(response.text);
 
     if (result && result.reflection && result.actionable_tip) {
         return { data: result, error: null };
     }
 
-    // FIX: Access response text via the .text property
     console.warn("Unexpected AI response structure. Raw text:", response.text);
     return { data: null, error: "لم تأت استجابة الذكاء الاصطناعي بالشكل المتوقع." };
 
@@ -159,14 +142,12 @@ export const getPersonalizedDua = async (prompt: string): Promise<{ data: Person
             }
         });
 
-        // FIX: Access response text via the .text property
         const result = cleanAndParseJson(response.text);
 
         if (result && result.dua && result.source_info) {
             return { data: result, error: null };
         }
 
-        // FIX: Access response text via the .text property
         console.warn("Unexpected AI response structure for Dua. Raw text:", response.text);
         return { data: null, error: "فشل تحليل استجابة الدعاء." };
 
@@ -208,14 +189,12 @@ export const getGoalInspiration = async (): Promise<{ data: {title: string; icon
             }
         });
         
-        // FIX: Access response text via the .text property
         const result = cleanAndParseJson(response.text);
 
         if (result && result.title && result.icon) {
             return { data: result, error: null };
         }
-        
-        // FIX: Access response text via the .text property
+
         console.warn("Unexpected AI response structure for Goal. Raw text:", response.text);
         return { data: null, error: "فشل تحليل استجابة الهدف." };
 
@@ -257,81 +236,28 @@ export const getOccasionsUpdate = async (currentOccasions: IslamicOccasion[]): P
                                             hijriDay: { type: Type.INTEGER },
                                             hijriMonth: { type: Type.INTEGER },
                                             description: { type: Type.STRING }
-                                        },
-                                        required: ["name", "hijriDay", "hijriMonth", "description"]
+                                        }
                                     },
                                     reason: { type: Type.STRING, description: "سبب الإضافة، مثال: 'إضافة مناسبة هامة مفقودة.'" }
-                                },
-                                required: ["action", "newItem", "reason"]
+                                }
                             }
                         }
-                    },
-                    required: ["updates"]
+                    }
                 },
                 systemInstruction: `أنت خبير في التقويم الإسلامي. مهمتك هي مراجعة قائمة المناسبات واقتراح الإضافات الضرورية فقط بصيغة JSON.`
             }
         });
 
-        // FIX: Access response text via the .text property
         const result = cleanAndParseJson(response.text);
         
         if (result && Array.isArray(result.updates)) {
             return { data: result.updates, error: null };
         }
 
-        // FIX: Access response text via the .text property
         console.warn("Unexpected AI response for occasions update:", response.text);
         return { data: null, error: "لم تأت استجابة الذكاء الاصطناعي بالشكل المتوقع." };
 
     } catch (error) {
         return { data: null, error: handleGeminiError(error) };
     }
-};
-
-
-export const getApiSuggestion = async (prompt: string): Promise<{ data: ApiSuggestion | null, error: string | null }> => {
-  if (!ai) {
-    const msg = initializationError || "خدمة الذكاء الاصطناعي غير مهيأة لسبب غير معروف.";
-    console.warn(msg);
-    return { data: null, error: msg };
-  }
-  try {
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: `طلب المستخدم: "${prompt}"`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              suggested_url: {
-                type: Type.STRING,
-                description: "رابط URL المباشر والمقترح لواجهة برمجة التطبيقات (API). يجب أن يكون رابطًا كاملاً وقابلاً للاستخدام.",
-              },
-              description: {
-                type: Type.STRING,
-                description: "وصف موجز لواجهة برمجة التطبيقات وكيفية استخدامها، بما في ذلك أي متغيرات مطلوبة مثل المدينة أو التاريخ (مثال: 'استبدل DD-MM-YYYY بالتاريخ المطلوب').",
-              },
-            },
-            required: ["suggested_url", "description"],
-          },
-          systemInstruction: `أنت خبير في البحث عن واجهات برمجة التطبيقات (APIs) العامة للبيانات الإسلامية (مواقيت صلاة، تقويم هجري، إلخ). مهمتك هي العثور على رابط URL صالح ومباشر بناءً على طلب المستخدم. قدم الرابط مع وصف موجز ومفيد.`,
-        }
-    });
-    
-    // FIX: Access response text via the .text property
-    const result = cleanAndParseJson(response.text);
-
-    if (result && result.suggested_url && result.description) {
-        return { data: result, error: null };
-    }
-
-    // FIX: Access response text via the .text property
-    console.warn("Unexpected AI response structure for API suggestion. Raw text:", response.text);
-    return { data: null, error: "لم تأت استجابة الذكاء الاصطناعي بالشكل المتوقع." };
-
-  } catch (error) {
-    const errorMessage = handleGeminiError(error);
-    return { data: null, error: errorMessage };
-  }
 };

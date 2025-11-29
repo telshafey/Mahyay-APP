@@ -1,10 +1,1 @@
-{
-  "extends": "expo/tsconfig.base",
-  "compilerOptions": {
-    "strict": true,
-    "paths": {
-      "@mahyay/core": ["../../packages/core/src"],
-      "@mahyay/core/*": ["../../packages/core/src/*"]
-    }
-  }
-}
+full contents of apps/native-app/tsconfig.json

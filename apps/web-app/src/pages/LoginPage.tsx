@@ -1,26 +1,39 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuthContext } from '@mahyay/core';
 import GlassCard from '../components/GlassCard';
 
 const LoginPage: React.FC = () => {
-    const { signIn } = useAuthContext();
+    const { session, signIn, signUp } = useAuthContext();
+    const navigate = useNavigate();
+    const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (session) {
+            navigate('/', { replace: true });
+        }
+    }, [session, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        setMessage(null);
 
-        const { error: authError } = await signIn(email, password);
-        
-        // After signIn, the AppRoutes component will handle navigation automatically.
+        const { error: authError } = isLogin 
+            ? await signIn(email, password) 
+            : await signUp(email, password);
 
         if (authError) {
             setError(authError.message);
+        } else if (!isLogin) {
+            setMessage('تم إنشاء حسابك بنجاح! يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب.');
+            setIsLogin(true); // Switch to login view after successful signup
         }
         setLoading(false);
     };
@@ -36,9 +49,10 @@ const LoginPage: React.FC = () => {
 
             <GlassCard className="w-full max-w-sm animate-fade-in" style={{ animationDelay: '200ms' }}>
                 <h2 className="text-2xl font-bold text-center text-white mb-4">
-                    تسجيل الدخول
+                    {isLogin ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}
                 </h2>
                 {error && <p className="text-red-300 bg-red-900/50 p-3 rounded-lg text-center text-sm mb-4">{error}</p>}
+                {message && <p className="text-green-300 bg-green-900/50 p-3 rounded-lg text-center text-sm mb-4">{message}</p>}
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -48,7 +62,6 @@ const LoginPage: React.FC = () => {
                             type="email"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
-                            placeholder="user@mahyay.app"
                             className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white"
                             required
                         />
@@ -60,7 +73,6 @@ const LoginPage: React.FC = () => {
                             type="password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
-                            placeholder="password123"
                             className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white"
                             required
                         />
@@ -73,12 +85,16 @@ const LoginPage: React.FC = () => {
                          {loading ? (
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-900"></div>
                         ) : (
-                            'دخول'
+                            isLogin ? 'دخول' : 'إنشاء حساب'
                         )}
                     </button>
                 </form>
 
-                 <p className="text-xs text-center text-white/60 mt-4 pt-4 border-t border-white/20">للتجربة: استخدم `user@mahyay.app` أو `admin@mahyay.app` مع كلمة المرور `password123`.</p>
+                <div className="text-center mt-4">
+                    <button onClick={() => setIsLogin(!isLogin)} className="text-sm text-yellow-300 hover:text-yellow-200">
+                        {isLogin ? 'ليس لديك حساب؟ إنشاء حساب جديد' : 'لديك حساب بالفعل؟ تسجيل الدخول'}
+                    </button>
+                </div>
             </GlassCard>
 
             <div className="text-xs text-white/60 mt-8 text-center animate-fade-in" style={{ animationDelay: '400ms' }}>

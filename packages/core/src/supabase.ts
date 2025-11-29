@@ -14,8 +14,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // This ensures the user's session is stored in localStorage and they remain logged in.
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // This check is to prevent errors during server-side rendering or in non-browser environments.
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    storage: window.localStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAppContext, usePrayerTimesContext, Prayer, PrayerFardStatus, Nawafil, NawafilStatus, storage } from '@mahyay/core';
+import { useAppContext, usePrayerTimesContext, Prayer, PrayerFardStatus, Nawafil, NawafilStatus, safeLocalStorage } from '@mahyay/core';
 import GlassCard from '../components/GlassCard';
 
 const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
@@ -140,28 +140,23 @@ const NawafilCard: React.FC<{ nawafil: Nawafil }> = ({ nawafil }) => {
 
 const PrayersPage: React.FC = () => {
   const { prayers, nawafilPrayers } = useAppContext();
-  const [selectedPrayer, setSelectedPrayer] = useState<Prayer | null>(null);
+
+  const getInitialPrayer = (): Prayer => {
+    const savedPrayerName = safeLocalStorage.getItem('selectedPrayer');
+    if (savedPrayerName) {
+        const savedPrayer = prayers.find(p => p.name === savedPrayerName);
+        if (savedPrayer) {
+            return savedPrayer;
+        }
+    }
+    return prayers[0];
+  };
+
+  const [selectedPrayer, setSelectedPrayer] = useState<Prayer>(getInitialPrayer);
 
   useEffect(() => {
-    const loadInitialPrayer = async () => {
-        const savedPrayerName = await storage.getItem('selectedPrayer');
-        const savedPrayer = savedPrayerName ? prayers.find(p => p.name === savedPrayerName) : null;
-        setSelectedPrayer(savedPrayer || prayers[0]);
-    };
-    if (prayers.length > 0) {
-        loadInitialPrayer();
-    }
-  }, [prayers]);
-
-  useEffect(() => {
-    if (selectedPrayer) {
-        storage.setItem('selectedPrayer', selectedPrayer.name);
-    }
+    safeLocalStorage.setItem('selectedPrayer', selectedPrayer.name);
   }, [selectedPrayer]);
-
-  if (!selectedPrayer) {
-      return null; // or a loading indicator
-  }
 
   return (
     <div className="space-y-8">

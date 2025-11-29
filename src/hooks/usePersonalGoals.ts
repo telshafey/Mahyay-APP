@@ -1,5 +1,9 @@
 
 
+
+
+
+
 import { useState, useEffect } from 'react';
 // FIX: Import PersonalGoalsContextType to resolve the type error.
 import { PersonalGoal, PersonalGoalsContextType, UserProfile } from '../types';

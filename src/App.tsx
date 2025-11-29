@@ -1,29 +1,37 @@
-
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppContext, useAppContext } from './contexts/AppContext';
 import { useAppData } from './hooks/useAppData';
 import { AuthProvider, useAuthContext } from './contexts/AuthContext';
 import { PrayerTimesContext } from './contexts/PrayerTimesContext';
 import { usePrayerTimes } from './hooks/usePrayerTimes';
 
+import Header from './components/Header';
+import BottomNav from './components/BottomNav';
 import ScrollToTop from './components/ScrollToTop';
 import NotificationToast from './components/NotificationToast';
 import AdminLayout from './layouts/AdminLayout';
-import UserAppLayout from './layouts/UserAppLayout';
 
 // Statically import page components.
 import HomePage from './pages/HomePage';
 import PrayersPage from './pages/PrayersPage';
 import AzkarPage from './pages/AzkarPage';
 import QuranPage from './pages/QuranPage';
-import MoreListPage from './pages/MoreListPage';
 import MorePage from './pages/MorePage';
 import ChallengesPage from './pages/ChallengesPage';
 import CommunityPage from './pages/CommunityPage';
-import LoginPage from './pages/LoginPage';
-import AdminPage from './pages/admin/AdminPage';
-import { PrayerTimesContextType } from './types';
+// Import admin pages
+import DashboardPage from './pages/admin/DashboardPage';
+import UsersManagementPage from './pages/admin/UsersManagementPage';
+import NotificationsPage from './pages/admin/NotificationsPage';
+import GeneralSettingsPage from './pages/admin/GeneralSettingsPage';
+import ChallengesManagementPage from './pages/admin/ChallengesManagementPage';
+import OccasionsManagementPage from './pages/admin/OccasionsManagementPage';
+import PrayerMethodsManagementPage from './pages/admin/PrayerMethodsManagementPage';
+import PrayersManagementPage from './pages/admin/PrayersManagementPage';
+import AzkarManagementPage from './pages/admin/AzkarManagementPage';
+import QuranManagementPage from './pages/admin/QuranManagementPage';
+import FaqManagementPage from './pages/admin/FaqManagementPage';
 
 const LoadingScreen: React.FC = () => (
     <div className="h-screen flex flex-col justify-center items-center text-white bg-gradient-to-b from-[#1e4d3b] to-[#2d5a47]">
@@ -47,16 +55,10 @@ const ErrorScreen: React.FC<{ message: string }> = ({ message }) => (
 );
 
 const PrayerTimesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { settings, setApiHijriDate, apiHijriDate } = useAppContext();
-    const prayerTimesData = usePrayerTimes(settings, setApiHijriDate);
-
-    const contextValue: PrayerTimesContextType = {
-        ...prayerTimesData,
-        apiHijriDate: apiHijriDate
-    };
-
+    const { settings } = useAppData();
+    const prayerTimesData = usePrayerTimes(settings);
     return (
-        <PrayerTimesContext.Provider value={contextValue}>
+        <PrayerTimesContext.Provider value={prayerTimesData}>
             {children}
         </PrayerTimesContext.Provider>
     );
@@ -77,70 +79,67 @@ const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 };
 
 
-const UserAppRoutes: React.FC = () => {
+const UserApp: React.FC = () => {
     const { featureToggles } = useAppContext();
     return (
-        <UserAppLayout>
-            <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/prayers" element={<PrayersPage />} />
-                <Route path="/azkar" element={<AzkarPage />} />
-                <Route path="/quran" element={<QuranPage />} />
-                <Route path="/more" element={<MoreListPage />} />
-                {featureToggles.challenges && <Route path="/challenges" element={<ChallengesPage />} />}
-                {featureToggles.community && <Route path="/community" element={<CommunityPage />} />}
-                <Route path="/more/:page" element={<MorePage />} />
-                <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-        </UserAppLayout>
+        <div className="min-h-screen">
+            <NotificationToast />
+            <Header />
+            <main className="pt-[60px] pb-[60px] md:pb-[65px]">
+                <div className="p-4">
+                    <Routes>
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/prayers" element={<PrayersPage />} />
+                        <Route path="/azkar" element={<AzkarPage />} />
+                        <Route path="/quran" element={<QuranPage />} />
+                        {featureToggles.challenges && <Route path="/challenges" element={<ChallengesPage />} />}
+                        {featureToggles.community && <Route path="/community" element={<CommunityPage />} />}
+                        <Route path="/more/:page" element={<MorePage />} />
+                        <Route path="*" element={<Navigate to="/" />} />
+                    </Routes>
+                </div>
+            </main>
+            <BottomNav />
+        </div>
     );
 };
 
+const AdminApp: React.FC = () => (
+    <AdminLayout>
+        <Routes>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/users" element={<UsersManagementPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/settings" element={<GeneralSettingsPage />} />
+            <Route path="/challenges" element={<ChallengesManagementPage />} />
+            <Route path="/occasions" element={<OccasionsManagementPage />} />
+            <Route path="/prayer-methods" element={<PrayerMethodsManagementPage />} />
+            <Route path="/prayers" element={<PrayersManagementPage />} />
+            <Route path="/azkar" element={<AzkarManagementPage />} />
+            <Route path="/quran" element={<QuranManagementPage />} />
+            <Route path="/faq" element={<FaqManagementPage />} />
+            <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+        </Routes>
+    </AdminLayout>
+);
 
 const AppRoutes: React.FC = () => {
-    const { session, profile, isLoading } = useAuthContext();
-    const location = useLocation();
+    const { profile, viewAsUser } = useAuthContext();
 
-    if (isLoading) {
-        return <LoadingScreen />;
-    }
+    const isAdminView = profile.role === 'admin' && !viewAsUser;
 
-    if (session && profile) {
-        // If a logged-in user is on a public-only page, redirect them.
-        const publicOnlyPaths = ['/login', '/more/privacy', '/more/terms'];
-        if (publicOnlyPaths.includes(location.pathname)) {
-            const redirectTo = profile.role === 'admin' ? '/admin' : '/';
-            return <Navigate to={redirectTo} replace />;
-        }
-        
-        // Role-based routing for authenticated users.
-        if (profile.role === 'admin') {
-            return (
-                <Routes>
-                    <Route path="/admin/*" element={<AdminPage />} />
-                    {/* Allow admin to access user app by navigating to "/" */}
-                    <Route path="/*" element={<UserAppRoutes />} />
-                </Routes>
-            );
-        } else { // Regular user
-            return (
-                <Routes>
-                    {/* Redirect any attempts to access admin pages */}
-                    <Route path="/admin/*" element={<Navigate to="/" replace />} />
-                    <Route path="/*" element={<UserAppRoutes />} />
-                </Routes>
-            );
-        }
-    }
-    
-    // Unauthenticated Routes
     return (
-        <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/more/privacy" element={<MorePage />} />
-            <Route path="/more/terms" element={<MorePage />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+        <AppContextProvider>
+             <Routes>
+                {isAdminView ? (
+                    <Route path="/admin/*" element={<AdminApp />} />
+                ) : (
+                    <Route path="/*" element={<UserApp />} />
+                )}
+                <Route path="*" element={<Navigate to={isAdminView ? "/admin" : "/"} replace />} />
+             </Routes>
+        </AppContextProvider>
     );
 };
 
@@ -148,13 +147,10 @@ const AppRoutes: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-        <AppContextProvider>
-            <HashRouter>
-                <ScrollToTop />
-                <NotificationToast />
-                <AppRoutes />
-            </HashRouter>
-        </AppContextProvider>
+      <HashRouter>
+        <ScrollToTop />
+        <AppRoutes />
+      </HashRouter>
     </AuthProvider>
   );
 };

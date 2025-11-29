@@ -3,7 +3,7 @@ import { useAppContext, HIJRI_MONTHS_INFO } from '@mahyay/core';
 import GlassCard from '../GlassCard';
 
 const IslamicCalendar: React.FC = () => {
-    const { currentHijriMonthInfo, nextIslamicOccasion, hijriYearInfo } = useAppContext();
+    const { currentHijriMonthInfo, nextIslamicOccasion, hijriYearInfo, islamicOccasions } = useAppContext();
 
     if (!currentHijriMonthInfo) {
         return <GlassCard><p className="text-center text-white/80">جاري تحميل التقويم الإسلامي...</p></GlassCard>;

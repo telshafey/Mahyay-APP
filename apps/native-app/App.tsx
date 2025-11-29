@@ -1,143 +1,135 @@
+
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
-import { AppContext, useAppData, AuthProvider, PrayerTimesContext, useAppContext, usePrayerTimes, PrayerTimesContextType, AppContextType } from '@mahyay/core';
-import { ActivityIndicator, View, Text, StyleSheet } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import { AuthProvider, useAuthContext, AppContext, useAppData, PrayerTimesContext, usePrayerTimes, useAppContext } from '@mahyay/core';
+import { Text, View, ActivityIndicator, StyleSheet, SafeAreaView } from 'react-native';
 
-// Import screens
+// Screens
 import HomeScreen from './src/screens/HomeScreen';
-import PrayersPage from './src/screens/PrayersScreen';
+import PrayersScreen from './src/screens/PrayersScreen';
 import AzkarScreen from './src/screens/AzkarScreen';
 import QuranScreen from './src/screens/QuranScreen';
 import ChallengesScreen from './src/screens/ChallengesScreen';
 
-// More Stack Screens
-import MoreScreen from './src/screens/MoreScreen';
-import StatsAndChallengesScreen from './src/screens/more/StatsAndChallengesScreen';
-import GoalsScreen from './src/screens/more/GoalsScreen';
-import SettingsScreen from './src/screens/more/SettingsScreen';
-import AboutScreen from './src/screens/more/AboutScreen';
-import SupportScreen from './src/screens/more/SupportScreen';
+const styles = StyleSheet.create({
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#1e4d3b',
+    },
+    loadingText: {
+        marginTop: 10,
+        color: '#fff',
+        textAlign: 'center',
+        paddingHorizontal: 20,
+    },
+    errorTitle: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: '#d4af37',
+        textAlign: 'center',
+        marginTop: 20,
+        marginBottom: 10,
+    },
+    errorMessage: {
+        marginTop: 10,
+        color: '#ffc0cb',
+        textAlign: 'center',
+        paddingHorizontal: 20,
+    },
+});
 
+// A simple login screen placeholder to avoid creating new files
+const LoginScreen = () => (
+    <SafeAreaView style={styles.center}>
+        <Text style={styles.errorTitle}>مَحيّاي</Text>
+        <Text style={styles.loadingText}>يرجى تسجيل الدخول عبر تطبيق الويب أولاً.</Text>
+        <Text style={styles.loadingText}>ميزة تسجيل الدخول للتطبيق الأصلي قيد التطوير.</Text>
+    </SafeAreaView>
+);
 
 const Tab = createBottomTabNavigator();
-const MoreStack = createStackNavigator();
 
-const LoadingScreen: React.FC = () => (
-    <View style={styles.centerScreen}>
-        <Text style={styles.loadingText}>مَحيّاي</Text>
-        <ActivityIndicator size="large" color="#fff" />
+const LoadingScreen = () => (
+    <View style={styles.center}>
+        <ActivityIndicator size="large" color="#d4af37" />
+        <Text style={styles.loadingText}>جاري التحميل...</Text>
     </View>
 );
 
 const ErrorScreen: React.FC<{ message: string }> = ({ message }) => (
-    <View style={styles.centerScreen}>
-        <Text style={styles.errorText}>😔</Text>
-        <Text style={styles.errorTitle}>حدث خطأ</Text>
+    <View style={styles.center}>
+        <Text style={{ fontSize: 40 }}>😔</Text>
+        <Text style={styles.errorTitle}>حدث خطأ أثناء تحميل التطبيق</Text>
         <Text style={styles.errorMessage}>{message}</Text>
     </View>
 );
 
-const PrayerTimesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { settings, setApiHijriDate, apiHijriDate } = useAppContext();
-    const prayerTimesData = usePrayerTimes(settings, setApiHijriDate);
-
-    const contextValue: PrayerTimesContextType = {
-        ...prayerTimesData,
-        apiHijriDate: apiHijriDate,
-    };
-
-    return (
-        <PrayerTimesContext.Provider value={contextValue}>
-            {children}
-        </PrayerTimesContext.Provider>
-    );
-}
-
 const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const appData = useAppData();
-    if (appData.isDataLoading) return <LoadingScreen />;
-    if (appData.appError) return <ErrorScreen message={appData.appError} />;
-
-    return (
-        <AppContext.Provider value={appData as AppContextType}>
-            <PrayerTimesProvider>
-                {children}
-            </PrayerTimesProvider>
-        </AppContext.Provider>
-    );
+    if (appData.isDataLoading) {
+        return <LoadingScreen />;
+    }
+    if (appData.appError) {
+        return <ErrorScreen message={appData.appError} />;
+    }
+    return <AppContext.Provider value={appData}>{children}</AppContext.Provider>;
 };
 
-const MoreStackScreen = () => (
-    <MoreStack.Navigator 
+const PrayerTimesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    // FIX: Pass settings from context to usePrayerTimes hook.
+    const { settings } = useAppContext();
+    const prayerTimesData = usePrayerTimes(settings);
+    return <PrayerTimesContext.Provider value={prayerTimesData}>{children}</PrayerTimesContext.Provider>;
+};
+
+const MainApp = () => (
+    <Tab.Navigator
         screenOptions={{
-            headerStyle: { backgroundColor: '#1e4d3b', borderBottomWidth: 0, shadowOpacity: 0 },
-            headerTintColor: '#fde047',
-            headerTitleAlign: 'center',
-            headerBackTitleVisible: false,
+            headerShown: false,
+            tabBarStyle: { backgroundColor: '#102a21', borderTopColor: 'rgba(255,255,255,0.1)' },
+            tabBarActiveTintColor: '#d4af37',
+            tabBarInactiveTintColor: '#a3a3a3',
+            tabBarLabelStyle: {
+                fontWeight: 'bold',
+                fontSize: 10,
+            }
         }}
     >
-        <MoreStack.Screen name="MoreList" component={MoreScreen} options={{ headerShown: false }} />
-        <MoreStack.Screen name="Stats" component={StatsAndChallengesScreen} options={{ title: 'الإحصائيات' }} />
-        <MoreStack.Screen name="Goals" component={GoalsScreen} options={{ title: 'الأهداف' }} />
-        <MoreStack.Screen name="Settings" component={SettingsScreen} options={{ title: 'الإعدادات' }} />
-        <MoreStack.Screen name="About" component={AboutScreen} options={{ title: 'عن التطبيق' }} />
-        <MoreStack.Screen name="Support" component={SupportScreen} options={{ title: 'الدعم' }} />
-    </MoreStack.Navigator>
+        <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'الرئيسية', tabBarIcon: ({ color, size }) => <Text style={{ color, fontSize: size }}>🏠</Text> }} />
+        <Tab.Screen name="Prayers" component={PrayersScreen} options={{ title: 'الصلوات', tabBarIcon: ({ color, size }) => <Text style={{ color, fontSize: size }}>🕌</Text> }} />
+        <Tab.Screen name="Azkar" component={AzkarScreen} options={{ title: 'الأذكار', tabBarIcon: ({ color, size }) => <Text style={{ color, fontSize: size }}>📿</Text> }} />
+        <Tab.Screen name="Quran" component={QuranScreen} options={{ title: 'القرآن', tabBarIcon: ({ color, size }) => <Text style={{ color, fontSize: size }}>📖</Text> }} />
+        <Tab.Screen name="Challenges" component={ChallengesScreen} options={{ title: 'التحديات', tabBarIcon: ({ color, size }) => <Text style={{ color, fontSize: size }}>🏆</Text> }} />
+    </Tab.Navigator>
 );
 
-
-const MainAppTabs: React.FC = () => {
+const AppRoutes = () => {
+    const authContext = useAuthContext();
+    if (authContext.isLoading) {
+        return <LoadingScreen />;
+    }
     return (
-        <Tab.Navigator
-            screenOptions={({ route }) => ({
-                tabBarIcon: ({ color, size }) => {
-                    let iconName = '🏠';
-                    if (route.name === 'Home') iconName = '🏠';
-                    else if (route.name === 'Prayers') iconName = '🕌';
-                    else if (route.name === 'Azkar') iconName = '📿';
-                    else if (route.name === 'Quran') iconName = '📖';
-                    else if (route.name === 'Challenges') iconName = '🏆';
-                    else if (route.name === 'MoreStack') iconName = '☰';
-                    return <Text style={{ fontSize: size, color }}>{iconName}</Text>;
-                },
-                tabBarActiveTintColor: '#fde047',
-                tabBarInactiveTintColor: 'gray',
-                tabBarStyle: { backgroundColor: '#1a2e26', borderTopColor: 'rgba(255,255,255,0.1)' },
-                headerShown: false,
-            })}
-        >
-            <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'الرئيسية' }} />
-            <Tab.Screen name="Prayers" component={PrayersPage} options={{ title: 'الصلوات' }} />
-            <Tab.Screen name="Azkar" component={AzkarScreen} options={{ title: 'الأذكار' }} />
-            <Tab.Screen name="Quran" component={QuranScreen} options={{ title: 'القرآن' }} />
-            <Tab.Screen name="Challenges" component={ChallengesScreen} options={{ title: 'التحديات' }} />
-            <Tab.Screen name="MoreStack" component={MoreStackScreen} options={{ title: 'المزيد' }} />
-        </Tab.Navigator>
-    );
-}
-
-const App: React.FC = () => {
-    return (
-        <AuthProvider>
-            <AppContextProvider>
-                <NavigationContainer>
-                    <StatusBar style="light" />
-                    <MainAppTabs />
-                </NavigationContainer>
-            </AppContextProvider>
-        </AuthProvider>
+        <NavigationContainer>
+            {authContext.profile ? (
+                <AppContextProvider>
+                    <PrayerTimesProvider>
+                        <MainApp />
+                    </PrayerTimesProvider>
+                </AppContextProvider>
+            ) : (
+                <LoginScreen />
+            )}
+        </NavigationContainer>
     );
 };
 
-const styles = StyleSheet.create({
-    centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1e4d3b' },
-    loadingText: { fontSize: 40, color: '#fff', marginBottom: 20 },
-    errorText: { fontSize: 50, marginBottom: 16 },
-    errorTitle: { fontSize: 24, color: '#fff', fontWeight: 'bold', marginBottom: 8 },
-    errorMessage: { fontSize: 16, color: '#ffcdd2', textAlign: 'center', paddingHorizontal: 20 },
-});
+const App = () => (
+    <AuthProvider>
+        <AppRoutes />
+    </AuthProvider>
+);
 
 export default App;

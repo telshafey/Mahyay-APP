@@ -5,7 +5,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 
 const Header: React.FC = () => {
     const appContext = useAppContext();
-    const { profile, signOut } = useAuthContext();
+    const authContext = useAuthContext();
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
@@ -19,14 +19,19 @@ const Header: React.FC = () => {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+    
+    const { profile, viewAsUser, toggleViewMode } = authContext;
 
-    const handleSignOut = async () => {
-        await signOut();
+    const handleToggleView = () => {
+        toggleViewMode();
         setDropdownOpen(false);
-        navigate('/login');
-    }
-
-    const gregorianDate = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+        // Navigate to the correct main page after switching
+        if (viewAsUser) { // If we are currently viewing as user, we are switching back to admin
+            navigate('/admin');
+        } else { // If we are in admin view, we are switching to user view
+            navigate('/');
+        }
+    };
 
     const renderUserAvatar = () => {
       if (profile?.picture) {
@@ -53,19 +58,21 @@ const Header: React.FC = () => {
                         <div className="absolute top-full mt-2 w-64 bg-white/95 backdrop-blur-lg rounded-xl shadow-2xl border border-white/20 overflow-hidden text-gray-800 animate-fade-in">
                            <div className="p-4 border-b border-gray-200">
                              <p className="font-bold">{profile?.name}</p>
-                             <p className="text-sm text-gray-500">{profile?.role === 'admin' ? `صلاحيات المدير` : 'مستخدم'}</p>
+                             <p className="text-sm text-gray-500">{profile?.role === 'admin' ? `صلاحيات المدير (${viewAsUser ? 'وضع عرض المستخدم' : 'وضع التحكم'})` : 'مستخدم'}</p>
                            </div>
 
-                           <NavLink to="/more/settings" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}>
-                               <span>⚙️</span>
-                               <span>الإعدادات</span>
-                           </NavLink>
+                           {profile?.role === 'admin' && (
+                               <button onClick={handleToggleView} className="w-full text-right flex items-center gap-3 px-4 py-3 font-bold bg-yellow-100/50 hover:bg-yellow-200/50 transition-colors">
+                                   {viewAsUser ? '👑 العودة لوضع المدير' : '👤 عرض كتطبيق مستخدم'}
+                               </button>
+                           )}
+
+                           <NavLink to="/more/goals" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>🎯</span><span>أهدافي الشخصية</span></NavLink>
+                           <NavLink to="/more/stats" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>📊</span><span>الإحصائيات</span></NavLink>
+                           <NavLink to="/more/settings" className="flex items-center gap-3 px-4 py-3 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>⚙️</span><span>الإعدادات</span></NavLink>
                            
                            <div className="border-t border-gray-200 mt-1 pt-1">
-                             <button onClick={handleSignOut} className="w-full text-right flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-100/50 transition-colors">
-                                 <span>🚪</span>
-                                 <span>تسجيل الخروج</span>
-                            </button>
+                             <NavLink to="/more/support" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-green-100/50 transition-colors" onClick={() => setDropdownOpen(false)}><span>🆘</span><span>الدعم والأسئلة</span></NavLink>
                            </div>
                         </div>
                     )}
@@ -84,14 +91,16 @@ const Header: React.FC = () => {
             </div>
             
             <div className="flex items-center justify-end w-1/3 text-right">
+                {/* Desktop View */}
                 <div className="hidden md:block">
-                     <p className="font-semibold text-xs text-white whitespace-nowrap">
-                        {gregorianDate} | <span className="text-[#d4af37] font-amiri">{appContext.hijriDate}</span>
+                     <p className="font-semibold text-sm text-white whitespace-nowrap">
+                        <span className="text-[#d4af37] font-amiri">{appContext.hijriDate}</span>
                     </p>
                 </div>
+                {/* Mobile View */}
                 <div className="md:hidden text-center w-full">
-                    <p className="font-bold text-[11px] leading-tight text-white">{gregorianDate}</p>
-                    <p className="font-semibold text-[11px] leading-tight text-yellow-300 whitespace-nowrap">{appContext.hijriDate}</p>
+                    <p className="font-bold text-base leading-tight text-white">{appContext.hijriDateParts.day}</p>
+                    <p className="font-semibold text-[10px] leading-tight text-yellow-300 whitespace-nowrap">{appContext.hijriDateParts.month}</p>
                 </div>
             </div>
         </header>
