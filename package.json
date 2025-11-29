@@ -6,10 +6,10 @@
     "packages/*"
   ],
   "scripts": {
-    "web": "pnpm --filter web-app dev",
-    "native": "pnpm --filter native-app start",
-    "build:web": "pnpm --filter web-app build",
-    "build": "pnpm --filter web-app build && rm -rf dist && cp -r apps/web-app/dist dist"
+    "web": "npm run dev -w web-app",
+    "native": "npm run start -w native-app",
+    "build:web": "npm run build -w web-app",
+    "build": "npm run build -w web-app && rm -rf dist && cp -r apps/web-app/dist dist"
   },
   "devDependencies": {
     "typescript": "^5.2.2",
