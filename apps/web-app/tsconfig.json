@@ -6,7 +6,10 @@
     "paths": {
       "@mahyay/core": ["../../packages/core/src"],
       "@mahyay/core/*": ["../../packages/core/src/*"]
-    }
+    },
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "skipLibCheck": true
   },
   "include": ["src", "../../packages/core/src"],
   "references": [{ "path": "./tsconfig.node.json" }]

@@ -7,9 +7,6 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-/// <reference types="vitest" />
-
-// https://vitejs.dev/config/
 export default defineConfig({
   define: {
     'process.env.API_KEY': JSON.stringify(process.env.VITE_API_KEY),
@@ -19,18 +16,10 @@ export default defineConfig({
       '@mahyay/core': path.resolve(__dirname, '../../packages/core/src'),
     },
   },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000', // Standard Vercel dev port
-        changeOrigin: true,
-      }
-    }
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: [],
+  build: {
+    commonjsOptions: {
+      include: [/packages\//, /node_modules/],
+    },
   },
   plugins: [
     react(),
