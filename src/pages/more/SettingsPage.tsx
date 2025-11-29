@@ -1,53 +1,57 @@
-
 import React, { useState } from 'react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { PRAYER_METHODS } from '../../constants';
+import { usePrayerTimesContext } from '../../contexts/PrayerTimesContext';
+import { Settings } from '../../types';
 import GlassCard from '../../components/GlassCard';
 import SettingsCard from '../../components/more/SettingsCard';
 import PushNotificationManager from '../../components/more/PushNotificationManager';
-import { Settings } from '../../types';
-import { usePrayerTimesContext } from '../../contexts/PrayerTimesContext';
 
 
 const SettingsPage: React.FC = () => {
     const context = useAppContext();
     const authContext = useAuthContext();
+    const prayerTimesContext = usePrayerTimesContext();
+
     const [isResettingData, setIsResettingData] = useState(false);
-    const [isFullResetting, setIsFullResetting] = useState(false);
     
-    const { settings, updateSettings, resetAllData } = context;
-    const { coordinates, locationError, detectLocation } = usePrayerTimesContext();
+    const { settings, updateSettings, resetAllData, prayerMethods } = context;
     const { profile, signOut } = authContext;
+    const { coordinates, locationError, detectLocation } = prayerTimesContext;
     
+    const [localSettings, setLocalSettings] = useState(settings);
+
     const handleSettingsChange = (key: keyof Settings, value: any) => {
-        updateSettings({ [key]: value });
+        setLocalSettings(prev => ({ ...prev, [key]: value }));
+    };
+    
+    const handleSaveSettings = (key: keyof Settings) => {
+        updateSettings({ [key]: localSettings[key] });
     };
 
     const handleGoalChange = (change: number) => {
         const newGoal = Math.max(1, (settings.quranGoal || 10) + change);
-        handleSettingsChange('quranGoal', newGoal);
+        updateSettings({ quranGoal: newGoal });
     }
     
     const handleDataReset = async () => {
-        if (!window.confirm("⚠️ تحذير! هل أنت متأكد من حذف بيانات العبادة والأهداف؟ لا يمكن التراجع عن هذا الإجراء.")) return;
+        if (!window.confirm("⚠️ تحذير! هل أنت متأكد من حذف جميع بياناتك؟ لا يمكن التراجع عن هذا الإجراء.")) return;
         setIsResettingData(true);
-        await resetAllData();
+        const success = await resetAllData();
+        if (success) {
+            alert("تم إعادة تعيين التطبيق بالكامل.");
+            await signOut();
+        }
         setIsResettingData(false);
     }
     
-    const handleFullReset = async () => {
-        if (!window.confirm("⚠️ تحذير! هل أنت متأكد من حذف ملفك الشخصي وجميع بيانات العبادة؟ لا يمكن التراجع عن هذا الإجراء.")) return;
-        
-        setIsFullResetting(true);
-        const success = await resetAllData();
-        if (success) {
-            await signOut();
-            alert("تم إعادة تعيين التطبيق بالكامل.");
+    const handleHijriAdjustment = (change: number) => {
+        const currentAdjustment = settings.hijriDateAdjustment || 0;
+        const newAdjustment = currentAdjustment + change;
+        if (newAdjustment >= -2 && newAdjustment <= 2) {
+             updateSettings({ hijriDateAdjustment: newAdjustment });
         }
-        // If it fails, the error notification will be shown and we stay on the page.
-        setIsFullResetting(false);
-    }
+    };
 
     return (
         <div className="space-y-6 text-white">
@@ -67,20 +71,41 @@ const SettingsPage: React.FC = () => {
                  </div>
             </GlassCard>
 
-            <SettingsCard title="إعدادات الموقع" icon="📍">
-                <div className="text-center space-y-2">
+             <SettingsCard title="إعدادات الموقع لمواقيت الصلاة" icon="📍">
+                <div className="text-center space-y-3">
                     {coordinates && !locationError && (
-                        <p className="text-green-300 font-semibold">✅ يتم استخدام موقعك الحالي لدقة المواقيت.</p>
+                        <p className="p-3 bg-green-900/50 rounded-lg text-green-300 font-semibold text-sm">✅ يتم استخدام موقعك الحالي لدقة المواقيت.</p>
                     )}
                     {locationError && (
-                        <p className="text-yellow-300 text-sm font-semibold">{locationError}</p>
+                        <p className="p-3 bg-yellow-900/50 rounded-lg text-yellow-300 text-sm font-semibold">{locationError}</p>
                     )}
                     <button
                         onClick={detectLocation}
                         className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
                     >
-                        إعادة تحديد الموقع
+                        🔄 إعادة تحديد الموقع
                     </button>
+                    <div className="pt-4 border-t border-white/10 space-y-2">
+                        <p className="text-sm text-white/80">أو أدخل موقعك يدويًا (سيتم استخدامه عند فشل التحديد التلقائي):</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <input 
+                                type="text" 
+                                value={localSettings.country} 
+                                onChange={e => handleSettingsChange('country', e.target.value)} 
+                                onBlur={() => handleSaveSettings('country')}
+                                className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white"
+                                placeholder="الدولة (e.g. Egypt)"
+                            />
+                            <input 
+                                type="text" 
+                                value={localSettings.city} 
+                                onChange={e => handleSettingsChange('city', e.target.value)} 
+                                onBlur={() => handleSaveSettings('city')}
+                                className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white"
+                                 placeholder="المدينة (e.g. Cairo)"
+                            />
+                        </div>
+                    </div>
                 </div>
             </SettingsCard>
             
@@ -99,27 +124,43 @@ const SettingsPage: React.FC = () => {
                     <select 
                         id="prayer_method" 
                         value={settings.prayerMethod} 
-                        onChange={e => handleSettingsChange('prayerMethod', Number(e.target.value))} 
+                        onChange={e => updateSettings({ prayerMethod: Number(e.target.value) })} 
                         className="w-full mt-1 bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white"
                     >
-                        {PRAYER_METHODS.map(method => (
+                        {prayerMethods.map(method => (
                             <option key={method.id} value={method.id} style={{ backgroundColor: '#2d5a47' }}>
                                 {method.name}
                             </option>
                         ))}
                     </select>
                 </div>
+                
+                 <div className="pt-4 border-t border-white/10">
+                    <p className="text-sm font-semibold mb-2">إعدادات التقويم الهجري</p>
+                    <div className="p-3 bg-black/20 rounded-lg space-y-3">
+                        <p className="text-sm text-center">مصدر التاريخ: <span className="font-bold text-teal-300">Aladhan API (تلقائي)</span></p>
+                        <div className="flex items-center justify-between">
+                            <label className="font-semibold text-sm">التعديل اليدوي للتاريخ</label>
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => handleHijriAdjustment(-1)} disabled={(settings.hijriDateAdjustment || 0) <= -2} className="w-8 h-8 rounded-full bg-white/10 text-white font-bold hover:bg-white/20 disabled:opacity-50">-</button>
+                                <span className="text-xl font-bold text-white w-10 text-center">{settings.hijriDateAdjustment > 0 ? `+${settings.hijriDateAdjustment}` : settings.hijriDateAdjustment}</span>
+                                <button onClick={() => handleHijriAdjustment(1)} disabled={(settings.hijriDateAdjustment || 0) >= 2} className="w-8 h-8 rounded-full bg-white/10 text-white font-bold hover:bg-white/20 disabled:opacity-50">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
 
                 <div className="pt-4 border-t border-white/10">
                     <p className="text-sm text-white/95 mb-2">تخصيص أوقات الأذكار</p>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label htmlFor="morning_azkar" className="text-sm font-semibold">بداية أذكار الصباح</label>
-                            <input id="morning_azkar" type="time" value={settings.azkarMorningStart} onChange={e => handleSettingsChange('azkarMorningStart', e.target.value)} className="w-full mt-1 bg-black/30 border border-white/20 rounded-lg px-3 py-2" />
+                            <input id="morning_azkar" type="time" value={settings.azkarMorningStart} onChange={e => updateSettings({'azkarMorningStart': e.target.value})} className="w-full mt-1 bg-black/30 border border-white/20 rounded-lg px-3 py-2" />
                         </div>
                          <div>
                             <label htmlFor="evening_azkar" className="text-sm font-semibold">بداية أذكار المساء</label>
-                            <input id="evening_azkar" type="time" value={settings.azkarEveningStart} onChange={e => handleSettingsChange('azkarEveningStart', e.target.value)} className="w-full mt-1 bg-black/30 border border-white/20 rounded-lg px-3 py-2" />
+                            <input id="evening_azkar" type="time" value={settings.azkarEveningStart} onChange={e => updateSettings({'azkarEveningStart': e.target.value})} className="w-full mt-1 bg-black/30 border border-white/20 rounded-lg px-3 py-2" />
                         </div>
                     </div>
                 </div>
@@ -128,11 +169,11 @@ const SettingsPage: React.FC = () => {
             <SettingsCard title="الإشعارات الداخلية" icon="🔔">
                 <label className="flex items-center justify-between cursor-pointer">
                     <span className="font-semibold">تفعيل إشعارات الصلوات</span>
-                    <input type="checkbox" checked={settings.notifications.prayers} onChange={e => handleSettingsChange('notifications', {...settings.notifications, prayers: e.target.checked})} className="w-6 h-6 rounded accent-yellow-400"/>
+                    <input type="checkbox" checked={settings.notifications.prayers} onChange={e => updateSettings({notifications: {...settings.notifications, prayers: e.target.checked}})} className="w-6 h-6 rounded accent-yellow-400"/>
                 </label>
                 <label className="flex items-center justify-between cursor-pointer">
                     <span className="font-semibold">تفعيل إشعارات الأذكار</span>
-                    <input type="checkbox" checked={settings.notifications.azkar} onChange={e => handleSettingsChange('notifications', {...settings.notifications, azkar: e.target.checked})} className="w-6 h-6 rounded accent-yellow-400"/>
+                    <input type="checkbox" checked={settings.notifications.azkar} onChange={e => updateSettings({notifications: {...settings.notifications, azkar: e.target.checked}})} className="w-6 h-6 rounded accent-yellow-400"/>
                 </label>
             </SettingsCard>
             
@@ -147,12 +188,9 @@ const SettingsPage: React.FC = () => {
              <div className="border-2 border-red-500/50 rounded-2xl p-4 space-y-4">
                 <h4 className="text-lg font-bold text-center text-red-300">منطقة الخطر</h4>
                 <button onClick={handleDataReset} disabled={isResettingData} className="w-full bg-red-800/80 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-wait">
-                    {isResettingData ? 'جاري الحذف...' : '🗑️ إعادة تعيين بيانات العبادة والأهداف'}
+                    {isResettingData ? 'جاري الحذف...' : '🗑️ إعادة تعيين التطبيق بالكامل'}
                 </button>
-                <button onClick={handleFullReset} disabled={isFullResetting} className="w-full bg-red-900 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-wait">
-                    {isFullResetting ? 'جاري الحذف...' : '🔥 إعادة تعيين التطبيق بالكامل'}
-                </button>
-                 <p className="text-xs text-center text-red-300">هذه الإجراءات نهائية ولا يمكن التراجع عنها.</p>
+                 <p className="text-xs text-center text-red-300">هذا الإجراء نهائي ولا يمكن التراجع عنه.</p>
             </div>
         </div>
     )

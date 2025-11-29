@@ -1,30 +1,29 @@
+
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppContext } from './contexts/AppContext';
-import { AuthProvider, useAuthContext } from './contexts/AuthContext';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AppContext, useAppContext } from './contexts/AppContext';
 import { useAppData } from './hooks/useAppData';
-import Header from './components/Header';
-import BottomNav from './components/BottomNav';
-import ScrollToTop from './components/ScrollToTop';
-import NotificationToast from './components/NotificationToast';
-import AdminRoute from './components/AdminRoute';
+import { AuthProvider, useAuthContext } from './contexts/AuthContext';
 import { PrayerTimesContext } from './contexts/PrayerTimesContext';
 import { usePrayerTimes } from './hooks/usePrayerTimes';
 
+import ScrollToTop from './components/ScrollToTop';
+import NotificationToast from './components/NotificationToast';
+import AdminLayout from './layouts/AdminLayout';
+import UserAppLayout from './layouts/UserAppLayout';
 
 // Statically import page components.
 import HomePage from './pages/HomePage';
 import PrayersPage from './pages/PrayersPage';
 import AzkarPage from './pages/AzkarPage';
 import QuranPage from './pages/QuranPage';
+import MoreListPage from './pages/MoreListPage';
 import MorePage from './pages/MorePage';
-import AdminPage from './pages/AdminPage';
-import LoginPage from './pages/LoginPage';
 import ChallengesPage from './pages/ChallengesPage';
-// Import public pages
-import TermsOfUsePage from './pages/more/TermsOfUsePage';
-import PrivacyPolicyPage from './pages/more/PrivacyPolicyPage';
-
+import CommunityPage from './pages/CommunityPage';
+import LoginPage from './pages/LoginPage';
+import AdminPage from './pages/admin/AdminPage';
+import { PrayerTimesContextType } from './types';
 
 const LoadingScreen: React.FC = () => (
     <div className="h-screen flex flex-col justify-center items-center text-white bg-gradient-to-b from-[#1e4d3b] to-[#2d5a47]">
@@ -47,102 +46,100 @@ const ErrorScreen: React.FC<{ message: string }> = ({ message }) => (
     </div>
 );
 
-const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const appData = useAppData();
-
-    if (appData.isDataLoading) {
-        return <LoadingScreen />;
-    }
-
-    if (appData.appError) {
-        return <ErrorScreen message={appData.appError} />;
-    }
-
-    return (
-        <AppContext.Provider value={appData}>
-            {children}
-        </AppContext.Provider>
-    );
-}
-
 const PrayerTimesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const prayerTimesData = usePrayerTimes();
+    const { settings, setApiHijriDate, apiHijriDate } = useAppContext();
+    const prayerTimesData = usePrayerTimes(settings, setApiHijriDate);
+
+    const contextValue: PrayerTimesContextType = {
+        ...prayerTimesData,
+        apiHijriDate: apiHijriDate
+    };
+
     return (
-        <PrayerTimesContext.Provider value={prayerTimesData}>
+        <PrayerTimesContext.Provider value={contextValue}>
             {children}
         </PrayerTimesContext.Provider>
     );
 }
 
-const MainAppLayout: React.FC = () => {
-  return (
-      <div className="min-h-screen">
-          <NotificationToast />
-          <Header />
-          <main className="pt-[60px] pb-[60px] md:pb-[65px]">
-               <div className="p-4">
-                    <Routes>
-                        <Route path="/" element={<HomePage />} />
-                        <Route path="/prayers" element={<PrayersPage />} />
-                        <Route path="/azkar" element={<AzkarPage />} />
-                        <Route path="/quran" element={<QuranPage />} />
-                        <Route path="/challenges" element={<ChallengesPage />} />
-                        <Route path="/more/:page" element={<MorePage />} />
-                        <Route path="/admin" element={
-                            <AdminRoute>
-                                <AdminPage />
-                            </AdminRoute>
-                        } />
-                        <Route path="*" element={<Navigate to="/" />} />
-                    </Routes>
-               </div>
-          </main>
-          <BottomNav />
-      </div>
-  );
-}
+const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const appData = useAppData();
+    if (appData.isDataLoading) return <LoadingScreen />;
+    if (appData.appError) return <ErrorScreen message={appData.appError} />;
 
-const PublicPageLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-b from-[#1e4d3b] to-[#2d5a47] text-white">
-        <div className="w-full max-w-3xl">
-            {children}
-        </div>
-    </div>
-);
+    return (
+        <AppContext.Provider value={appData}>
+            <PrayerTimesProvider>
+                {children}
+            </PrayerTimesProvider>
+        </AppContext.Provider>
+    );
+};
+
+
+const UserAppRoutes: React.FC = () => {
+    const { featureToggles } = useAppContext();
+    return (
+        <UserAppLayout>
+            <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/prayers" element={<PrayersPage />} />
+                <Route path="/azkar" element={<AzkarPage />} />
+                <Route path="/quran" element={<QuranPage />} />
+                <Route path="/more" element={<MoreListPage />} />
+                {featureToggles.challenges && <Route path="/challenges" element={<ChallengesPage />} />}
+                {featureToggles.community && <Route path="/community" element={<CommunityPage />} />}
+                <Route path="/more/:page" element={<MorePage />} />
+                <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+        </UserAppLayout>
+    );
+};
+
 
 const AppRoutes: React.FC = () => {
-    const authContext = useAuthContext();
+    const { session, profile, isLoading } = useAuthContext();
+    const location = useLocation();
 
-    if (authContext.isLoading) {
+    if (isLoading) {
         return <LoadingScreen />;
     }
 
+    if (session && profile) {
+        // If a logged-in user is on a public-only page, redirect them.
+        const publicOnlyPaths = ['/login', '/more/privacy', '/more/terms'];
+        if (publicOnlyPaths.includes(location.pathname)) {
+            const redirectTo = profile.role === 'admin' ? '/admin' : '/';
+            return <Navigate to={redirectTo} replace />;
+        }
+        
+        // Role-based routing for authenticated users.
+        if (profile.role === 'admin') {
+            return (
+                <Routes>
+                    <Route path="/admin/*" element={<AdminPage />} />
+                    {/* Allow admin to access user app by navigating to "/" */}
+                    <Route path="/*" element={<UserAppRoutes />} />
+                </Routes>
+            );
+        } else { // Regular user
+            return (
+                <Routes>
+                    {/* Redirect any attempts to access admin pages */}
+                    <Route path="/admin/*" element={<Navigate to="/" replace />} />
+                    <Route path="/*" element={<UserAppRoutes />} />
+                </Routes>
+            );
+        }
+    }
+    
+    // Unauthenticated Routes
     return (
         <Routes>
-            {authContext.profile ? (
-                <Route path="/*" element={
-                    <AppContextProvider>
-                        <PrayerTimesProvider>
-                            <MainAppLayout />
-                        </PrayerTimesProvider>
-                    </AppContextProvider>
-                } />
-            ) : (
-                <>
-                    <Route path="/login" element={<LoginPage />} />
-                     <Route path="/more/terms" element={
-                        <PublicPageLayout>
-                            <TermsOfUsePage />
-                        </PublicPageLayout>
-                    } />
-                    <Route path="/more/privacy" element={
-                        <PublicPageLayout>
-                            <PrivacyPolicyPage />
-                        </PublicPageLayout>
-                    } />
-                    <Route path="*" element={<Navigate to="/login" replace />} />
-                </>
-            )}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/more/privacy" element={<MorePage />} />
+            <Route path="/more/terms" element={<MorePage />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
     );
 };
@@ -151,10 +148,13 @@ const AppRoutes: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <HashRouter>
-        <ScrollToTop />
-        <AppRoutes />
-      </HashRouter>
+        <AppContextProvider>
+            <HashRouter>
+                <ScrollToTop />
+                <NotificationToast />
+                <AppRoutes />
+            </HashRouter>
+        </AppContextProvider>
     </AuthProvider>
   );
 };

@@ -1,0 +1,2 @@
+// This file is a duplicate of packages/core/src/contexts/AuthContext.tsx and has been removed to maintain a single source of truth.
+// The web app should import AuthProvider and useAuthContext directly from '@mahyay/core'.

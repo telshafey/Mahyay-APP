@@ -1,5 +1,5 @@
-import { AppData, AppStats, UserChallenge, DailyAzkarCategory } from './types';
-import { CHALLENGES, QURAN_TOTAL_PAGES, QURAN_SURAHS, AZKAR_DATA } from './constants';
+import { AppData, AppStats, UserChallenge, DailyAzkarCategory, PrayerStatus, DailyData, BaseChallenge } from './types';
+import { QURAN_TOTAL_PAGES, QURAN_SURAHS, AZKAR_DATA } from './constants';
 
 export const safeLocalStorage = {
     getItem(key: string): string | null {
@@ -56,7 +56,7 @@ export const getAbsolutePageApproximation = (position: { surah: number, ayah: nu
 };
 
 
-export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]): AppStats => {
+export const calculateStats = (appData: AppData, userChallenges: UserChallenge[], challenges: BaseChallenge[]): AppStats => {
     let totalPoints = 0;
     let weeklyPrayers = 0;
     let monthlyPrayers = 0;
@@ -73,7 +73,7 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
         if (!dayData) return;
         const date = new Date(dateKey);
         
-        const prayersToday = Object.values(dayData.prayerData || {}).filter(p => ['early', 'ontime'].includes(p.fard)).length;
+        const prayersToday = Object.values(dayData.prayerData || {}).filter((p: PrayerStatus) => ['early', 'ontime'].includes(p.fard)).length;
         totalPoints += prayersToday * 10;
         
         const diffDays = (today.getTime() - date.getTime()) / (1000 * 3600 * 24);
@@ -86,7 +86,7 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
         for (const categoryName of dailyAzkarCategories) {
             const categoryData = AZKAR_DATA.find(c => c.name === categoryName);
             if(categoryData) {
-                const userProgress = azkarStatusForDay[categoryName];
+                const userProgress = azkarStatusForDay[categoryName as DailyAzkarCategory];
                 if (userProgress && categoryData.items.every(item => (userProgress[item.id] || 0) >= item.repeat)) {
                     azkarCategoriesCompletedToday++;
                 }
@@ -103,7 +103,7 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
 
     userChallenges.forEach(uc => {
         if (uc.status === 'completed') {
-            const baseChallenge = CHALLENGES.find(c => c.id === uc.challenge_id);
+            const baseChallenge = challenges.find(c => c.id === uc.challenge_id);
             if (baseChallenge) totalPoints += baseChallenge.points;
         }
     });
@@ -116,7 +116,7 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
         if (diff <= 1) {
             for (let i = 0; i < reversedDates.length; i++) {
                 const dayData = appData[reversedDates[i]];
-                const prayers = Object.values(dayData?.prayerData || {}).filter(p => ['early', 'ontime'].includes(p.fard)).length;
+                const prayers = Object.values(dayData?.prayerData || {}).filter((p: PrayerStatus) => ['early', 'ontime'].includes(p.fard)).length;
                 if (prayers >= 3) {
                     streak++;
                     if (i + 1 < reversedDates.length) {

@@ -1,54 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
 import GlassCard from '../components/GlassCard';
 
 const LoginPage: React.FC = () => {
-    const [isSignUp, setIsSignUp] = useState(false);
+    const { signIn, signUp } = useAuthContext();
+    const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [rememberMe, setRememberMe] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [signupSuccess, setSignupSuccess] = useState(false);
-    
-    const { profile, signIn, signUp } = useAuthContext();
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        if (profile) {
-            navigate('/', { replace: true });
-        }
-    }, [profile, navigate]);
+    const [message, setMessage] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        setMessage(null);
 
-        const action = isSignUp ? signUp : signIn;
-        const { error: authError } = await action(email, password);
+        const { error: authError } = isLogin 
+            ? await signIn(email, password) 
+            : await signUp(email, password);
+        
+        // After signIn, the AppRoutes component will handle navigation.
 
         if (authError) {
-            let userFriendlyError = 'حدث خطأ ما. يرجى المحاولة مرة أخرى.';
-            if (authError.message.includes('Invalid login credentials')) {
-                userFriendlyError = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
-            } else if (authError.message.includes('Email not confirmed')) {
-                userFriendlyError = 'الحساب موجود ولكن لم يتم تفعيله. يرجى التحقق من بريدك الإلكتروني والضغط على رابط التفعيل.';
-            } else if (authError.message.includes('User already registered')) {
-                userFriendlyError = 'هذا البريد الإلكتروني مسجل بالفعل. حاول تسجيل الدخول.';
-            } else if (authError.message.includes('Password should be at least 6 characters')) {
-                userFriendlyError = 'يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.';
-            } else {
-                // If the error is unknown, show the actual message from the server for better debugging.
-                userFriendlyError = authError.message;
-            }
-            setError(userFriendlyError);
-        } else if (isSignUp) {
-            setSignupSuccess(true);
+            setError(authError.message);
+        } else if (!isLogin) {
+            setMessage('إنشاء الحسابات معطل في الوضع المحلي.');
+            setIsLogin(true); // Switch to login view 
         }
-        // On successful login, the onAuthStateChange listener will handle the redirect.
-
         setLoading(false);
     };
 
@@ -62,102 +44,60 @@ const LoginPage: React.FC = () => {
             </div>
 
             <GlassCard className="w-full max-w-sm animate-fade-in" style={{ animationDelay: '200ms' }}>
-                {signupSuccess ? (
-                     <div className="text-center p-4 animate-fade-in">
-                        <div className="text-6xl mb-4">📧</div>
-                        <h2 className="text-2xl font-bold text-yellow-300 mb-2">خطوة أخيرة!</h2>
-                        <p className="text-white/90">
-                            تم إنشاء حسابك بنجاح. لقد أرسلنا رابط تفعيل إلى بريدك الإلكتروني:
-                        </p>
-                        <p className="font-bold text-white my-3 break-all">{email}</p>
-                        <p className="text-sm text-white/80">
-                            يرجى الضغط على الرابط لتفعيل حسابك ثم العودة لتسجيل الدخول.
-                        </p>
-                        <button 
-                            onClick={() => { setSignupSuccess(false); setIsSignUp(false); }}
-                            className="mt-6 w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors text-lg"
-                        >
-                            العودة لتسجيل الدخول
-                        </button>
+                <h2 className="text-2xl font-bold text-center text-white mb-4">
+                    {isLogin ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}
+                </h2>
+                {error && <p className="text-red-300 bg-red-900/50 p-3 rounded-lg text-center text-sm mb-4">{error}</p>}
+                {message && <p className="text-green-300 bg-green-900/50 p-3 rounded-lg text-center text-sm mb-4">{message}</p>}
+                
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label htmlFor="email" className="block text-sm font-semibold mb-1 text-white/90">البريد الإلكتروني</label>
+                        <input
+                            id="email"
+                            type="email"
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            placeholder="user@mahyay.app"
+                            className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white"
+                            required
+                        />
                     </div>
-                ) : (
-                    <>
-                        <div className="flex justify-center mb-6 border-b-2 border-white/10">
-                            <button 
-                                onClick={() => { setIsSignUp(false); setError(null); }}
-                                className={`py-2 px-6 font-semibold transition-colors w-1/2 ${!isSignUp ? 'text-yellow-300 border-b-2 border-yellow-300' : 'text-white/70'}`}
-                            >
-                                تسجيل الدخول
-                            </button>
-                            <button 
-                                onClick={() => { setIsSignUp(true); setError(null); }}
-                                className={`py-2 px-6 font-semibold transition-colors w-1/2 ${isSignUp ? 'text-yellow-300 border-b-2 border-yellow-300' : 'text-white/70'}`}
-                            >
-                                إنشاء حساب
-                            </button>
-                        </div>
+                     <div>
+                        <label htmlFor="password"className="block text-sm font-semibold mb-1 text-white/90">كلمة المرور</label>
+                        <input
+                            id="password"
+                            type="password"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            placeholder="password123"
+                            className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white"
+                            required
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors text-lg disabled:opacity-70 flex justify-center items-center gap-3"
+                    >
+                         {loading ? (
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-900"></div>
+                        ) : (
+                            isLogin ? 'دخول' : 'إنشاء حساب'
+                        )}
+                    </button>
+                </form>
 
-                        <h2 className="text-2xl font-bold text-center text-white mb-6">
-                            {isSignUp ? 'حساب جديد' : 'مرحباً بعودتك'}
-                        </h2>
-                        
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            {error && <p className="text-red-300 bg-red-900/50 p-3 rounded-lg text-center text-sm">{error}</p>}
-                            <div>
-                                <label htmlFor="email" className="block text-sm font-semibold mb-2 text-white/90">
-                                    البريد الإلكتروني
-                                </label>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="example@email.com"
-                                    className="w-full text-lg bg-black/30 rounded-lg py-2 px-4 border border-white/20 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder:text-white/60"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="password" className="block text-sm font-semibold mb-2 text-white/90">
-                                    كلمة المرور
-                                </label>
-                                <input
-                                    id="password"
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="••••••••"
-                                    className="w-full text-lg bg-black/30 rounded-lg py-2 px-4 border border-white/20 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder:text-white/60"
-                                    required
-                                />
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <label htmlFor="remember-me" className="flex items-center gap-2 text-sm text-white/80 cursor-pointer">
-                                    <input
-                                        id="remember-me"
-                                        type="checkbox"
-                                        checked={rememberMe}
-                                        onChange={(e) => setRememberMe(e.target.checked)}
-                                        className="w-4 h-4 rounded accent-yellow-400 bg-black/30 border-white/20 focus:ring-yellow-400"
-                                    />
-                                    تذكرني
-                                </label>
-                            </div>
-
-                            <button 
-                                type="submit" 
-                                className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors text-lg disabled:opacity-50 flex justify-center items-center"
-                                disabled={loading || !email.trim() || !password.trim()}
-                            >
-                                {loading ? <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-900"></div> : (isSignUp ? 'إنشاء حساب' : 'دخول')}
-                            </button>
-                        </form>
-                    </>
-                )}
+                <div className="text-center mt-4">
+                    <button onClick={() => setIsLogin(!isLogin)} className="text-sm text-yellow-300 hover:text-yellow-200">
+                        {isLogin ? 'ليس لديك حساب؟ إنشاء حساب جديد' : 'لديك حساب بالفعل؟ تسجيل الدخول'}
+                    </button>
+                </div>
+                 <p className="text-xs text-center text-white/60 mt-4 pt-4 border-t border-white/20">للتجربة: استخدم `user@mahyay.app` أو `admin@mahyay.app` مع كلمة المرور `password123`.</p>
             </GlassCard>
+
             <div className="text-xs text-white/60 mt-8 text-center animate-fade-in" style={{ animationDelay: '400ms' }}>
-                <p className="mb-2">بياناتك محمية ومشفّرة بالكامل.</p>
+                <p className="mb-2">بالتسجيل، أنت توافق على شروط الاستخدام وسياسة الخصوصية.</p>
                 <div className="flex justify-center items-center gap-4">
                      <Link to="/more/terms" className="hover:text-white underline">شروط الاستخدام</Link>
                      <span>-</span>

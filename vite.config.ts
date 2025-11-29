@@ -1,16 +1,20 @@
-// Fix: Import `defineConfig` from `vitest/config` to include types for the `test` property.
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
-
-/// <reference types="vitest" />
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   define: {
-    // Per guidelines, the app must use process.env.API_KEY.
-    // This exposes the VITE_API_KEY environment variable to the app as process.env.API_KEY.
     'process.env.API_KEY': JSON.stringify(process.env.VITE_API_KEY),
+  },
+  server: {
+    proxy: {
+      '/aladhan-api': {
+        target: 'https://api.aladhan.com/v1',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/aladhan-api/, ''),
+      },
+    }
   },
   test: {
     globals: true,
@@ -21,7 +25,6 @@ export default defineConfig({
     react(),
     VitePWA({ 
       registerType: 'autoUpdate',
-      // Switch to injectManifest strategy to use our custom service worker
       strategies: 'injectManifest',
       srcDir: '.',
       filename: 'sw.js',
@@ -31,7 +34,7 @@ export default defineConfig({
       manifest: {
         name: 'مَحيّاي - رفيقك الروحي اليومي',
         short_name: 'مَحيّاي',
-        description: 'تطبيق إسلامي شامل يساعدك على تنظيم عباداتك اليومية من صلوات وأذكار وقراءة للقرآن الكريم، مع متابعة الإحصائيات والتحديات الإيمانية. معزز بتأملات روحية من Gemini.',
+        description: 'تطبيق إسلامي شامل يساعدك على تنظيم عباداتك اليومية.',
         theme_color: '#2d5a47',
         background_color: '#1e4d3b',
         display: 'standalone',

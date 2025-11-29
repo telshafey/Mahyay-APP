@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { PRAYERS, PRAYER_NAMES_API_MAP } from '../constants';
-import { Prayer, PrayerTimeData, PrayerTimesContextType } from '../types';
+import { Prayer, PrayerTimeData, PrayerTimesContextType, Settings, ApiHijriDate, PrayerLocation } from '../types';
 import { useAppContext } from '../contexts/AppContext';
-import { Capacitor } from '@capacitor/core';
-import { Geolocation } from '@capacitor/geolocation';
 
-export const usePrayerTimes = (): PrayerTimesContextType => {
-    const { settings } = useAppContext();
+const getDateKey = (date: Date): string => date.toISOString().split('T')[0];
+
+export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHijriDate | null) => void): Omit<PrayerTimesContextType, 'apiHijriDate'> => {
+    const { prayerLocations } = useAppContext();
     const [prayerTimes, setPrayerTimes] = useState<{ [key: string]: string }>({});
     const [coordinates, setCoordinates] = useState<{ latitude: number, longitude: number } | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
@@ -14,130 +14,120 @@ export const usePrayerTimes = (): PrayerTimesContextType => {
     const [countdown, setCountdown] = useState('');
 
     const detectLocation = useCallback(async () => {
-        const cairoFallback = () => {
-             setCoordinates({ latitude: 30.0444, longitude: 31.2357 }); // Cairo fallback
-        };
-
-        if (Capacitor.isNativePlatform()) {
-             try {
-                let permissionStatus = await Geolocation.checkPermissions();
-                if (permissionStatus.location !== 'granted') {
-                    permissionStatus = await Geolocation.requestPermissions();
-                }
-
-                if (permissionStatus.location === 'granted') {
-                    const position = await Geolocation.getCurrentPosition({
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                    });
-                    setCoordinates({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                    });
-                    setLocationError(null);
-                } else {
-                    setLocationError("تم رفض إذن الوصول للموقع من إعدادات الهاتف. سيتم استخدام مواقيت القاهرة الافتراضية.");
-                    cairoFallback();
-                }
-            } catch (error) {
-                console.error("Capacitor Geolocation error:", error);
-                setLocationError("لم نتمكن من تحديد موقعك عبر خدمات الهاتف. سيتم استخدام مواقيت القاهرة الافتراضية.");
-                cairoFallback();
-            }
-        } else {
-            if (!navigator.geolocation) {
-                setLocationError("المتصفح لا يدعم تحديد الموقع. سيتم استخدام مواقيت القاهرة الافتراضية.");
-                cairoFallback();
-                return;
-            }
-
-            const options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setCoordinates({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                    });
-                    setLocationError(null);
-                },
-                (error) => {
-                    let message = "لم نتمكن من تحديد موقعك. سيتم استخدام مواقيت القاهرة الافتراضية.";
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED:
-                            message = "تم رفض إذن الوصول للموقع. لتحديد المواقيت بدقة، يرجى تفعيل إذن الموقع للتطبيق من إعدادات جهازك.";
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            message = "معلومات الموقع غير متاحة حاليًا. يرجى التحقق من تفعيل GPS والمحاولة مرة أخرى.";
-                            break;
-                        case error.TIMEOUT:
-                            message = "انتهى وقت طلب تحديد الموقع. يرجى المحاولة في مكان به إشارة أفضل.";
-                            break;
-                    }
-                    setLocationError(message);
-                    cairoFallback();
-                },
-                options
-            );
+        if (!navigator.geolocation) {
+            setLocationError("المتصفح لا يدعم تحديد الموقع. سيتم استخدام الإعدادات اليدوية.");
+            return;
         }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setCoordinates({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                });
+                setLocationError(null); // Clear previous errors
+            },
+            (error) => {
+                let message = "لم نتمكن من تحديد موقعك. سيتم استخدام الإعدادات اليدوية (المدينة/الدولة).";
+                if (error.code === error.PERMISSION_DENIED) {
+                    message = "تم رفض إذن الوصول للموقع. لتحديد المواقيت بدقة، يرجى تفعيل إذن الموقع للتطبيق أو استخدام الإعدادات اليدوية.";
+                }
+                setLocationError(message);
+            }
+        );
     }, []);
 
     useEffect(() => {
         detectLocation();
     }, [detectLocation]);
 
+
+    const applyFallbackTimes = useCallback(() => {
+        const fallbackLocationId = settings.defaultLocationId || 'cairo_egypt';
+        const fallbackLocation = prayerLocations.find(loc => loc.id === fallbackLocationId);
+        
+        if (fallbackLocation) {
+            const fallbackTimes = Object.fromEntries(
+                PRAYERS.map(p => {
+                    const apiName = PRAYER_NAMES_API_MAP[p.name];
+                    return [p.name, fallbackLocation.times[apiName] || '??:??'];
+                })
+            );
+            setPrayerTimes(fallbackTimes);
+        } else {
+             setPrayerTimes({});
+        }
+        setApiHijriDate(null);
+    }, [settings.defaultLocationId, prayerLocations, setApiHijriDate]);
+
+
     useEffect(() => {
         const fetchPrayerTimes = async () => {
-            if (!coordinates) return;
             setIsPrayerTimesLoading(true);
+            
+            let apiUrl = '';
+            if (coordinates) {
+                apiUrl = `/aladhan-api/timings/${getDateKey(new Date())}?latitude=${coordinates.latitude}&longitude=${coordinates.longitude}&method=${settings.prayerMethod}`;
+            } else if (settings.city && settings.country) {
+                apiUrl = `/aladhan-api/timingsByCity?city=${encodeURIComponent(settings.city)}&country=${encodeURIComponent(settings.country)}&method=${settings.prayerMethod}`;
+            } else {
+                 setLocationError("الرجاء تحديد موقعك أو إدخال المدينة والدولة في الإعدادات.");
+                 applyFallbackTimes();
+                 setIsPrayerTimesLoading(false);
+                 return;
+            }
+
             try {
-                const date = new Date();
-                const dateString = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
-                const response = await fetch(`https://api.aladhan.com/v1/timings/${dateString}?latitude=${coordinates.latitude}&longitude=${coordinates.longitude}&method=${settings.prayerMethod}`);
+                const response = await fetch(apiUrl);
+
                 if (!response.ok) {
-                    throw new Error('فشل في جلب أوقات الصلاة. يرجى التحقق من اتصالك بالإنترنت.');
+                     throw new Error(`حدث خطأ في الخادم (Status: ${response.status})`);
                 }
+
                 const data = await response.json();
-                if (data.code !== 200) {
-                    throw new Error(data.data || 'حدث خطأ من المصدر.');
+                
+                if (data.code !== 200 || !data.data?.timings) {
+                     throw new Error('صيغة المواقيت في الاستجابة غير متوقعة.');
                 }
+                
+                setApiHijriDate(data.data.date.hijri);
 
                 const timings: PrayerTimeData = data.data.timings;
                 
                 const formattedTimes = Object.fromEntries(
                     PRAYERS.map(p => {
                         const apiName = PRAYER_NAMES_API_MAP[p.name];
-                        return [p.name, timings[apiName]];
+                        return [p.name, timings[apiName]?.split(' ')[0] || '??:??'];
                     })
                 );
-                
                 setPrayerTimes(formattedTimes);
+                if (!coordinates) setLocationError(null);
 
             } catch (err) {
-                const message = err instanceof Error ? err.message : "خطأ غير معروف أثناء جلب أوقات الصلاة.";
-                console.error("Prayer Times Fetch Error:", err);
-                setLocationError(message);
+                const message = err instanceof Error ? err.message : "خطأ غير معروف أثناء جلب البيانات.";
+                console.error("Data Fetch Error:", message);
+                setLocationError(`فشل جلب المواقيت. سيتم استخدام الموقع الاحتياطي.`);
+                applyFallbackTimes();
             } finally {
                 setIsPrayerTimesLoading(false);
             }
         };
 
-        if (coordinates) {
-            fetchPrayerTimes();
-        }
-    }, [coordinates, settings.prayerMethod]);
+        fetchPrayerTimes();
+
+    }, [coordinates, settings.city, settings.country, settings.prayerMethod, setApiHijriDate, applyFallbackTimes]);
 
     const nextPrayer = useMemo(() => {
         const now = new Date();
         let nextPrayerInfo: { prayer: Prayer | null; time: Date; isNextDay: boolean } = { prayer: null, time: new Date(), isNextDay: false };
 
         if (Object.keys(prayerTimes).length === 0) {
-            return { prayer: null, time: null, countdown: '00:00:00', isNextDay: false };
+            return { prayer: null, time: new Date(), countdown: '00:00:00', isNextDay: false };
         }
 
         const todayPrayerTimes = PRAYERS.map(p => {
             const timeStr = prayerTimes[p.name];
-            if (!timeStr) return null;
+            if (!timeStr || !/^\d{2}:\d{2}$/.test(timeStr)) return null;
             const [hours, minutes] = timeStr.split(':').map(Number);
             const time = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
             return { prayer: p, time };
@@ -178,7 +168,6 @@ export const usePrayerTimes = (): PrayerTimesContextType => {
                 setCountdown(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
             } else {
                 setCountdown("حان الآن");
-                // Potentially trigger a refresh of prayer times for the new day
             }
         }, 1000);
 
@@ -192,6 +181,6 @@ export const usePrayerTimes = (): PrayerTimesContextType => {
         coordinates,
         locationError,
         detectLocation,
-        isPrayerTimesLoading
+        isPrayerTimesLoading,
     };
 };

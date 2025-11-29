@@ -1,156 +1,171 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../supabase';
-import { UserChallenge, UserProfile } from '../types';
-import { CHALLENGES } from '../constants';
 
-export const useUserChallenges = (profile: UserProfile | null): { 
-    userChallenges: UserChallenge[]; 
-    startChallenge: (challengeId: string) => Promise<boolean>;
-    logManualChallengeProgress: (challengeId: string) => Promise<boolean>;
-    updateAutoChallengeProgress: (challengeType: string | undefined, change: number) => Promise<void>;
+
+import { useState, useEffect, useCallback, Dispatch, SetStateAction } from 'react';
+import { UserChallenge, UserProfile, AppData, BaseChallenge, DailyData } from '../types';
+import { MOCK_USER_CHALLENGES } from '../mockData';
+import { AZKAR_DATA } from '../constants';
+import { safeLocalStorage } from '../utils';
+
+interface UseUserChallengesReturn {
+    userChallenges: UserChallenge[];
     isLoading: boolean;
     error: string | null;
-    setUserChallenges: Function;
-} => {
+    startChallenge: (challengeId: string) => Promise<boolean>;
+    logManualChallengeProgress: (challengeId: string) => Promise<boolean>;
+    setUserChallenges: Dispatch<SetStateAction<UserChallenge[]>>;
+    updateAutoTrackedChallenges: (appData: AppData, todayKey: string) => void;
+}
+
+export const useUserChallenges = (profile: UserProfile | null, challenges: BaseChallenge[]): UseUserChallengesReturn => {
     const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const showNotification = (message: string, icon: string) => {
-        // In a real app, you would use a context-based notification system.
-        console.log(`[${icon}] ${message}`);
-        // For now, we rely on the main hook's notification system.
-    };
-
+    const saveData = useCallback((data: UserChallenge[]) => {
+        if (profile) {
+            safeLocalStorage.setItem(`userChallenges_${profile.id}`, JSON.stringify(data));
+        }
+    }, [profile]);
+    
     useEffect(() => {
         if (!profile) {
             setIsLoading(false);
             return;
         }
         
-        const loadChallenges = async () => {
-             setIsLoading(true);
-             setError(null);
-            try {
-                const { data, error: dbError } = await supabase
-                    .from('user_challenges')
-                    .select('*')
-                    .eq('user_id', profile.id);
-
-                if (dbError) throw dbError;
-                setUserChallenges(data || []);
-            } catch (err) {
-                console.error("Failed to load user challenges:", err);
-                const message = err instanceof Error ? err.message : "فشل تحميل بيانات التحديات";
-                setError(message);
-            } finally {
-                setIsLoading(false);
+        try {
+            setIsLoading(true);
+            const savedChallenges = safeLocalStorage.getItem(`userChallenges_${profile.id}`);
+            if (savedChallenges) {
+                setUserChallenges(JSON.parse(savedChallenges));
+            } else {
+                setUserChallenges(MOCK_USER_CHALLENGES);
             }
-        };
-       
-        loadChallenges();
-
+        } catch (e) {
+            console.error("Failed to load user challenges", e);
+            setError("Failed to load user challenges");
+        } finally {
+            setIsLoading(false);
+        }
     }, [profile]);
-    
-    const handleSaveError = (error: unknown, context: string): void => {
-        console.error(`Error in ${context}:`, error);
-    };
 
     const startChallenge = async (challengeId: string): Promise<boolean> => {
         if (!profile) return false;
-        if (userChallenges.some(c => c.challenge_id === challengeId)) {
-            showNotification('لقد بدأت هذا التحدي بالفعل!', 'ℹ️');
-            return false;
-        }
-
-        try {
-            const { data, error } = await supabase
-                .from('user_challenges')
-                .insert({ user_id: profile.id, challenge_id: challengeId, status: 'active', progress: 0 })
-                .select()
-                .single();
-
-            if (error) throw error;
-            setUserChallenges(prev => [...prev, data]);
-            showNotification(`بدأ تحدي جديد!`, '🚀');
-            return true;
-        } catch (error) {
-            handleSaveError(error, "startChallenge");
-            return false;
-        }
-    };
-    
-    const updateChallenge = async (challengeId: number, updates: Partial<UserChallenge>): Promise<boolean> => {
-        const originalChallenges = [...userChallenges];
-        setUserChallenges(prev => prev.map(c => c.id === challengeId ? { ...c, ...updates } : c));
         
-        try {
-            const { error } = await supabase
-                .from('user_challenges')
-                .update(updates)
-                .eq('id', challengeId);
-            if (error) throw error;
-            return true;
-        } catch(error) {
-            handleSaveError(error, "updateChallenge");
-            setUserChallenges(originalChallenges); // Revert on failure
+        if (userChallenges.some(uc => uc.challenge_id === challengeId)) {
+            console.warn("Challenge already started");
             return false;
         }
-    };
 
-    const logManualChallengeProgress = async (challengeId: string): Promise<boolean> => {
-        const userChallenge = userChallenges.find(c => c.challenge_id === challengeId && c.status === 'active');
-        if (!userChallenge) return false;
-
-        const baseChallenge = CHALLENGES.find(c => c.id === challengeId);
+        const baseChallenge = challenges.find(c => c.id === challengeId);
         if (!baseChallenge) return false;
-        
-        const todayKey = new Date().toISOString().split('T')[0];
-        if(userChallenge.last_logged_date === todayKey) {
-            showNotification('تم التسجيل لهذا اليوم بالفعل', 'ℹ️');
-            return false;
-        }
 
-        const newProgress = (userChallenge.progress || 0) + 1;
-        const newStatus = newProgress >= baseChallenge.target ? 'completed' : 'active';
+        const newChallenge: UserChallenge = {
+            id: `uc_${Date.now()}`,
+            user_id: profile.id,
+            challenge_id: challengeId,
+            started_at: new Date().toISOString(),
+            status: 'active',
+            progress: 0,
+        };
 
-        return await updateChallenge(userChallenge.id, {
-            progress: newProgress,
-            status: newStatus,
-            last_logged_date: todayKey,
-            completed_at: newStatus === 'completed' ? new Date().toISOString() : undefined,
-        });
+        const updatedChallenges = [...userChallenges, newChallenge];
+        setUserChallenges(updatedChallenges);
+        saveData(updatedChallenges);
+        return true;
     };
     
-    const updateAutoChallengeProgress = async (challengeType: string | undefined, change: number): Promise<void> => {
-        if (!challengeType) return;
+    const logManualChallengeProgress = async (challengeId: string): Promise<boolean> => {
+        if (!profile) return false;
+
+        let challengeCompleted = false;
+        const updatedChallenges = userChallenges.map(uc => {
+            if (uc.challenge_id === challengeId && uc.status === 'active') {
+                const baseChallenge = challenges.find(c => c.id === challengeId);
+                if (!baseChallenge) return uc;
+
+                const newProgress = uc.progress + 1;
+                const isCompleted = newProgress >= baseChallenge.target;
+                if(isCompleted) challengeCompleted = true;
+
+                return { 
+                    ...uc, 
+                    progress: newProgress, 
+                    last_logged_date: new Date().toISOString().split('T')[0],
+                    status: isCompleted ? 'completed' : 'active',
+                    completed_at: isCompleted ? new Date().toISOString() : undefined,
+                };
+            }
+            return uc;
+        });
         
-        const relevantChallenges = userChallenges.filter(uc => {
-            const base = CHALLENGES.find(c => c.id === uc.challenge_id);
-            return uc.status === 'active' && base?.relatedItem === challengeType;
+        setUserChallenges(updatedChallenges);
+        saveData(updatedChallenges);
+        return challengeCompleted;
+    };
+    
+    const updateAutoTrackedChallenges = useCallback((appData: AppData, todayKey: string) => {
+        const todayData = appData[todayKey];
+        if (!todayData) return;
+
+        const activeAutoChallenges = userChallenges.filter(c => {
+            const base = challenges.find(bc => bc.id === c.challenge_id);
+            return c.status === 'active' && base?.tracking === 'auto';
         });
 
-        for (const userChallenge of relevantChallenges) {
-            const baseChallenge = CHALLENGES.find(c => c.id === userChallenge.challenge_id)!;
-            const newProgress = Math.max(0, (userChallenge.progress || 0) + change);
-            const newStatus = newProgress >= baseChallenge.target ? 'completed' : 'active';
-            
-            await updateChallenge(userChallenge.id, {
-                progress: newProgress,
-                status: newStatus,
-                completed_at: newStatus === 'completed' ? new Date().toISOString() : undefined
-            });
-        }
-    };
+        if (activeAutoChallenges.length === 0) return;
 
+        let hasChanged = false;
+        const updatedChallenges = userChallenges.map(uc => {
+            const baseChallenge = challenges.find(bc => bc.id === uc.challenge_id);
+            if (!baseChallenge || uc.status !== 'active' || baseChallenge.tracking !== 'auto') {
+                return uc;
+            }
+
+            let newProgress = uc.progress;
+            
+            if (baseChallenge.relatedItem === 'quran') {
+                newProgress = Object.values(appData).reduce((sum, day: Partial<DailyData>) => sum + (day.quranPagesRead || 0), 0);
+            } else if (baseChallenge.relatedItem === 'azkar_morning' && todayData.azkarStatus?.['أذكار الصباح']) {
+                const category = AZKAR_DATA.find(c => c.name === 'أذكار الصباح');
+                const progress = todayData.azkarStatus['أذكار الصباح'];
+                if(category && progress && category.items.every(item => (progress[item.id] || 0) >= item.repeat)) {
+                    if (uc.last_logged_date !== todayKey) {
+                        newProgress = uc.progress + 1;
+                    }
+                }
+            }
+             // Add other auto-tracking logic here...
+
+            if (newProgress !== uc.progress) {
+                hasChanged = true;
+                const isCompleted = newProgress >= baseChallenge.target;
+                return {
+                    ...uc,
+                    progress: newProgress,
+                    last_logged_date: todayKey,
+                    status: isCompleted ? 'completed' : 'active',
+                    completed_at: isCompleted ? new Date().toISOString() : undefined,
+                };
+            }
+
+            return uc;
+        });
+        
+        if (hasChanged) {
+            setUserChallenges(updatedChallenges);
+            saveData(updatedChallenges);
+        }
+
+    }, [userChallenges, saveData, challenges]);
 
     return {
         userChallenges,
-        startChallenge,
-        logManualChallengeProgress,
-        updateAutoChallengeProgress,
         isLoading,
         error,
-        setUserChallenges, // Exposed for reset functionality
+        startChallenge,
+        logManualChallengeProgress,
+        setUserChallenges,
+        updateAutoTrackedChallenges,
     };
 };

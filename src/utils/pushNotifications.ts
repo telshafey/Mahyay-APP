@@ -1,4 +1,3 @@
-import { supabase } from '../supabase';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications, Token } from '@capacitor/push-notifications';
 import { safeLocalStorage } from '../utils';
@@ -46,8 +45,6 @@ export async function getSubscription(): Promise<PushSubscription | string | nul
 }
 
 export async function subscribeUser(): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-
     if (Capacitor.isNativePlatform()) {
         let permStatus = await PushNotifications.checkPermissions();
         if (permStatus.receive === 'prompt') {
@@ -59,21 +56,11 @@ export async function subscribeUser(): Promise<void> {
         
         await PushNotifications.removeAllListeners();
         
-        PushNotifications.addListener('registration', async (token: Token) => {
+        PushNotifications.addListener('registration', (token: Token) => {
             console.log('Native Push registration success, token:', token.value);
             safeLocalStorage.setItem('nativePushToken', token.value);
-            const { error } = await supabase.from('push_subscriptions').insert({
-                user_id: user?.id,
-                subscription_data: { 
-                    token: token.value,
-                    type: 'native',
-                    platform: Capacitor.getPlatform()
-                },
-            });
-
-            if (error) {
-                 console.error('Failed to save native token to Supabase:', error);
-            }
+            // Supabase call removed
+            console.log("Mock: Would save native token to DB here.");
         });
         
         PushNotifications.addListener('registrationError', (error) => {
@@ -105,17 +92,8 @@ export async function subscribeUser(): Promise<void> {
             applicationServerKey: applicationServerKey as any,
         });
 
-        const { error } = await supabase.from('push_subscriptions').insert({
-            user_id: user?.id,
-            subscription_data: subscription.toJSON(),
-        });
-
-        if (error) {
-            console.error('Failed to save web push subscription to Supabase:', error);
-            await subscription.unsubscribe();
-            throw new Error('Failed to save push subscription to the server.');
-        }
-
+        // Supabase call removed
+        console.log("Mock: Would save web push subscription to DB here:", subscription.toJSON());
         console.log('User subscribed successfully via Web Push.');
     } else {
          throw new Error('Push notifications are not supported by this browser.');
@@ -126,10 +104,8 @@ export async function unsubscribeUser(): Promise<void> {
     if (Capacitor.isNativePlatform()) {
         const token = safeLocalStorage.getItem('nativePushToken');
         if (token) {
-            const { error } = await supabase.from('push_subscriptions').delete().eq('subscription_data->>token', token);
-            if (error) {
-                console.error('Failed to delete native token from Supabase:', error);
-            }
+            // Supabase call removed
+            console.log("Mock: Would delete native token from DB here:", token);
             safeLocalStorage.removeItem('nativePushToken');
         }
         await PushNotifications.removeAllListeners();
@@ -157,14 +133,8 @@ export async function unsubscribeUser(): Promise<void> {
     const subscription = await registration.pushManager.getSubscription();
 
     if (subscription) {
-        const { error } = await supabase
-            .from('push_subscriptions')
-            .delete()
-            .eq('subscription_data->>endpoint', subscription.endpoint);
-        
-        if (error) {
-            console.error('Failed to delete web subscription from Supabase:', error);
-        }
+        // Supabase call removed
+        console.log("Mock: Would delete web subscription from DB here:", subscription.endpoint);
 
         const successful = await subscription.unsubscribe();
         if (successful) {

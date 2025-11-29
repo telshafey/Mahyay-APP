@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { PersonalGoal, GoalType } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
 import GlassCard from '../../components/GlassCard';
-import { getGoalInspiration } from '../../services/geminiService';
 
 const GOAL_ICONS = ['🎯', '📖', '🤲', '❤️', '💰', '🏃‍♂️', '🌱', '⭐', '📿', '🕌'];
 
@@ -12,37 +11,8 @@ const GoalsPage: React.FC = () => {
     const [goal, setGoal] = useState({ title: '', icon: GOAL_ICONS[0], type: 'daily' as GoalType, target: 1, unit: '', endDate: '' });
     const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
     
-    const [inspiration, setInspiration] = useState<{title: string; icon: string} | null>(null);
-    const [isInspiring, setIsInspiring] = useState(false);
-    const [inspirationError, setInspirationError] = useState<string | null>(null);
     const [isUpdatingId, setIsUpdatingId] = useState<string | null>(null);
     
-    const handleInspireMe = async () => {
-        setIsInspiring(true);
-        setInspiration(null);
-        setInspirationError(null);
-        const response = await getGoalInspiration();
-        if (response.data) {
-            setInspiration(response.data);
-        } else {
-            const userFriendlyError = response.error || "عذراً، لم نتمكن من جلب إلهام في الوقت الحالي. حاول مرة أخرى.";
-            setInspirationError(userFriendlyError);
-            console.error("Goal Inspiration Error:", response.error);
-        }
-        setIsInspiring(false);
-    }
-
-    const useInspiration = () => {
-        if (!inspiration) return;
-        setGoal(prev => ({
-            ...prev,
-            title: inspiration.title,
-            icon: GOAL_ICONS.includes(inspiration.icon) ? inspiration.icon : prev.icon
-        }));
-        setInspiration(null);
-        setIsFormVisible(true);
-    }
-
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!goal.title.trim()) {
@@ -83,30 +53,7 @@ const GoalsPage: React.FC = () => {
 
     return (
         <div className="space-y-6 text-white">
-            <GlassCard className="!bg-gradient-to-tr !from-purple-500/20 !to-indigo-500/30 !border-purple-400/30">
-                <div className="text-center space-y-3">
-                    <h3 className="font-amiri text-xl text-white">هل تبحث عن هدف جديد؟</h3>
-                    <p className="text-sm text-white/90">دع الذكاء الاصطناعي يقترح عليك هدفاً إيمانياً بسيطاً وملهمًا لتبدأ به.</p>
-                    <button onClick={handleInspireMe} disabled={isInspiring} className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-full transition-colors disabled:opacity-50 disabled:cursor-wait">
-                        {isInspiring ? 'لحظات من فضلك...' : '💡 ألهمني بهدف'}
-                    </button>
-                    {inspiration && (
-                        <div className="mt-4 p-4 bg-black/30 rounded-lg animate-fade-in text-center space-y-3">
-                            <p className="text-2xl">{inspiration.icon}</p>
-                            <p className="font-semibold text-lg text-white">"{inspiration.title}"</p>
-                            <button onClick={useInspiration} className="bg-yellow-500 hover:bg-yellow-600 text-green-900 text-sm font-bold py-2 px-4 rounded-full transition-colors">
-                                استخدام هذا الهدف
-                            </button>
-                        </div>
-                    )}
-                    {inspirationError && (
-                        <div className="mt-4 p-3 bg-red-900/50 rounded-lg text-red-300 text-sm animate-fade-in">
-                            {inspirationError}
-                        </div>
-                    )}
-                </div>
-            </GlassCard>
-
+            
             {!isFormVisible && (
                 <button onClick={() => setIsFormVisible(true)} className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors text-lg">
                     + إضافة هدف جديد
@@ -119,7 +66,9 @@ const GoalsPage: React.FC = () => {
                     <form onSubmit={handleFormSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-semibold mb-1">عنوان الهدف</label>
-                            <input type="text" value={goal.title} onChange={e => setGoal({...goal, title: e.target.value})} className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2" placeholder="مثال: الاستغفار 100 مرة" />
+                            <div className="flex gap-2">
+                                <input type="text" value={goal.title} onChange={e => setGoal({...goal, title: e.target.value})} className="flex-grow bg-black/30 border border-white/20 rounded-lg px-3 py-2" placeholder="مثال: الاستغفار 100 مرة" />
+                            </div>
                         </div>
                         <div>
                              <label className="block text-sm font-semibold mb-1">اختر أيقونة</label>

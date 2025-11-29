@@ -1,42 +1,12 @@
 {
-  "name": "mahyay-app",
+  "name": "mahyay-monorepo",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-    "test": "vitest"
-  },
-  "engines": {
-    "node": "20.x"
-  },
-  "dependencies": {
-    "@capacitor/core": "^6.1.0",
-    "@capacitor/geolocation": "^6.1.0",
-    "@capacitor/push-notifications": "^6.0.0",
-    "@google/genai": "^1.16.0",
-    "@supabase/supabase-js": "^2.43.4",
-    "hijri-date": "^0.2.2",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "react-router-dom": "^6.23.1",
-    "web-push": "^3.6.7"
+    "web": "pnpm --filter web-app dev",
+    "native": "pnpm --filter native-app start",
+    "build:web": "pnpm --filter web-app build"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.1.0",
-    "@testing-library/react": "^16.0.0",
-    "@types/react": "^18.2.66",
-    "@types/react-dom": "^18.2.22",
-    "@vitejs/plugin-react": "^5.0.2",
-    "jsdom": "^24.1.0",
-    "typescript": "^5.2.2",
-    "vite": "^7.1.4",
-    "vite-plugin-pwa": "^1.0.3",
-    "@vercel/node": "^5.3.21",
-    "vitest": "^1.6.0",
-    "workbox-precaching": "^7.1.0"
+    "typescript": "^5.2.2"
   }
 }

@@ -1,8 +1,8 @@
 import React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { AZKAR_DATA } from '../constants';
 import { Zikr, DailyAzkarCategory, AzkarCategory } from '../types';
+import { AZKAR_DATA } from '../constants';
 import GlassCard from '../components/GlassCard';
 import Accordion from '../components/ui/Accordion';
 
@@ -31,7 +31,6 @@ const ZikrItemCard: React.FC<{
 
     const progressPercentage = (currentCount / zikr.repeat) * 100;
     
-    // New logic: Use counter for low repeats (<= 3), single button for high repeats.
     const needsCounter = zikr.repeat > 1 && zikr.repeat <= 3;
 
     return (

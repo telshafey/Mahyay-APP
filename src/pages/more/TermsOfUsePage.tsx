@@ -4,11 +4,11 @@ import GlassCard from '../../components/GlassCard';
 import { useAuthContext } from '../../contexts/AuthContext';
 
 const TermsOfUsePage: React.FC = () => {
-    const { profile } = useAuthContext();
+    const { session } = useAuthContext();
     
     return (
         <GlassCard className="text-white">
-            {!profile && (
+            {!session && (
                 <div className="text-center mb-6 pb-4 border-b border-white/10">
                     <Link to="/login" className="text-teal-300 hover:text-teal-200 font-semibold inline-flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -29,7 +29,7 @@ const TermsOfUsePage: React.FC = () => {
                 <p>"مَحيّاي" هو تطبيق إسلامي يهدف لمساعدة المستخدمين على تتبع عباداتهم اليومية. يتم توفير المحتوى الديني (آيات، أحاديث، أذكار) للمنفعة والفائدة، وقد تم بذل أقصى جهد للتأكد من صحته، ولكن يجب على المستخدم دائمًا الرجوع إلى المصادر الأصلية للتحقق.</p>
                 
                 <h4>3. مسؤوليات المستخدم</h4>
-                <p>أنت توافق على استخدام التطبيق فقط للأغراض المشروعة وبطريقة لا تنتهك حقوق الآخرين أو تقيد استخدامهم للتطبيق. بياناتك هي مسؤوليتك الشخصية، حيث يتم تخزينها على جهازك الخاص.</p>
+                <p>أنت توافق على استخدام التطبيق فقط للأغراض المشروعة وبطريقة لا تنتهك حقوق الآخرين أو تقيد استخدامهم للتطبيق. أنت مسؤول عن الحفاظ على سرية معلومات حسابك.</p>
                 
                 <h4>4. إخلاء المسؤولية عن الضمان</h4>
                 <p>يتم توفير التطبيق "كما هو" و "كما هو متاح" دون أي ضمانات من أي نوع. نحن لا نضمن أن التطبيق سيعمل دون انقطاع أو أنه سيكون خاليًا من الأخطاء.</p>

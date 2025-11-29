@@ -1,0 +1,71 @@
+import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
+
+/// <reference types="vitest" />
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  define: {
+    'process.env.API_KEY': JSON.stringify(process.env.VITE_API_KEY),
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5173', // Default Vite dev server port
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
+        changeOrigin: true,
+      }
+    }
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: [],
+  },
+  plugins: [
+    react(),
+    VitePWA({ 
+      registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src', // Adjusted to look inside src for sw.js
+      filename: 'sw.js',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+      },
+      manifest: {
+        name: 'مَحيّاي - رفيقك الروحي اليومي',
+        short_name: 'مَحيّاي',
+        description: 'تطبيق إسلامي شامل يساعدك على تنظيم عباداتك اليومية من صلوات وأذكار وقراءة للقرآن الكريم، مع متابعة الإحصائيات والتحديات الإيمانية. معزز بتأملات روحية من Gemini.',
+        theme_color: '#2d5a47',
+        background_color: '#1e4d3b',
+        display: 'standalone',
+        scope: '/',
+        start_url: '.',
+        icons: [
+          {
+            src: '/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/pwa-maskable-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
+        ]
+      },
+      devOptions: {
+        enabled: true
+      }
+    })
+  ],
+})

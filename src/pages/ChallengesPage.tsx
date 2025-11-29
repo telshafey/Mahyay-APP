@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { CHALLENGES } from '../constants';
 import { DisplayChallenge } from '../types';
+import { CHALLENGES } from '../constants';
 import GlassCard from '../components/GlassCard';
 import ChallengeCard from '../components/ChallengeCard';
 

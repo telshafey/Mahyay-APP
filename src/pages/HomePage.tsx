@@ -1,19 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { usePrayerTimesContext } from '../contexts/PrayerTimesContext';
+import { PRAYERS, AZKAR_DATA } from '../constants';
+import { DailyAzkarCategory, PrayerStatus } from '../types';
 import VerseCard from '../components/home/VerseCard';
 import GlassCard from '../components/GlassCard';
 import SectionHeader from '../components/home/SectionHeader';
 import { Link } from 'react-router-dom';
-import DailyWisdomCard from '../components/home/DailyWisdomCard';
 import IslamicCalendar from '../components/home/IslamicCalendar';
-import DuaCompanionCard from '../components/home/DuaCompanionCard';
-import DuaCompanionModal from '../components/home/DuaCompanionModal';
 import LocationBanner from '../components/home/LocationBanner';
-import { PRAYERS, AZKAR_DATA } from '../constants';
-import { DailyAzkarCategory } from '../types';
 
-const PrayerProgressItem: React.FC<{ name: string; emoji: string; status: string }> = ({ name, emoji, status }) => {
+const PrayerProgressItem: React.FC<{ name: string; emoji: string; status: string }> = React.memo(({ name, emoji, status }) => {
     const statusStyles: { [key: string]: string } = {
         early: 'bg-green-500/30 text-green-300',
         ontime: 'bg-yellow-500/30 text-yellow-300',
@@ -27,12 +24,11 @@ const PrayerProgressItem: React.FC<{ name: string; emoji: string; status: string
             <span className="text-xs font-semibold">{name}</span>
         </div>
     );
-}
+});
 
 const HomePage: React.FC = () => {
     const { dailyData, stats, personalGoals } = useAppContext();
     const { nextPrayer, isPrayerTimesLoading, locationError } = usePrayerTimesContext();
-    const [isDuaModalOpen, setIsDuaModalOpen] = useState(false);
 
     const isCategoryComplete = useMemo(() => {
         return (categoryName: DailyAzkarCategory) => {
@@ -80,7 +76,7 @@ const HomePage: React.FC = () => {
                         <p className="text-xs font-semibold">📖 صفحات قرآن</p>
                     </div>
                      <div className="p-3 bg-black/20 rounded-lg">
-                        <p className="text-2xl font-bold">{Object.values(dailyData.prayerData).filter(p=>p.fard === 'early' || p.fard === 'ontime').length}/5</p>
+                        <p className="text-2xl font-bold">{Object.values(dailyData.prayerData).filter((p: PrayerStatus) => p.fard === 'early' || p.fard === 'ontime').length}/5</p>
                         <p className="text-xs font-semibold">🕌 صلوات</p>
                     </div>
                 </div>
@@ -95,7 +91,6 @@ const HomePage: React.FC = () => {
                         <div>
                             <p className="text-white">الصلاة القادمة: <span className="font-bold text-yellow-300">{nextPrayer.prayer?.name || '...'}</span></p>
                             <p className="text-2xl font-bold text-white tracking-wider">{nextPrayer.countdown}</p>
-                            {locationError && <p className="text-xs text-yellow-400/80 mt-1">(مواقيت القاهرة الافتراضية)</p>}
                         </div>
                     )}
                 </div>
@@ -110,7 +105,7 @@ const HomePage: React.FC = () => {
                    ))}
                 </div>
             </GlassCard>
-            
+
             <div className="grid md:grid-cols-2 gap-6">
                 <GlassCard>
                     <SectionHeader title="📿 الأذكار" linkTo="/azkar" />
@@ -143,11 +138,8 @@ const HomePage: React.FC = () => {
                 )}
             </div>
             
-            <DuaCompanionCard onOpen={() => setIsDuaModalOpen(true)} />
-            <DailyWisdomCard />
             <IslamicCalendar />
-
-            {isDuaModalOpen && <DuaCompanionModal onClose={() => setIsDuaModalOpen(false)} />}
+            
         </div>
     );
 };
