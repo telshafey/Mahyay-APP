@@ -4,7 +4,7 @@ import GlassCard from '../GlassCard';
 import { HIJRI_MONTHS_INFO } from '../../constants';
 
 const IslamicCalendar: React.FC = () => {
-    const { currentHijriMonthInfo, nextIslamicOccasion, hijriYearInfo, islamicOccasions } = useAppContext();
+    const { currentHijriMonthInfo, nextIslamicOccasion, hijriYearInfo } = useAppContext();
 
     if (!currentHijriMonthInfo) {
         return <GlassCard><p className="text-center text-white/80">جاري تحميل التقويم الإسلامي...</p></GlassCard>;

@@ -23,7 +23,6 @@ import { MOCK_APP_DATA } from '../mockData';
 // Helper function to create initial daily data
 const createInitialDailyData = (prayers: Prayer[], nawafil: Nawafil[]): DailyData => {
     const prayerData = Object.fromEntries(
-        // FIX: Add type assertion to ensure 'fard' property matches 'PrayerFardStatus' type.
         prayers.map(p => [p.name, { fard: 'not_prayed' as PrayerFardStatus, sunnahBefore: false, sunnahAfter: false }])
     );
     const nawafilData = Object.fromEntries(
@@ -56,8 +55,6 @@ export const useAppData = (): AppContextType => {
     const [challenges, setChallenges] = useState<BaseChallenge[]>(CHALLENGES_DATA);
     const [islamicOccasions, setIslamicOccasions] = useState<IslamicOccasion[]>(ISLAMIC_OCCASIONS_DATA);
     const [prayerMethods, setPrayerMethods] = useState<PrayerMethod[]>(PRAYER_METHODS_DATA);
-    
-    // Derived from constants directly as there is no state setter for these currently unused setters
     const prayers = PRAYERS_DATA;
     const nawafil = NAWAFIL_DATA;
     const azkarCategories = AZKAR_DATA;
@@ -140,7 +137,7 @@ export const useAppData = (): AppContextType => {
     const dailyData = useMemo(() => {
         const data = appData[todayKey];
         if (data) {
-            // Cast strictly to DailyData to fix missing property issue
+            // Merge with initial data to ensure all fields exist
             return { ...createInitialDailyData(prayers, nawafil), ...data } as DailyData;
         }
         return createInitialDailyData(prayers, nawafil);
@@ -170,6 +167,7 @@ export const useAppData = (): AppContextType => {
         setAppData(prev => {
             const initialForDay = createInitialDailyData(prayers, nawafil);
             const currentDayPartial = prev[todayKey] || {};
+            // Ensure we have a full DailyData object to pass to the updater
             const currentDayFull: DailyData = { ...initialForDay, ...currentDayPartial } as DailyData;
             
             const updatedDayData = updater(currentDayFull);

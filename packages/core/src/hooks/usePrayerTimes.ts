@@ -168,7 +168,7 @@ export const usePrayerTimes = (): PrayerTimesContextType => {
         let nextPrayerInfo: { prayer: Prayer | null; time: Date; isNextDay: boolean } = { prayer: null, time: new Date(), isNextDay: false };
 
         if (Object.keys(prayerTimes).length === 0) {
-            return { prayer: null, time: null, countdown: '00:00:00', isNextDay: false };
+            return { prayer: null, time: new Date(), countdown: '00:00:00', isNextDay: false };
         }
 
         const todayPrayerTimes = PRAYERS.map(p => {
@@ -214,7 +214,6 @@ export const usePrayerTimes = (): PrayerTimesContextType => {
                 setCountdown(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
             } else {
                 setCountdown("حان الآن");
-                // Potentially trigger a refresh of prayer times for the new day
             }
         }, 1000);
 

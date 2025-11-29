@@ -8,6 +8,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [session, setSession] = useState<AuthContextType['session']>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [viewAsUser, setViewAsUser] = useState(true);
     
     useEffect(() => {
         const getInitialSession = async () => {
@@ -81,6 +82,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }
 
+    const toggleViewMode = () => {
+        if (profile?.role === 'admin') {
+            setViewAsUser(prev => !prev);
+        }
+    };
 
     const value: AuthContextType = {
         session,
@@ -100,6 +106,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         }),
         signOut: () => supabase.auth.signOut(),
+        viewAsUser,
+        toggleViewMode,
         toggleRole
     };
 

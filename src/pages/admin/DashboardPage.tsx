@@ -29,11 +29,11 @@ const DashboardPage: React.FC = () => {
             <h2 className="text-3xl font-bold text-white font-amiri">📊 لوحة المعلومات</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <StatCard label="إجمالي المستخدمين" value={stats.totalUsers} icon="👥" color="bg-blue-500" />
-                <StatCard label="تحديات نشطة" value={stats.activeChallenges} icon="⏳" color="bg-yellow-500" />
-                <StatCard label="تحديات مكتملة" value={stats.completedChallenges} icon="✅" color="bg-green-500" />
-                <StatCard label="إجمالي الصلوات المسجلة" value={stats.totalPrayers} icon="🕌" color="bg-teal-500" />
-                <StatCard label="إجمالي الصفحات المقروءة" value={stats.totalPagesRead} icon="📖" color="bg-sky-500" />
+                <StatCard label="إجمالي المستخدمين" value={stats.totalUsers} icon="👥" colorClass="bg-blue-500" />
+                <StatCard label="تحديات نشطة" value={stats.activeChallenges} icon="⏳" colorClass="bg-yellow-500" />
+                <StatCard label="تحديات مكتملة" value={stats.completedChallenges} icon="✅" colorClass="bg-green-500" />
+                <StatCard label="إجمالي الصلوات المسجلة" value={stats.totalPrayers} icon="🕌" colorClass="bg-teal-500" />
+                <StatCard label="إجمالي الصفحات المقروءة" value={stats.totalPagesRead} icon="📖" colorClass="bg-sky-500" />
             </div>
             
             <GlassCard>

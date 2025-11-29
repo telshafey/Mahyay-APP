@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { PRAYERS, CAIRO_PRAYER_TIMES } from '../constants';
-import { Prayer, PrayerTimeData, PrayerTimesContextType, Settings } from '../types';
+import { Prayer, PrayerTimeData, PrayerTimesContextType } from '../types';
 
-export const usePrayerTimes = (settings: Settings): PrayerTimesContextType => {
-    const [prayerTimes, setPrayerTimes] = useState<PrayerTimeData>(CAIRO_PRAYER_TIMES);
+export const usePrayerTimes = (): PrayerTimesContextType => {
+    const [prayerTimes] = useState<PrayerTimeData>(CAIRO_PRAYER_TIMES);
     const [countdown, setCountdown] = useState('');
-    const [isPrayerTimesLoading, setIsPrayerTimesLoading] = useState(false);
-    const [locationError, setLocationError] = useState<string | null>("يستخدم التطبيق مواقيت القاهرة حاليًا.");
+    const [locationError] = useState<string | null>("يستخدم التطبيق مواقيت القاهرة حاليًا.");
 
     const detectLocation = async () => {
         alert("ميزة تحديد الموقع معطلة مؤقتًا. يستخدم التطبيق مواقيت القاهرة.");
@@ -76,6 +75,6 @@ export const usePrayerTimes = (settings: Settings): PrayerTimesContextType => {
         coordinates: { latitude: 30.0444, longitude: 31.2357 }, // Cairo coordinates
         locationError,
         detectLocation,
-        isPrayerTimesLoading
+        isPrayerTimesLoading: false
     };
 };

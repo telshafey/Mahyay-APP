@@ -25,7 +25,6 @@ export const usePersonalGoals = (profile: UserProfile | null): PersonalGoalsCont
         loadMockGoals();
     }, [profile]);
     
-    
     const addPersonalGoal = async (goal: Omit<PersonalGoal, 'id' | 'user_id' | 'created_at' | 'is_archived' | 'completed_at'>): Promise<boolean> => {
         if (!profile) return false;
         

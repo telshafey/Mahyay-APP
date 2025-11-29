@@ -10,7 +10,6 @@ import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import ScrollToTop from './components/ScrollToTop';
 import NotificationToast from './components/NotificationToast';
-import AdminRoute from './components/AdminRoute';
 import AdminLayout from './layouts/AdminLayout';
 
 // Statically import page components.
@@ -59,8 +58,8 @@ const ErrorScreen: React.FC<{ message: string }> = ({ message }) => (
 );
 
 const PrayerTimesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { settings } = useAppData(); // Assuming AppDataProvider is a parent
-    const prayerTimesData = usePrayerTimes(settings);
+    // usePrayerTimes hook handles fetching settings from context or using default
+    const prayerTimesData = usePrayerTimes();
     return (
         <PrayerTimesContext.Provider value={prayerTimesData}>
             {children}

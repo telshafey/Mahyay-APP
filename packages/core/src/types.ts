@@ -28,6 +28,11 @@ export interface Prayer {
   virtue: string;
 }
 
+export interface PrayerMethod {
+    id: number;
+    name: string;
+}
+
 export interface Nawafil {
     name: string;
     emoji: string;
@@ -60,6 +65,7 @@ export type AppData = {
     azkarStatus?: { [key: string]: { [zikrId: number]: number } };
     nawafilData?: { [key: string]: NawafilStatus };
     quranPagesRead?: number;
+    dailyGoalProgress?: { [goalId: string]: boolean };
   };
 };
 
@@ -169,12 +175,12 @@ export interface AuthContextType {
     session: Session | null;
     profile: UserProfile | null;
     isLoading: boolean;
-    // FIX: Changed parameter name from `pass` to `password` to match implementation.
     signIn: (email: string, password: string) => Promise<{ data?: any; error: Error | null }>;
-    // FIX: Changed parameter name from `pass` to `password` to match implementation.
     signUp: (email: string, password: string) => Promise<{ data?: any; error: Error | null }>;
     signOut: () => Promise<{ error: Error | null }>;
-    toggleRole: () => void;
+    viewAsUser: boolean;
+    toggleViewMode: () => void;
+    toggleRole: () => Promise<void>;
 }
 
 
@@ -226,6 +232,9 @@ export interface AppContextType extends PersonalGoalsContextType {
     hijriYearInfo: HijriYearInfo | null;
     dailyWisdom: { text: string; source: string; } | null;
     userChallenges: UserChallenge[];
+    challenges: BaseChallenge[];
+    islamicOccasions: IslamicOccasion[];
+    prayerMethods: PrayerMethod[];
     weeklyPrayerCounts: { day: string; count: number }[];
     updateSettings: (newSettings: Partial<Settings>) => Promise<void>;
     updatePrayerStatus: (prayerName: string, status: PrayerFardStatus) => Promise<void>;
@@ -238,6 +247,16 @@ export interface AppContextType extends PersonalGoalsContextType {
     logManualChallengeProgress: (challengeId: string) => Promise<boolean>;
     incrementAzkarCount: (categoryName: DailyAzkarCategory, zikrId: number) => Promise<void>;
     completeZikr: (categoryName: DailyAzkarCategory, zikrId: number) => Promise<void>;
+    // Admin functions
+    addChallenge: (challenge: Omit<BaseChallenge, 'id'>) => Promise<void>;
+    updateChallenge: (challenge: BaseChallenge) => Promise<void>;
+    deleteChallenge: (challengeId: string) => Promise<void>;
+    addIslamicOccasion: (occasion: Omit<IslamicOccasion, 'id'>) => Promise<void>;
+    updateIslamicOccasion: (occasion: IslamicOccasion) => Promise<void>;
+    deleteIslamicOccasion: (occasionId: string) => Promise<void>;
+    addPrayerMethod: (method: Omit<PrayerMethod, 'id'>) => Promise<void>;
+    updatePrayerMethod: (method: PrayerMethod) => Promise<void>;
+    deletePrayerMethod: (methodId: number) => Promise<void>;
 }
 
 
