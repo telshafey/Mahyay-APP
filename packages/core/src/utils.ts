@@ -1,7 +1,7 @@
 import { AppData, AppStats, UserChallenge, DailyAzkarCategory, PrayerStatus, DailyData, BaseChallenge } from './types';
 import { QURAN_TOTAL_PAGES, QURAN_SURAHS, AZKAR_DATA } from './constants';
 
-// Abstract storage to avoid importing native modules in web build
+// Safe storage wrapper that works for both Web and Native (Mock for native in web context)
 export const storage = {
     async getItem(key: string): Promise<string | null> {
         try {
@@ -32,6 +32,20 @@ export const storage = {
             console.warn(`Could not remove item from storage: ${key}`, e);
         }
     },
+};
+
+// Re-export safeLocalStorage for backward compatibility if needed, aliased to storage
+export const safeLocalStorage = {
+    getItem: (key: string) => {
+        if (typeof window !== 'undefined' && window.localStorage) return window.localStorage.getItem(key);
+        return null;
+    },
+    setItem: (key: string, value: string) => {
+        if (typeof window !== 'undefined' && window.localStorage) window.localStorage.setItem(key, value);
+    },
+    removeItem: (key: string) => {
+        if (typeof window !== 'undefined' && window.localStorage) window.localStorage.removeItem(key);
+    }
 };
 
 export const getMaxCount = (repeat: string | number): number => {
@@ -144,14 +158,6 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
     return { totalPoints, streak, weeklyPrayers, monthlyPrayers, quranPages, completedAzkar, khatmaProgress: { pagesReadInCurrent, percentage } };
 };
 
-
-/**
- * Checks if a given Hijri year is a leap year.
- * The formula is based on the algorithm used in common Hijri calendar implementations.
- * A Hijri year is leap if (11 * year + 14) % 30 < 11.
- * @param {number} year The Hijri year to check.
- * @returns {boolean} True if the year is a leap year, false otherwise.
- */
 export const isHijriLeapYear = (year: number): boolean => {
     return (11 * year + 14) % 30 < 11;
 };
