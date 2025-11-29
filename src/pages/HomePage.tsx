@@ -9,6 +9,7 @@ import SectionHeader from '../components/home/SectionHeader';
 import { Link } from 'react-router-dom';
 import IslamicCalendar from '../components/home/IslamicCalendar';
 import LocationBanner from '../components/home/LocationBanner';
+import DailyWisdomCard from '../components/home/DailyWisdomCard';
 
 const PrayerProgressItem: React.FC<{ name: string; emoji: string; status: string }> = React.memo(({ name, emoji, status }) => {
     const statusStyles: { [key: string]: string } = {
@@ -138,6 +139,7 @@ const HomePage: React.FC = () => {
                 )}
             </div>
             
+            <DailyWisdomCard />
             <IslamicCalendar />
         </div>
     );

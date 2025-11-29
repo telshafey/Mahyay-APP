@@ -55,9 +55,11 @@ const GoalsPage: React.FC = () => {
         <div className="space-y-6 text-white">
             
             {!isFormVisible && (
-                <button onClick={() => setIsFormVisible(true)} className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors text-lg">
-                    + إضافة هدف جديد
-                </button>
+                <div className="space-y-2">
+                    <button onClick={() => setIsFormVisible(true)} className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors text-lg">
+                        + إضافة هدف جديد
+                    </button>
+                </div>
             )}
 
             {isFormVisible && (

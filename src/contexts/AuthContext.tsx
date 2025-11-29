@@ -6,8 +6,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    // FIX: Add state for toggling admin view mode.
-    // جعلنا القيمة الافتراضية true ليبدأ التطبيق بواجعة المستخدم حتى للمدير
+    // Make User view default (true) even for admins.
     const [viewAsUser, setViewAsUser] = useState(true);
 
     useEffect(() => {
@@ -23,7 +22,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
     }, []);
 
-    // FIX: Implement the view mode toggle function for admins.
     const toggleViewMode = () => {
         if (profile?.role === 'admin') {
             setViewAsUser(prev => !prev);
