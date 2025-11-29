@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import HijriDate from 'hijri-date';
 import { 
     AppContextType, AppData, Settings, DailyData, AppStats,
-    BaseChallenge, IslamicOccasion, PrayerMethod, Prayer, Nawafil, AzkarCategory,
+    BaseChallenge, IslamicOccasion, PrayerMethod, Prayer, Nawafil,
     HijriMonthInfo, PrayerFardStatus
 } from '../types';
 import { useAuthContext } from '../contexts/AuthContext';
