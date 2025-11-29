@@ -112,19 +112,26 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
     if (reversedDates.length > 0) {
         const lastDate = new Date(reversedDates[0]);
         const diff = Math.floor((new Date().setHours(0,0,0,0) - lastDate.setHours(0,0,0,0)) / (1000 * 3600 * 24));
+        
+        // Only count streak if the last entry was today or yesterday
         if (diff <= 1) {
             for (let i = 0; i < reversedDates.length; i++) {
                 const dayData = appData[reversedDates[i]];
                 const prayers = Object.values(dayData?.prayerData || {}).filter((p: PrayerStatus) => ['early', 'ontime'].includes(p.fard)).length;
+                
+                // Streak condition: at least 3 prayers on time
                 if (prayers >= 3) {
                     streak++;
+                    // Check strict consecutiveness
                     if (i + 1 < reversedDates.length) {
                         const d1 = new Date(reversedDates[i]);
                         const d2 = new Date(reversedDates[i+1]);
                         const dayDiff = Math.round((d1.getTime() - d2.getTime()) / (1000 * 3600 * 24));
                         if (dayDiff > 1) break;
                     }
-                } else break;
+                } else {
+                    break;
+                }
             }
         }
     }

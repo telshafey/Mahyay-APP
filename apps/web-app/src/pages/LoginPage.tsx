@@ -47,8 +47,11 @@ const LoginPage: React.FC = () => {
                 setMessage('تم إنشاء حسابك بنجاح! يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب.');
                 setEmail('');
                 setPassword('');
+                // Optionally switch to login mode after signup
+                // setIsLogin(true);
             }
         } catch (err) {
+            console.error(err);
             setError("حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.");
         } finally {
             setLoading(false);
@@ -70,13 +73,13 @@ const LoginPage: React.FC = () => {
                 </h2>
                 
                 {error && (
-                    <div className="bg-red-500/20 border border-red-500/50 p-3 rounded-lg text-center text-sm mb-4 text-red-200 animate-pulse">
+                    <div className="bg-red-500/20 border border-red-500/50 p-3 rounded-lg text-center text-sm mb-4 text-red-100 font-semibold animate-pulse">
                         ⚠️ {error}
                     </div>
                 )}
                 
                 {message && (
-                    <div className="bg-green-500/20 border border-green-500/50 p-3 rounded-lg text-center text-sm mb-4 text-green-200">
+                    <div className="bg-green-500/20 border border-green-500/50 p-3 rounded-lg text-center text-sm mb-4 text-green-100 font-semibold">
                         ✅ {message}
                     </div>
                 )}
