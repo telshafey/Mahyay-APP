@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { PRAYERS, PRAYER_NAMES_API_MAP, PRAYER_LOCATIONS } from '@mahyay/core';
-import { Prayer, PrayerTimeData, PrayerTimesContextType, Settings, ApiHijriDate } from '@mahyay/core';
+import { PRAYERS, PRAYER_NAMES_API_MAP, PRAYER_LOCATIONS, Prayer, PrayerTimeData, PrayerTimesContextType, Settings, ApiHijriDate } from '@mahyay/core';
 
 export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHijriDate | null) => void): Omit<PrayerTimesContextType, 'apiHijriDate'> => {
     const [prayerTimes, setPrayerTimes] = useState<{ [key: string]: string }>({});
@@ -44,8 +43,10 @@ export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHi
             );
             setPrayerTimes(fallbackTimes);
         }
+        setApiHijriDate(null);
+        // Important: Clear any visible error when fallback is successfully applied to avoid scaring the user
         setLocationError(null); 
-    }, [settings.defaultLocationId]);
+    }, [settings.defaultLocationId, setApiHijriDate]);
 
     useEffect(() => {
         let isMounted = true;
@@ -53,7 +54,7 @@ export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHi
         const fetchPrayerTimes = async () => {
             setIsPrayerTimesLoading(true);
             
-            // DIRECT API CALL - Bypass local proxy to fix 404s
+            // Use Direct API URL to avoid 404 on local/vercel proxy
             const baseUrl = 'https://api.aladhan.com/v1';
             let apiUrl = '';
             
@@ -69,6 +70,7 @@ export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHi
             }
 
             try {
+                // Short timeout to fallback quickly if offline
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 5000);
 
@@ -76,13 +78,13 @@ export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHi
                 clearTimeout(timeoutId);
                 
                 if (!response.ok) {
-                    throw new Error(`API Error ${response.status}`);
+                    throw new Error(`Status: ${response.status}`);
                 }
 
                 const data = await response.json();
                 
                 if (data.code !== 200 || !data.data?.timings) {
-                     throw new Error('Invalid Data');
+                     throw new Error('Invalid Data Structure');
                 }
                 
                 if (isMounted) {
@@ -99,9 +101,10 @@ export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHi
                 }
 
             } catch (err) {
-                console.warn("Fetch error, using fallback:", err);
-                if(isMounted) {
+                console.warn("Prayer times fetch failed (using fallback):", err);
+                if (isMounted) {
                     applyFallback();
+                    // Do NOT set locationError here. We want silent fallback.
                 }
             } finally {
                 if(isMounted) setIsPrayerTimesLoading(false);
