@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { calculateStats } from './utils';
 import { AppData, UserChallenge, AzkarCategory } from './types';
-import { AZKAR_DATA, CHALLENGES } from './constants';
+import { AZKAR_DATA } from './constants';
 
 describe('calculateStats', () => {
 
     it('should return default stats for empty data', () => {
         const appData: AppData = {};
         const userChallenges: UserChallenge[] = [];
-        const stats = calculateStats(appData, userChallenges, CHALLENGES);
+        const stats = calculateStats(appData, userChallenges);
 
         expect(stats.totalPoints).toBe(0);
         expect(stats.streak).toBe(0);
@@ -44,13 +44,12 @@ describe('calculateStats', () => {
                 },
                 quranPagesRead: 10,
                 nawafilData: {},
-                dailyGoalProgress: {},
             }
         };
 
         const userChallenges: UserChallenge[] = [];
 
-        const stats = calculateStats(appData, userChallenges, CHALLENGES);
+        const stats = calculateStats(appData, userChallenges);
         
         const expectedPrayerPoints = 3 * 10; // 3 prayers on time
         const expectedAzkarPoints = 1 * 15;  // 1 azkar group completed
@@ -69,28 +68,26 @@ describe('calculateStats', () => {
         const appData: AppData = {};
         const userChallenges: UserChallenge[] = [
             {
-                // FIX: Changed id to a string to match the UserChallenge type.
-                id: '1', user_id: '123', challenge_id: 'c1', started_at: '',
+                id: 1, user_id: '123', challenge_id: 'c1', started_at: '',
                 status: 'completed', progress: 84
             },
             {
-                // FIX: Changed id to a string to match the UserChallenge type.
-                id: '2', user_id: '123', challenge_id: 'c2', started_at: '',
+                id: 2, user_id: '123', challenge_id: 'c2', started_at: '',
                 status: 'active', progress: 5
             }
         ];
 
-        const stats = calculateStats(appData, userChallenges, CHALLENGES);
+        const stats = calculateStats(appData, userChallenges);
         
         expect(stats.totalPoints).toBe(200);
     });
     
     it('should correctly calculate khatma progress', () => {
         const appData: AppData = {
-            '2024-01-01': { quranPagesRead: 600, prayerData: {}, azkarStatus: {}, nawafilData: {}, dailyGoalProgress: {} },
-            '2024-01-02': { quranPagesRead: 10, prayerData: {}, azkarStatus: {}, nawafilData: {}, dailyGoalProgress: {} } // Total 610, which is 6 pages into the new khatma
+            '2024-01-01': { quranPagesRead: 600, prayerData: {}, azkarStatus: {}, nawafilData: {} },
+            '2024-01-02': { quranPagesRead: 10, prayerData: {}, azkarStatus: {}, nawafilData: {} } // Total 610, which is 6 pages into the new khatma
         };
-        const stats = calculateStats(appData, [], CHALLENGES);
+        const stats = calculateStats(appData, []);
         
         expect(stats.quranPages).toBe(610);
         expect(stats.khatmaProgress.pagesReadInCurrent).toBe(6); // 610 % 604 = 6

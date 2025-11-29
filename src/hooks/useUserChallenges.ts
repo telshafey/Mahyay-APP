@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 import { useState, useEffect, useCallback, Dispatch, SetStateAction } from 'react';
 import { UserChallenge, UserProfile, AppData, BaseChallenge, PrayerStatus, DailyData } from '../types';
 import { MOCK_USER_CHALLENGES } from '../mockData';
@@ -69,7 +59,7 @@ export const useUserChallenges = (profile: UserProfile | null, challenges: BaseC
         if (!baseChallenge) return false;
 
         const newChallenge: UserChallenge = {
-            id: String(Date.now()),
+            id: Date.now(),
             user_id: profile.id,
             challenge_id: challengeId,
             started_at: new Date().toISOString(),

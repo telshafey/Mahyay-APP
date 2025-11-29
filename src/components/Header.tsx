@@ -63,7 +63,7 @@ const Header: React.FC = () => {
 
                            {profile?.role === 'admin' && (
                                <button onClick={handleToggleView} className="w-full text-right flex items-center gap-3 px-4 py-3 font-bold bg-yellow-100/50 hover:bg-yellow-200/50 transition-colors">
-                                   {viewAsUser ? '👑 العودة لوضع المدير' : '👤 عرض كتطبيق مستخدم'}
+                                   {viewAsUser ? '👑 لوحة التحكم' : '👤 عرض كتطبيق مستخدم'}
                                </button>
                            )}
 

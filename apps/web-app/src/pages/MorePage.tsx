@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { MorePageType } from '../../../packages/core/src';
+import { MorePageType } from '@mahyay/core';
 
 import StatsPage from './more/StatsAndChallengesPage';
 import AboutPage from './more/AboutPage';
@@ -28,7 +28,7 @@ const MorePage: React.FC = () => {
     };
 
     const pageTitles: Record<string, string> = {
-        stats: '📊 الإحصائيات والتحديات',
+        stats: '📊 الإحصائيات',
         about: 'ℹ️ عن التطبيق',
         support: '🆘 الدعم والأسئلة الشائعة',
         settings: '⚙️ الإعدادات',

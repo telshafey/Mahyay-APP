@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect, useMemo } from 'react';
-import { useAppContext, Zikr, DailyAzkarCategory, AzkarCategory } from '../../../packages/core/src';
+import { useAppContext, AZKAR_DATA, Zikr, DailyAzkarCategory, AzkarCategory } from '@mahyay/core';
 import GlassCard from '../components/GlassCard';
 import Accordion from '../components/ui/Accordion';
 
@@ -29,6 +29,7 @@ const ZikrItemCard: React.FC<{
 
     const progressPercentage = (currentCount / zikr.repeat) * 100;
     
+    // New logic: Use counter for low repeats (<= 3), single button for high repeats.
     const needsCounter = zikr.repeat > 1 && zikr.repeat <= 3;
 
     return (
@@ -83,9 +84,23 @@ const TabButton: React.FC<{
 );
 
 const AzkarPage: React.FC = () => {
-    const { dailyData, settings, azkarData } = useAppContext();
+    const { dailyData, settings } = useAppContext();
     const [activeTab, setActiveTab] = useState<AzkarCategory['name']>('أذكار الصباح');
     const [searchTerm, setSearchTerm] = useState('');
+
+    const {
+        morning: morningAzkar,
+        evening: eveningAzkar,
+        sleep: sleepingAzkar,
+        wakeup: wakingAzkar,
+        general: generalAzkar
+    } = useMemo(() => ({
+        morning: AZKAR_DATA.find(c => c.name === 'أذكار الصباح')!,
+        evening: AZKAR_DATA.find(c => c.name === 'أذكار المساء')!,
+        sleep: AZKAR_DATA.find(c => c.name === 'أذكار النوم')!,
+        wakeup: AZKAR_DATA.find(c => c.name === 'أذكار الاستيقاظ')!,
+        general: AZKAR_DATA.find(c => c.name === 'أذكار عامة')!
+    }), []);
 
     useEffect(() => {
         const now = new Date();
@@ -101,34 +116,20 @@ const AzkarPage: React.FC = () => {
         }
     }, [settings.azkarMorningStart, settings.azkarEveningStart]);
     
-    const dailyCategories = useMemo(() => [
-        { name: 'أذكار الصباح', icon: '🌅' },
-        { name: 'أذكار المساء', icon: '🌃' },
-        { name: 'أذكار النوم', icon: '😴' },
-        { name: 'أذكار الاستيقاظ', icon: '🌤️' }
-    ], []);
-    
-    const generalCategories = useMemo(() => {
-        const dailyNames = dailyCategories.map(c => c.name);
-        return azkarData.filter(c => !dailyNames.includes(c.name));
-    }, [azkarData, dailyCategories]);
-    
     const filteredGeneralAzkar = useMemo(() => {
-        if (!searchTerm.trim()) return generalCategories;
-        
-        const lowercasedTerm = searchTerm.toLowerCase();
-        
-        return generalCategories
-            .map(category => ({
-                ...category,
-                items: category.items.filter(zikr =>
-                    zikr.text.toLowerCase().includes(lowercasedTerm) ||
-                    zikr.notes?.toLowerCase().includes(lowercasedTerm)
-                ),
-            }))
-            .filter(category => category.items.length > 0);
-            
-    }, [searchTerm, generalCategories]);
+        if (!searchTerm.trim()) return generalAzkar.items;
+        return generalAzkar.items.filter(zikr => 
+            zikr.text.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            zikr.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [searchTerm, generalAzkar.items]);
+    
+    const dailyCategories = useMemo(() => [
+        { name: morningAzkar.name, category: morningAzkar, icon: '🌅' },
+        { name: eveningAzkar.name, category: eveningAzkar, icon: '🌃' },
+        { name: sleepingAzkar.name, category: sleepingAzkar, icon: '😴' },
+        { name: wakingAzkar.name, category: wakingAzkar, icon: '🌤️' }
+    ], [morningAzkar, eveningAzkar, sleepingAzkar, wakingAzkar]);
 
     const isCategoryComplete = (category: AzkarCategory) => {
         const categoryProgress = dailyData.azkarStatus[category.name as DailyAzkarCategory];
@@ -154,8 +155,6 @@ const AzkarPage: React.FC = () => {
             </div>
         );
     };
-    
-    const currentDailyCategory = azkarData.find(c => c.name === activeTab);
 
     return (
         <div className="space-y-6">
@@ -166,15 +165,13 @@ const AzkarPage: React.FC = () => {
                     {dailyCategories.map(cat => (
                          <TabButton key={cat.name} label={cat.name.replace('أذكار ', '')} icon={cat.icon} isActive={activeTab === cat.name} onClick={() => setActiveTab(cat.name)} />
                     ))}
-                    <TabButton label="عامة" icon="🤲" isActive={activeTab === 'عامة'} onClick={() => setActiveTab('عامة')} />
+                    <TabButton label="عامة" icon="🤲" isActive={activeTab === 'أذكار عامة'} onClick={() => setActiveTab('أذكار عامة')} />
                 </div>
             </GlassCard>
             
-            {currentDailyCategory && dailyCategories.some(dc => dc.name === activeTab) && (
-                 <div className="animate-fade-in">{renderAzkarList(currentDailyCategory)}</div>
-            )}
+            {dailyCategories.map(cat => activeTab === cat.name && <div key={cat.name} className="animate-fade-in">{renderAzkarList(cat.category)}</div>)}
             
-            {activeTab === 'عامة' && (
+            {activeTab === 'أذكار عامة' && (
                 <div className="space-y-4 animate-fade-in">
                      <GlassCard>
                         <div className="relative">
@@ -191,18 +188,13 @@ const AzkarPage: React.FC = () => {
                         </div>
                     </GlassCard>
                     {filteredGeneralAzkar.length > 0 ? (
-                        filteredGeneralAzkar.map(category => (
-                            <div key={category.name}>
-                                <h3 className="text-lg font-bold text-yellow-300 mb-2">{category.name}</h3>
-                                {category.items.map(zikr => (
-                                     <Accordion key={zikr.id} title={<span className="font-semibold">{zikr.notes || zikr.text.substring(0, 30)+'...'}</span>}>
-                                        <div className="p-4 pt-0 text-white/90 border-t border-white/10 space-y-3">
-                                            <p className="font-amiri text-lg leading-relaxed text-white whitespace-pre-wrap">{zikr.text}</p>
-                                            <p className="text-xs text-yellow-300 font-amiri pr-2 border-r-2 border-yellow-400/50">{zikr.reference}</p>
-                                        </div>
-                                     </Accordion>
-                                ))}
-                            </div>
+                        filteredGeneralAzkar.map(zikr => (
+                             <Accordion key={zikr.id} title={<span className="font-semibold">{zikr.notes || zikr.text.substring(0, 30)+'...'}</span>}>
+                                <div className="p-4 pt-0 text-white/90 border-t border-white/10 space-y-3">
+                                    <p className="font-amiri text-lg leading-relaxed text-white whitespace-pre-wrap">{zikr.text}</p>
+                                    <p className="text-xs text-yellow-300 font-amiri pr-2 border-r-2 border-yellow-400/50">{zikr.reference}</p>
+                                </div>
+                             </Accordion>
                         ))
                     ) : (
                         <GlassCard className="text-center text-white/80 py-4">لم يتم العثور على نتائج لبحثك.</GlassCard>

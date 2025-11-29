@@ -1,4 +1,4 @@
-import { AppData, PersonalGoal, UserChallenge, FAQ } from './types';
+import { AppData, PersonalGoal, UserChallenge } from './types';
 
 // Helper to get past dates
 const getDateKey = (daysAgo: number): string => {
@@ -70,39 +70,15 @@ export const MOCK_GOAL_PROGRESS: { [goalId: string]: number } = {
 
 export const MOCK_USER_CHALLENGES: UserChallenge[] = [
     {
-        id: 'uc_1', user_id: 'mock_user', challenge_id: 'c1', started_at: getDateKey(5),
+        id: 1, user_id: 'mock_user', challenge_id: 'c1', started_at: getDateKey(5),
         status: 'active', progress: 4, last_logged_date: getDateKey(1)
     },
     {
-        id: 'uc_2', user_id: 'mock_user', challenge_id: 'c3', started_at: getDateKey(10),
+        id: 2, user_id: 'mock_user', challenge_id: 'c3', started_at: getDateKey(10),
         status: 'active', progress: 35 // sum of quranPagesRead in MOCK_APP_DATA
     },
     {
-        id: 'uc_3', user_id: 'mock_user', challenge_id: 'c5', started_at: getDateKey(20),
+        id: 3, user_id: 'mock_user', challenge_id: 'c5', started_at: getDateKey(20),
         status: 'completed', progress: 4, completed_at: getDateKey(2)
-    }
-];
-
-// FIX: Add MOCK_FAQS export to resolve import error.
-export const MOCK_FAQS: FAQ[] = [
-    {
-        id: 'faq1',
-        q: 'كيف يتم حساب مواقيت الصلاة؟',
-        a: 'يستخدم التطبيق موقعك الجغرافي (بعد الحصول على إذنك) لحساب مواقيت الصلاة بدقة عبر واجهة برمجة تطبيقات (API) موثوقة. يمكنك أيضًا اختيار طريقة الحساب المفضلة لديك من الإعدادات. في حالة عدم توفر الموقع، يتم استخدام مواقيت القاهرة كإعداد افتراضي.'
-    },
-    {
-        id: 'faq2',
-        q: 'هل بياناتي آمنة؟ وأين يتم تخزينها؟',
-        a: 'نعم، بياناتك آمنة تمامًا. يتم تخزين جميع بياناتك محليًا على جهازك فقط ولا يتم رفعها إلى أي خوادم. لديك السيطرة الكاملة على بياناتك ويمكنك حذفها في أي وقت من الإعدادات.'
-    },
-    {
-        id: 'faq3',
-        q: 'كيف يعمل نظام النقاط والتحديات؟',
-        a: 'تكسب نقاطًا مقابل كل عبادة تقوم بها، مثل الصلوات في وقتها، إتمام الأذكار، وقراءة القرآن. التحديات تمنحك نقاطًا إضافية عند إكمالها، وهي مصممة لمساعدتك على بناء عادات إيمانية قوية ومستمرة.'
-    },
-    {
-        id: 'faq4',
-        q: 'ما هي ميزة "رفيق الدعاء"؟',
-        a: 'هي ميزة تستخدم الذكاء الاصطناعي لمساعدتك على صياغة أدعية من وحي القرآن والسنة بناءً على ما تشعر به أو تحتاجه. فقط اكتب ما في خاطرك، وسيقوم "رفيق الدعاء" بتقديم دعاء مناسب يمكنك الدعاء به.'
     }
 ];

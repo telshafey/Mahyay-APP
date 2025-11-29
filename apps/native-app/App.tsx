@@ -2,7 +2,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { AuthProvider, useAuthContext, AppContext, useAppData, PrayerTimesContext, usePrayerTimes, useAppContext } from '@mahyay/core';
+import { AuthProvider, useAuthContext, AppContext, useAppData, PrayerTimesContext, usePrayerTimes } from '@mahyay/core';
 import { Text, View, ActivityIndicator, StyleSheet, SafeAreaView } from 'react-native';
 
 // Screens
@@ -79,9 +79,7 @@ const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 };
 
 const PrayerTimesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    // FIX: Pass settings from context to usePrayerTimes hook.
-    const { settings } = useAppContext();
-    const prayerTimesData = usePrayerTimes(settings);
+    const prayerTimesData = usePrayerTimes();
     return <PrayerTimesContext.Provider value={prayerTimesData}>{children}</PrayerTimesContext.Provider>;
 };
 

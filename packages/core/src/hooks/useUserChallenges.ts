@@ -59,8 +59,7 @@ export const useUserChallenges = (profile: UserProfile | null, challenges: BaseC
         if (!baseChallenge) return false;
 
         const newChallenge: UserChallenge = {
-            // FIX: Changed id to a string to match the UserChallenge type.
-            id: `uc_${Date.now()}`,
+            id: Date.now(),
             user_id: profile.id,
             challenge_id: challengeId,
             started_at: new Date().toISOString(),

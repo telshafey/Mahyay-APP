@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useAppContext } from '../../../../packages/core/src';
+import { useAppContext } from '@mahyay/core';
 
 const NotificationToast: React.FC = () => {
     const { notification } = useAppContext();

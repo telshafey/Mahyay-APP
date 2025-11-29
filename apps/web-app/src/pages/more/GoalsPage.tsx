@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PersonalGoal, GoalType, useAppContext, getGoalInspiration } from '../../../../packages/core/src';
+import { PersonalGoal, GoalType, useAppContext } from '@mahyay/core';
 import GlassCard from '../../components/GlassCard';
 
 const GOAL_ICONS = ['🎯', '📖', '🤲', '❤️', '💰', '🏃‍♂️', '🌱', '⭐', '📿', '🕌'];
@@ -9,9 +9,7 @@ const GoalsPage: React.FC = () => {
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [goal, setGoal] = useState({ title: '', icon: GOAL_ICONS[0], type: 'daily' as GoalType, target: 1, unit: '', endDate: '' });
     const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
-    
     const [isUpdatingId, setIsUpdatingId] = useState<string | null>(null);
-    const [isInspiring, setIsInspiring] = useState(false);
     
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -47,17 +45,6 @@ const GoalsPage: React.FC = () => {
         setIsUpdatingId(null);
     }
 
-    const handleGetInspiration = async () => {
-        setIsInspiring(true);
-        const { data, error } = await getGoalInspiration();
-        if (data) {
-            setGoal(prev => ({ ...prev, title: data.title, icon: GOAL_ICONS.includes(data.icon) ? data.icon : '🎯' }));
-        } else {
-            alert(`حدث خطأ: ${error}`);
-        }
-        setIsInspiring(false);
-    };
-
     const activeGoals = personalGoals.filter(g => !g.is_archived);
     const completedGoals = personalGoals.filter(g => g.is_archived);
     const displayedGoals = activeTab === 'active' ? activeGoals : completedGoals;
@@ -77,12 +64,7 @@ const GoalsPage: React.FC = () => {
                     <form onSubmit={handleFormSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-semibold mb-1">عنوان الهدف</label>
-                            <div className="flex gap-2">
-                                <input type="text" value={goal.title} onChange={e => setGoal({...goal, title: e.target.value})} className="flex-grow bg-black/30 border border-white/20 rounded-lg px-3 py-2" placeholder="مثال: الاستغفار 100 مرة" />
-                                <button type="button" onClick={handleGetInspiration} disabled={isInspiring} className="px-3 bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50 text-2xl">
-                                    {isInspiring ? '...' : '✨'}
-                                </button>
-                            </div>
+                            <input type="text" value={goal.title} onChange={e => setGoal({...goal, title: e.target.value})} className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2" placeholder="مثال: الاستغفار 100 مرة" />
                         </div>
                         <div>
                              <label className="block text-sm font-semibold mb-1">اختر أيقونة</label>

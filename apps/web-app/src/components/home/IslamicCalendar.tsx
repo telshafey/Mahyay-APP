@@ -1,9 +1,15 @@
 import React from 'react';
-import { useAppContext, HIJRI_MONTHS_INFO } from '@mahyay/core';
+import { useAppContext } from '@mahyay/core';
 import GlassCard from '../GlassCard';
 
 const IslamicCalendar: React.FC = () => {
-    const { currentHijriMonthInfo, nextIslamicOccasion, hijriYearInfo, islamicOccasions } = useAppContext();
+    const { currentHijriMonthInfo, nextIslamicOccasion, hijriYearInfo } = useAppContext();
+
+    const hijriMonths: { [key: number]: string } = {
+        1: "محرم", 2: "صفر", 3: "ربيع الأول", 4: "ربيع الآخر",
+        5: "جمادى الأولى", 6: "جمادى الآخرة", 7: "رجب", 8: "شعبان",
+        9: "رمضان", 10: "شوال", 11: "ذو القعدة", 12: "ذو الحجة"
+    };
 
     if (!currentHijriMonthInfo) {
         return <GlassCard><p className="text-center text-white/80">جاري تحميل التقويم الإسلامي...</p></GlassCard>;
@@ -27,7 +33,7 @@ const IslamicCalendar: React.FC = () => {
                  <div className="bg-yellow-400/20 border-2 border-yellow-400/50 rounded-xl p-4 mb-4 text-center">
                     <h4 className="font-bold text-yellow-200 text-sm">أقرب مناسبة قادمة</h4>
                     <p className="text-white font-bold text-lg">{nextIslamicOccasion.name}</p>
-                    <p className="text-yellow-300 text-sm">{nextIslamicOccasion.hijriDay} {(HIJRI_MONTHS_INFO as any)[nextIslamicOccasion.hijriMonth]?.name}</p>
+                    <p className="text-yellow-300 text-sm">{nextIslamicOccasion.hijriDay} {hijriMonths[nextIslamicOccasion.hijriMonth]}</p>
                     <p className="text-white text-xs mt-1">{nextIslamicOccasion.description}</p>
                 </div>
             )}

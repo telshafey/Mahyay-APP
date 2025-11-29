@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAppContext } from '@mahyay/core';
+import { useAppContext, QURAN_SURAHS } from '@mahyay/core';
 import GlassCard from '../components/GlassCard';
 import KhatmaProgressChart from '../components/more/KhatmaProgressChart';
 
 const QuranPage: React.FC = () => {
-    const { settings, dailyData, updateKhatmaPosition, quranSurahs } = useAppContext();
+    const { settings, dailyData, updateKhatmaPosition } = useAppContext();
     const currentPosition = settings.khatmaPosition || { surah: 1, ayah: 1 };
 
     const [selectedSurah, setSelectedSurah] = useState<number>(currentPosition.surah);
@@ -17,8 +17,8 @@ const QuranPage: React.FC = () => {
     }, [settings.khatmaPosition]);
     
     const selectedSurahInfo = useMemo(() => {
-        return quranSurahs.find(s => s.id === selectedSurah);
-    }, [selectedSurah, quranSurahs]);
+        return QURAN_SURAHS.find(s => s.id === selectedSurah);
+    }, [selectedSurah]);
 
     const handleSurahChange = (surahId: number) => {
         setSelectedSurah(surahId);
@@ -32,7 +32,7 @@ const QuranPage: React.FC = () => {
         setIsSaving(false);
     };
 
-    const currentSurahName = quranSurahs.find(s => s.id === currentPosition.surah)?.name || '...';
+    const currentSurahName = QURAN_SURAHS.find(s => s.id === currentPosition.surah)?.name || '...';
     
     return (
         <div className="space-y-6">
@@ -68,7 +68,7 @@ const QuranPage: React.FC = () => {
                                 onChange={e => handleSurahChange(Number(e.target.value))}
                                 className="w-full mt-1 bg-black/30 border border-white/20 rounded-lg px-3 py-3 text-white"
                             >
-                                {quranSurahs.map(surah => (
+                                {QURAN_SURAHS.map(surah => (
                                     <option key={surah.id} value={surah.id} style={{ backgroundColor: '#2d5a47' }}>
                                         {surah.id}. {surah.name}
                                     </option>

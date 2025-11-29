@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { DisplayChallenge } from '../types';
-import { CHALLENGES } from '../constants';
+import { BaseChallenge, DisplayChallenge } from '../types';
 import GlassCard from '../components/GlassCard';
 import ChallengeCard from '../components/ChallengeCard';
 
 const ChallengesPage: React.FC = () => {
-    const { userChallenges, startChallenge } = useAppContext();
+    const { challenges, userChallenges, startChallenge } = useAppContext();
     const [activeTab, setActiveTab] = useState<'active' | 'available' | 'completed'>('active');
 
     const categorizedChallenges = useMemo(() => {
@@ -14,7 +13,7 @@ const ChallengesPage: React.FC = () => {
         const completed: DisplayChallenge[] = [];
         const available: DisplayChallenge[] = [];
 
-        for (const baseChallenge of CHALLENGES) {
+        for (const baseChallenge of challenges) {
             const userProgress = userChallenges.find(uc => uc.challenge_id === baseChallenge.id);
             const progress = userProgress ? userProgress.progress : 0;
             const challengeWithProgress: DisplayChallenge = { ...baseChallenge, progress, userProgress };
@@ -30,7 +29,7 @@ const ChallengesPage: React.FC = () => {
             }
         }
         return { active, completed, available };
-    }, [userChallenges]);
+    }, [userChallenges, challenges]);
 
 
     const displayedChallenges = {

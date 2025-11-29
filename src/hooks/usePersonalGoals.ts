@@ -1,11 +1,4 @@
-
-
-
-
-
-
 import { useState, useEffect } from 'react';
-// FIX: Import PersonalGoalsContextType to resolve the type error.
 import { PersonalGoal, PersonalGoalsContextType, UserProfile } from '../types';
 import { MOCK_PERSONAL_GOALS, MOCK_GOAL_PROGRESS } from '../mockData';
 
@@ -83,7 +76,7 @@ export const usePersonalGoals = (profile: UserProfile | null): PersonalGoalsCont
         return true;
     };
 
-    const toggleDailyGoalCompletion = (goalId: string): void => {
+    const toggleDailyGoalCompletion = async (_goalId: string) => {
         console.warn("toggleDailyGoalCompletion should be handled by the main app data hook.");
     };
 

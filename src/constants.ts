@@ -1,5 +1,12 @@
+import { Prayer, Nawafil, Surah, BaseChallenge, AzkarCategory, IslamicOccasion, HijriMonthInfo } from "./types";
 
-import { Prayer, Nawafil, Surah, BaseChallenge, AzkarCategory, IslamicOccasion, HijriMonthInfo, PrayerMethod } from "./types";
+export const CAIRO_PRAYER_TIMES: { [key: string]: string } = {
+    'الفجر': "04:30",
+    'الظهر': "12:30",
+    'العصر': "16:00",
+    'المغرب': "19:00",
+    'العشاء': "20:30",
+};
 
 export const QURAN_TOTAL_PAGES = 604;
 
@@ -28,7 +35,7 @@ export const PRAYER_NAMES_API_MAP: { [key: string]: string } = {
     'العشاء': 'Isha'
 };
 
-export const PRAYER_METHODS: PrayerMethod[] = [
+export const PRAYER_METHODS = [
     { id: 1, name: "جامعة العلوم الإسلامية، كراتشي" },
     { id: 2, name: "الجمعية الإسلامية لأمريكا الشمالية (ISNA)" },
     { id: 3, name: "رابطة العالم الإسلامي" },
@@ -41,14 +48,6 @@ export const PRAYER_METHODS: PrayerMethod[] = [
     { id: 11, name: "الاتحاد الإسلامي في فرنسا" },
     { id: 12, name: "تركيا - رئاسة الشؤون الدينية" },
 ];
-
-export const CAIRO_PRAYER_TIMES = {
-    "Fajr": "04:45",
-    "Dhuhr": "12:53",
-    "Asr": "16:29",
-    "Maghrib": "19:48",
-    "Isha": "21:14",
-};
 
 export const CHALLENGES: BaseChallenge[] = [
     { id: 'c1', title: "مداومة على صلاة الضحى", description: "صلِّ صلاة الضحى (ركعتين على الأقل) لمدة 7 أيام متتالية.", icon: "🕊️", points: 200, durationDays: 7, target: 7, tracking: 'manual', relatedItem: 'prayer' },

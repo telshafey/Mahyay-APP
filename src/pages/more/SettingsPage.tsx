@@ -32,10 +32,16 @@ const SettingsPage: React.FC = () => {
         setIsResettingData(true);
         const success = await resetAllData();
         if (success) {
-            alert("تم إعادة تعيين التطبيق بالكامل.");
+            // Optionally sign out or reload
             await signOut();
+            alert("تم إعادة تعيين التطبيق بالكامل.");
         }
         setIsResettingData(false);
+    }
+    
+    const handleSignOut = async () => {
+        await signOut();
+        // The AuthProvider will handle navigation to login page
     }
 
     return (
@@ -128,7 +134,7 @@ const SettingsPage: React.FC = () => {
             <PushNotificationManager />
 
              <GlassCard>
-                <button onClick={signOut} className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors">
+                <button onClick={handleSignOut} className="w-full bg-yellow-500 hover:bg-yellow-600 text-green-900 font-bold py-3 px-4 rounded-lg transition-colors">
                     تسجيل الخروج
                 </button>
             </GlassCard>

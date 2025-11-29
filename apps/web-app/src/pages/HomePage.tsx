@@ -1,16 +1,15 @@
-import React, { useMemo, useState } from 'react';
-import { useAppContext, usePrayerTimesContext, DailyAzkarCategory, PrayerStatus } from '@mahyay/core';
+import React, { useMemo } from 'react';
+// FIX: Import `PrayerStatus` to correctly type the prayer data object values.
+import { useAppContext, usePrayerTimesContext, PRAYERS, AZKAR_DATA, DailyAzkarCategory, PrayerStatus } from '@mahyay/core';
 import VerseCard from '../components/home/VerseCard';
 import GlassCard from '../components/GlassCard';
 import SectionHeader from '../components/home/SectionHeader';
 import { Link } from 'react-router-dom';
+import DailyWisdomCard from '../components/home/DailyWisdomCard';
 import IslamicCalendar from '../components/home/IslamicCalendar';
 import LocationBanner from '../components/home/LocationBanner';
-import DuaCompanionCard from '../components/home/DuaCompanionCard';
-import DuaCompanionModal from '../components/home/DuaCompanionModal';
 
-
-const PrayerProgressItem: React.FC<{ name: string; emoji: string; status: string }> = React.memo(({ name, emoji, status }) => {
+const PrayerProgressItem: React.FC<{ name: string; emoji: string; status: string }> = ({ name, emoji, status }) => {
     const statusStyles: { [key: string]: string } = {
         early: 'bg-green-500/30 text-green-300',
         ontime: 'bg-yellow-500/30 text-yellow-300',
@@ -24,16 +23,15 @@ const PrayerProgressItem: React.FC<{ name: string; emoji: string; status: string
             <span className="text-xs font-semibold">{name}</span>
         </div>
     );
-});
+}
 
 const HomePage: React.FC = () => {
-    const { dailyData, stats, personalGoals, azkarData, prayers } = useAppContext();
+    const { dailyData, stats, personalGoals } = useAppContext();
     const { nextPrayer, isPrayerTimesLoading, locationError } = usePrayerTimesContext();
-    const [isDuaModalOpen, setIsDuaModalOpen] = useState(false);
 
     const isCategoryComplete = useMemo(() => {
-        return (categoryName: DailyAzkarCategory | string) => {
-            const category = azkarData.find(c => c.name === categoryName);
+        return (categoryName: DailyAzkarCategory) => {
+            const category = AZKAR_DATA.find(c => c.name === categoryName);
             if (!category) return false;
 
             const categoryProgress = dailyData.azkarStatus[categoryName];
@@ -41,7 +39,7 @@ const HomePage: React.FC = () => {
 
             return category.items.every(item => (categoryProgress[item.id] || 0) >= item.repeat);
         };
-    }, [dailyData.azkarStatus, azkarData]);
+    }, [dailyData.azkarStatus]);
 
     const activeDailyGoals = useMemo(() => {
         return personalGoals.filter(g => g.type === 'daily' && !g.is_archived);
@@ -77,7 +75,8 @@ const HomePage: React.FC = () => {
                         <p className="text-xs font-semibold">📖 صفحات قرآن</p>
                     </div>
                      <div className="p-3 bg-black/20 rounded-lg">
-                        <p className="text-2xl font-bold">{Object.values(dailyData.prayerData).filter((p: PrayerStatus) => p.fard === 'early' || p.fard === 'ontime').length}/5</p>
+                        {/* FIX: Add type annotation for `p` to resolve error. */}
+                        <p className="text-2xl font-bold">{Object.values(dailyData.prayerData).filter((p: PrayerStatus)=>p.fard === 'early' || p.fard === 'ontime').length}/5</p>
                         <p className="text-xs font-semibold">🕌 صلوات</p>
                     </div>
                 </div>
@@ -92,11 +91,12 @@ const HomePage: React.FC = () => {
                         <div>
                             <p className="text-white">الصلاة القادمة: <span className="font-bold text-yellow-300">{nextPrayer.prayer?.name || '...'}</span></p>
                             <p className="text-2xl font-bold text-white tracking-wider">{nextPrayer.countdown}</p>
+                            {locationError && <p className="text-xs text-yellow-400/80 mt-1">(مواقيت القاهرة الافتراضية)</p>}
                         </div>
                     )}
                 </div>
                 <div className="grid grid-cols-5 gap-2">
-                   {prayers.map(p => (
+                   {PRAYERS.map(p => (
                        <PrayerProgressItem 
                             key={p.name} 
                             name={p.name} 
@@ -106,8 +106,6 @@ const HomePage: React.FC = () => {
                    ))}
                 </div>
             </GlassCard>
-            
-            <DuaCompanionCard onOpen={() => setIsDuaModalOpen(true)} />
             
             <div className="grid md:grid-cols-2 gap-6">
                 <GlassCard>
@@ -141,9 +139,12 @@ const HomePage: React.FC = () => {
                 )}
             </div>
             
+            {/* AI features disabled for preview */}
+            {/* <DuaCompanionCard onOpen={() => setIsDuaModalOpen(true)} /> */}
+            <DailyWisdomCard />
             <IslamicCalendar />
-            
-            {isDuaModalOpen && <DuaCompanionModal onClose={() => setIsDuaModalOpen(false)} />}
+
+            {/* {isDuaModalOpen && <DuaCompanionModal onClose={() => setIsDuaModalOpen(false)} />} */}
         </div>
     );
 };

@@ -1,16 +1,17 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { PRAYERS, PRAYER_NAMES_API_MAP } from '../constants';
-import { Prayer, PrayerTimeData, PrayerTimesContextType, Settings, ApiHijriDate } from '../types';
+import { Prayer, PrayerTimeData, PrayerTimesContextType } from '../types';
+import { useAppContext } from '../contexts/AppContext';
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
 
-export const usePrayerTimes = (settings: Settings): PrayerTimesContextType => {
+export const usePrayerTimes = (): PrayerTimesContextType => {
+    const { settings } = useAppContext();
     const [prayerTimes, setPrayerTimes] = useState<{ [key: string]: string }>({});
     const [coordinates, setCoordinates] = useState<{ latitude: number, longitude: number } | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
     const [isPrayerTimesLoading, setIsPrayerTimesLoading] = useState(true);
     const [countdown, setCountdown] = useState('');
-    const [apiHijriDate, setApiHijriDate] = useState<ApiHijriDate | null>(null);
 
     const detectLocation = useCallback(async () => {
         const cairoFallback = () => {
@@ -112,9 +113,15 @@ export const usePrayerTimes = (settings: Settings): PrayerTimesContextType => {
                 try {
                     data = JSON.parse(responseText);
                 } catch (parseError) {
+                    console.warn("Could not parse prayer times response directly. Attempting to extract JSON...", { rawResponse: responseText });
                     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
                     if (jsonMatch && jsonMatch[0]) {
-                         data = JSON.parse(jsonMatch[0]);
+                        try {
+                            data = JSON.parse(jsonMatch[0]);
+                        } catch (finalParseError) {
+                            console.error("Failed to parse extracted JSON from prayer times response.", { extracted: jsonMatch[0], error: finalParseError });
+                            throw new Error('استجابة غير صالحة من خادم مواقيت الصلاة بعد محاولة التنظيف.');
+                        }
                     } else {
                         throw new Error('لم يتم العثور على JSON صالح في استجابة خادم مواقيت الصلاة.');
                     }
@@ -123,8 +130,6 @@ export const usePrayerTimes = (settings: Settings): PrayerTimesContextType => {
                 if (data.code !== 200 || !data.data || !data.data.timings) {
                     throw new Error(data.data || 'استجابة غير متوقعة من خادم مواقيت الصلاة.');
                 }
-                
-                setApiHijriDate(data.data.date.hijri);
 
                 const timings: PrayerTimeData = data.data.timings;
                 
@@ -163,7 +168,7 @@ export const usePrayerTimes = (settings: Settings): PrayerTimesContextType => {
         let nextPrayerInfo: { prayer: Prayer | null; time: Date; isNextDay: boolean } = { prayer: null, time: new Date(), isNextDay: false };
 
         if (Object.keys(prayerTimes).length === 0) {
-            return { prayer: null, time: new Date(), countdown: '00:00:00', isNextDay: false };
+            return { prayer: null, time: null, countdown: '00:00:00', isNextDay: false };
         }
 
         const todayPrayerTimes = PRAYERS.map(p => {
@@ -209,6 +214,7 @@ export const usePrayerTimes = (settings: Settings): PrayerTimesContextType => {
                 setCountdown(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
             } else {
                 setCountdown("حان الآن");
+                // Potentially trigger a refresh of prayer times for the new day
             }
         }, 1000);
 
@@ -222,7 +228,6 @@ export const usePrayerTimes = (settings: Settings): PrayerTimesContextType => {
         coordinates,
         locationError,
         detectLocation,
-        isPrayerTimesLoading,
-        apiHijriDate,
+        isPrayerTimesLoading
     };
 };

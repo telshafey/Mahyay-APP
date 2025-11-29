@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { useAppContext, DisplayChallenge } from '@mahyay/core';
+import { useAppContext, CHALLENGES, DisplayChallenge } from '@mahyay/core';
 import GlassCard from '../components/GlassCard';
 import ChallengeCard from '../components/ChallengeCard';
 
 const ChallengesPage: React.FC = () => {
-    const { userChallenges, startChallenge, challenges } = useAppContext();
+    const { userChallenges, startChallenge } = useAppContext();
     const [activeTab, setActiveTab] = useState<'active' | 'available' | 'completed'>('active');
 
     const categorizedChallenges = useMemo(() => {
@@ -12,7 +12,7 @@ const ChallengesPage: React.FC = () => {
         const completed: DisplayChallenge[] = [];
         const available: DisplayChallenge[] = [];
 
-        for (const baseChallenge of challenges) {
+        for (const baseChallenge of CHALLENGES) {
             const userProgress = userChallenges.find(uc => uc.challenge_id === baseChallenge.id);
             const progress = userProgress ? userProgress.progress : 0;
             const challengeWithProgress: DisplayChallenge = { ...baseChallenge, progress, userProgress };
@@ -28,7 +28,7 @@ const ChallengesPage: React.FC = () => {
             }
         }
         return { active, completed, available };
-    }, [userChallenges, challenges]);
+    }, [userChallenges]);
 
 
     const displayedChallenges = {
@@ -74,9 +74,7 @@ const ChallengesPage: React.FC = () => {
                     ))
                 ) : (
                     <GlassCard className="text-center text-white/80 py-8">
-                       {activeTab === 'active' && 'لا توجد تحديات نشطة. ابدأ تحديًا جديدًا من قسم "متاحة"!'}
-                       {activeTab === 'available' && 'لا توجد تحديات متاحة حالياً.'}
-                       {activeTab === 'completed' && 'لم تكمل أي تحديات بعد. المثابرة هي مفتاح النجاح!'}
+                        لا توجد تحديات في هذا القسم حالياً.
                     </GlassCard>
                 )}
             </div>

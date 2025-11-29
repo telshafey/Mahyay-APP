@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useAppContext, usePrayerTimesContext, Prayer, PrayerFardStatus, Nawafil, NawafilStatus, safeLocalStorage } from '@mahyay/core';
+import { useAppContext, usePrayerTimesContext, PRAYERS, ADDITIONAL_PRAYERS, Prayer, PrayerFardStatus, Nawafil, NawafilStatus } from '@mahyay/core';
 import GlassCard from '../components/GlassCard';
+import { safeLocalStorage } from '../utils';
 
 const FardhPrayerDetail: React.FC<{ prayer: Prayer }> = ({ prayer }) => {
     const { dailyData, updatePrayerStatus, updateSunnahStatus } = useAppContext();
@@ -139,17 +140,15 @@ const NawafilCard: React.FC<{ nawafil: Nawafil }> = ({ nawafil }) => {
 }
 
 const PrayersPage: React.FC = () => {
-  const { prayers, nawafilPrayers } = useAppContext();
-
   const getInitialPrayer = (): Prayer => {
     const savedPrayerName = safeLocalStorage.getItem('selectedPrayer');
     if (savedPrayerName) {
-        const savedPrayer = prayers.find(p => p.name === savedPrayerName);
+        const savedPrayer = PRAYERS.find(p => p.name === savedPrayerName);
         if (savedPrayer) {
             return savedPrayer;
         }
     }
-    return prayers[0];
+    return PRAYERS[0];
   };
 
   const [selectedPrayer, setSelectedPrayer] = useState<Prayer>(getInitialPrayer);
@@ -163,7 +162,7 @@ const PrayersPage: React.FC = () => {
         <GlassCard>
             <h2 className="text-2xl font-bold text-white text-center mb-4">🕌 الصلوات الخمس</h2>
             <div className="grid grid-cols-5 gap-2 mb-6">
-                {prayers.map(p => (
+                {PRAYERS.map(p => (
                     <button key={p.name} onClick={() => setSelectedPrayer(p)} className={`p-2 rounded-lg transition-all text-white ${selectedPrayer.name === p.name ? 'bg-white/25 scale-105' : 'bg-white/10 hover:bg-white/20'}`}>
                         <div className="text-xl md:text-2xl">{p.emoji}</div>
                         <div className="text-xs font-semibold">{p.name}</div>
@@ -178,7 +177,7 @@ const PrayersPage: React.FC = () => {
         <GlassCard>
              <h2 className="text-2xl font-bold text-white text-center mb-4">🌙 النوافل والسنن</h2>
              <div className="grid md:grid-cols-2 gap-4">
-                 {nawafilPrayers.map(n => <NawafilCard key={n.name} nawafil={n} />)}
+                 {ADDITIONAL_PRAYERS.map(n => <NawafilCard key={n.name} nawafil={n} />)}
              </div>
         </GlassCard>
     </div>

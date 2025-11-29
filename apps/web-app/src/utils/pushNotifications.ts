@@ -1,6 +1,6 @@
+import { supabase, safeLocalStorage } from '@mahyay/core';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications, Token } from '@capacitor/push-notifications';
-import { safeLocalStorage } from '../../../../packages/core/src';
 
 // This key is now hardcoded with a valid, generated key to simplify setup.
 const VAPID_PUBLIC_KEY = "BCs87e2h7RTg3f2TpZ3bkY8cx6wV5az1qW2eR4t_Y7uI9o-p_L-k_J-h_G-f_D-s_A";
@@ -45,6 +45,8 @@ export async function getSubscription(): Promise<PushSubscription | string | nul
 }
 
 export async function subscribeUser(): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+
     if (Capacitor.isNativePlatform()) {
         let permStatus = await PushNotifications.checkPermissions();
         if (permStatus.receive === 'prompt') {
@@ -56,11 +58,21 @@ export async function subscribeUser(): Promise<void> {
         
         await PushNotifications.removeAllListeners();
         
-        PushNotifications.addListener('registration', (token: Token) => {
+        PushNotifications.addListener('registration', async (token: Token) => {
             console.log('Native Push registration success, token:', token.value);
             safeLocalStorage.setItem('nativePushToken', token.value);
-            // Supabase call removed
-            console.log("Mock: Would save native token to DB here.");
+            const { error } = await supabase.from('push_subscriptions').insert({
+                user_id: user?.id,
+                subscription_data: { 
+                    token: token.value,
+                    type: 'native',
+                    platform: Capacitor.getPlatform()
+                },
+            });
+
+            if (error) {
+                 console.error('Failed to save native token to Supabase:', error);
+            }
         });
         
         PushNotifications.addListener('registrationError', (error) => {
@@ -92,8 +104,17 @@ export async function subscribeUser(): Promise<void> {
             applicationServerKey: applicationServerKey as any,
         });
 
-        // Supabase call removed
-        console.log("Mock: Would save web push subscription to DB here:", subscription.toJSON());
+        const { error } = await supabase.from('push_subscriptions').insert({
+            user_id: user?.id,
+            subscription_data: subscription.toJSON(),
+        });
+
+        if (error) {
+            console.error('Failed to save web push subscription to Supabase:', error);
+            await subscription.unsubscribe();
+            throw new Error('Failed to save push subscription to the server.');
+        }
+
         console.log('User subscribed successfully via Web Push.');
     } else {
          throw new Error('Push notifications are not supported by this browser.');
@@ -104,8 +125,10 @@ export async function unsubscribeUser(): Promise<void> {
     if (Capacitor.isNativePlatform()) {
         const token = safeLocalStorage.getItem('nativePushToken');
         if (token) {
-            // Supabase call removed
-            console.log("Mock: Would delete native token from DB here:", token);
+            const { error } = await supabase.from('push_subscriptions').delete().eq('subscription_data->>token', token);
+            if (error) {
+                console.error('Failed to delete native token from Supabase:', error);
+            }
             safeLocalStorage.removeItem('nativePushToken');
         }
         await PushNotifications.removeAllListeners();
@@ -133,8 +156,14 @@ export async function unsubscribeUser(): Promise<void> {
     const subscription = await registration.pushManager.getSubscription();
 
     if (subscription) {
-        // Supabase call removed
-        console.log("Mock: Would delete web subscription from DB here:", subscription.endpoint);
+        const { error } = await supabase
+            .from('push_subscriptions')
+            .delete()
+            .eq('subscription_data->>endpoint', subscription.endpoint);
+        
+        if (error) {
+            console.error('Failed to delete web subscription from Supabase:', error);
+        }
 
         const successful = await subscription.unsubscribe();
         if (successful) {

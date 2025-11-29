@@ -1,25 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { useAppContext } from '../contexts/AppContext';
 
 const BottomNav: React.FC = () => {
-    const { featureToggles } = useAppContext();
-
-    const allNavItems = [
+    
+    const navItems = [
         { path: '/', icon: '🏠', label: 'الرئيسية' },
         { path: '/prayers', icon: '🕌', label: 'الصلوات' },
         { path: '/azkar', icon: '📿', label: 'الأذكار' },
         { path: '/quran', icon: '📖', label: 'القرآن' },
-        { path: '/community', icon: '🤝', label: 'المجتمع', feature: 'community' },
-        { path: '/challenges', icon: '🏆', label: 'التحديات', feature: 'challenges' },
+        { path: '/challenges', icon: '🏆', label: 'التحديات' },
     ];
-
-    const navItems = allNavItems.filter(item => {
-        if (item.feature) {
-            return featureToggles[item.feature as keyof typeof featureToggles] ?? true;
-        }
-        return true;
-    });
     
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-30 bg-gray-900/80 backdrop-blur-lg border-t border-white/10 shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] h-[60px] md:h-[65px] flex justify-around items-center p-1 md:p-2 gap-1 md:gap-2">

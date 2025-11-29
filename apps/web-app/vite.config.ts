@@ -6,9 +6,6 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  define: {
-    'process.env.API_KEY': JSON.stringify(process.env.VITE_API_KEY),
-  },
   test: {
     globals: true,
     environment: 'jsdom',
@@ -27,7 +24,7 @@ export default defineConfig({
       manifest: {
         name: 'مَحيّاي - رفيقك الروحي اليومي',
         short_name: 'مَحيّاي',
-        description: 'تطبيق إسلامي شامل يساعدك على تنظيم عباداتك اليومية من صلوات وأذكار وقراءة للقرآن الكريم، مع متابعة الإحصائيات والتحديات الإيمانية. معزز بتأملات روحية من Gemini.',
+        description: 'تطبيق إسلامي شامل يساعدك على تنظيم عباداتك اليومية من صلوات وأذكار وقراءة للقرآن الكريم، مع متابعة الإحصائيات والتحديات الإيمانية.',
         theme_color: '#2d5a47',
         background_color: '#1e4d3b',
         display: 'standalone',

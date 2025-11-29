@@ -1,4 +1,4 @@
-import { Prayer, Nawafil, Surah, BaseChallenge, AzkarCategory, IslamicOccasion, HijriMonthInfo, PrayerMethod } from "./types";
+import { Prayer, Nawafil, Surah, BaseChallenge, AzkarCategory, IslamicOccasion, HijriMonthInfo } from "./types";
 
 export const QURAN_TOTAL_PAGES = 604;
 
@@ -27,7 +27,7 @@ export const PRAYER_NAMES_API_MAP: { [key: string]: string } = {
     'العشاء': 'Isha'
 };
 
-export const PRAYER_METHODS: PrayerMethod[] = [
+export const PRAYER_METHODS = [
     { id: 1, name: "جامعة العلوم الإسلامية، كراتشي" },
     { id: 2, name: "الجمعية الإسلامية لأمريكا الشمالية (ISNA)" },
     { id: 3, name: "رابطة العالم الإسلامي" },

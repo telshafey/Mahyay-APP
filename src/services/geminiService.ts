@@ -1,7 +1,5 @@
-
-
 import { GoogleGenAI, Type } from "@google/genai";
-import { VerseReflection, PersonalizedDua, IslamicOccasion, AiUpdateOccasion } from "./types";
+import { VerseReflection, PersonalizedDua } from "../types";
 
 let ai: GoogleGenAI | null = null;
 let initializationError: string | null = null;
@@ -9,17 +7,27 @@ let initializationError: string | null = null;
 // This block runs once when the module is loaded.
 try {
     const apiKey = process.env.API_KEY;
+
+    // Vite replaces process.env.API_KEY with the value at build time. 
+    // If VITE_API_KEY is not set on Vercel, it becomes 'undefined' as a string.
+    if (apiKey === 'undefined') {
+        throw new Error("خطأ في الإعداد: متغير VITE_API_KEY غير موجود في Vercel. يرجى إضافته في إعدادات المشروع (Project Settings > Environment Variables) ثم إعادة النشر (Redeploy).");
+    }
     
-    if (!apiKey || apiKey === 'undefined' || apiKey.trim() === '') {
-        throw new Error("VITE_API_KEY is not configured. Please add it to your environment variables.");
+    if (!apiKey || apiKey.trim().length === 0) {
+        throw new Error("خطأ في الإعداد: متغير VITE_API_KEY موجود ولكنه فارغ. يرجى إدخال قيمة مفتاح API الصحيحة في Vercel.");
+    }
+
+    if (apiKey.trim().length < 10) { // API keys are usually much longer
+         throw new Error("خطأ في الإعداد: مفتاح API الذي تم إدخاله قصير جدًا ويبدو غير صالح. يرجى التحقق منه في إعدادات Vercel.");
     }
 
     ai = new GoogleGenAI({ apiKey });
 
 } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`Gemini service initialization failed: ${message}`);
-    initializationError = `Gemini service initialization failed: ${message}`;
+    console.warn(`Gemini service initialization failed: ${message}`);
+    initializationError = message;
 }
 
 const cleanAndParseJson = (text: string | undefined): any => {
@@ -27,20 +35,34 @@ const cleanAndParseJson = (text: string | undefined): any => {
         throw new Error("استجابة فارغة من نموذج الذكاء الاصطناعي.");
     }
 
-    try {
-        return JSON.parse(text);
-    } catch (e) {
-        console.error("Could not parse JSON directly, trying to extract from markdown. Raw text:", text);
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
-        if (jsonMatch && jsonMatch[1]) {
-            try {
-                return JSON.parse(jsonMatch[1]);
-            } catch (e2) {
-                console.error("Failed to parse extracted JSON. Extracted string:", jsonMatch[1]);
-                throw new Error("صيغة JSON المستخرجة من استجابة الذكاء الاصطناعي غير صالحة.");
-            }
+    // Attempt to find the JSON block, which might be wrapped in markdown
+    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```|(\{[\s\S]*\})|(\[[\s\S]*\])/);
+
+    if (!jsonMatch) {
+        // With responseMimeType: "application/json", the response should be a clean JSON string.
+        // We can try parsing it directly.
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error("Could not find or parse JSON block in Gemini response:", text);
+            throw new Error("لم يتم العثور على كتلة JSON في استجابة الذكاء الاصطناعي أو أن الصيغة غير صالحة.");
         }
-        throw new Error("لم يتم العثور على كتلة JSON صالحة في استجابة الذكاء الاصطناعي.");
+    }
+    
+    // The actual JSON string is in one of the capturing groups
+    const jsonString = jsonMatch[1] || jsonMatch[2] || jsonMatch[3];
+
+    if (!jsonString) {
+        console.error("Could not extract JSON string from Gemini response:", text);
+        throw new Error("فشل استخلاص نص JSON من استجابة الذكاء الاصطناعي.");
+    }
+
+    try {
+        return JSON.parse(jsonString);
+    } catch (e) {
+        console.error("Failed to parse extracted JSON from Gemini. Raw text:", text);
+        console.error("Extracted string for parsing:", jsonString);
+        throw new Error("صيغة JSON المستخرجة من استجابة الذكاء الاصطناعي غير صالحة.");
     }
 };
 
@@ -98,7 +120,21 @@ export const getVerseReflection = async (verse: string): Promise<{ data: VerseRe
     }
 
     console.warn("Unexpected AI response structure. Raw text:", response.text);
-    return { data: null, error: "لم تأت استجابة الذكاء الاصطناعي بالشكل المتوقع." };
+    let detailedError = "لم تأت استجابة الذكاء الاصطناعي بالشكل المتوقع.";
+
+    if (result && typeof result === 'object') {
+        const missingKeys = [];
+        if (!result.reflection) missingKeys.push("'التأمل (reflection)'");
+        if (!result.actionable_tip) missingKeys.push("'النصيحة العملية (actionable_tip)'");
+        if (missingKeys.length > 0) {
+            detailedError = `الاستجابة من الذكاء الاصطناعي تفتقد الحقول التالية: ${missingKeys.join(' و ')}.`;
+        }
+    }
+    
+    const rawResponseSnippet = response.text ? response.text.substring(0, 100) : "فارغ";
+    detailedError += ` المحتوى المستلم جزئيًا: "${rawResponseSnippet}..."`;
+
+    return { data: null, error: detailedError };
 
   } catch (error) {
     const errorMessage = handleGeminiError(error);
@@ -149,7 +185,9 @@ export const getPersonalizedDua = async (prompt: string): Promise<{ data: Person
         }
 
         console.warn("Unexpected AI response structure for Dua. Raw text:", response.text);
-        return { data: null, error: "فشل تحليل استجابة الدعاء." };
+        const rawResponseSnippet = response.text ? response.text.substring(0, 150) : "فارغ";
+        const detailedError = `فشل تحليل استجابة الدعاء. المحتوى المستلم: "${rawResponseSnippet}..."`;
+        return { data: null, error: detailedError };
 
 
     } catch (error) {
@@ -196,68 +234,12 @@ export const getGoalInspiration = async (): Promise<{ data: {title: string; icon
         }
 
         console.warn("Unexpected AI response structure for Goal. Raw text:", response.text);
-        return { data: null, error: "فشل تحليل استجابة الهدف." };
+        const rawResponseSnippet = response.text ? response.text.substring(0, 150) : "فارغ";
+        const detailedError = `فشل تحليل استجابة الهدف. المحتوى المستلم: "${rawResponseSnippet}..."`;
+        return { data: null, error: detailedError };
 
     } catch (error) {
         const errorMessage = handleGeminiError(error);
         return { data: null, error: errorMessage };
-    }
-};
-
-export const getOccasionsUpdate = async (currentOccasions: IslamicOccasion[]): Promise<{ data: AiUpdateOccasion[] | null; error: string | null; }> => {
-    if (!ai) {
-        const msg = initializationError || "خدمة الذكاء الاصطناعي غير مهيأة لسبب غير معروف.";
-        return { data: null, error: msg };
-    }
-    try {
-        const currentOccasionsNames = currentOccasions.map(o => o.name).join(', ');
-        const prompt = `هذه هي قائمة المناسبات الإسلامية الموجودة حاليًا في التطبيق: [${currentOccasionsNames}].
-        راجع هذه القائمة وقارنها بقائمة المناسبات الإسلامية السنوية الهامة والمعروفة لدى المسلمين (مثل رأس السنة الهجرية، عاشوراء، المولد النبوي، الإسراء والمعراج، النصف من شعبان، بداية رمضان، ليلة القدر، عيد الفطر، يوم عرفة، عيد الأضحى، أيام التشريق).
-        إذا وجدت مناسبة هامة جدًا مفقودة، قم بإضافتها. لا تقم بتعديل أو حذف أي مناسبات موجودة.`;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        updates: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    action: { type: Type.STRING, description: "يجب أن يكون 'add' فقط." },
-                                    newItem: {
-                                        type: Type.OBJECT,
-                                        properties: {
-                                            name: { type: Type.STRING },
-                                            hijriDay: { type: Type.INTEGER },
-                                            hijriMonth: { type: Type.INTEGER },
-                                            description: { type: Type.STRING }
-                                        }
-                                    },
-                                    reason: { type: Type.STRING, description: "سبب الإضافة، مثال: 'إضافة مناسبة هامة مفقودة.'" }
-                                }
-                            }
-                        }
-                    }
-                },
-                systemInstruction: `أنت خبير في التقويم الإسلامي. مهمتك هي مراجعة قائمة المناسبات واقتراح الإضافات الضرورية فقط بصيغة JSON.`
-            }
-        });
-
-        const result = cleanAndParseJson(response.text);
-        
-        if (result && Array.isArray(result.updates)) {
-            return { data: result.updates, error: null };
-        }
-
-        console.warn("Unexpected AI response for occasions update:", response.text);
-        return { data: null, error: "لم تأت استجابة الذكاء الاصطناعي بالشكل المتوقع." };
-
-    } catch (error) {
-        return { data: null, error: handleGeminiError(error) };
     }
 };

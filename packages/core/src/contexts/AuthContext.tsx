@@ -86,7 +86,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         session,
         profile,
         isLoading,
+        // FIX: Changed `pass` parameter to `password` to match usage.
         signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
+        // FIX: Changed `pass` parameter to `password` to match usage.
         signUp: (email, password) => supabase.auth.signUp({ 
             email, 
             password,

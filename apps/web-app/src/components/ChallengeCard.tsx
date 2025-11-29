@@ -1,7 +1,5 @@
-
 import React from 'react';
-import { DisplayChallenge } from '../../../../packages/core/src';
-import { useAppContext } from '../../../../packages/core/src';
+import { DisplayChallenge, useAppContext } from '@mahyay/core';
 import GlassCard from './GlassCard';
 
 interface ChallengeCardProps {
@@ -14,7 +12,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge, onStartChallen
     const progressPercentage = challenge.target > 0 ? (challenge.progress / challenge.target) * 100 : 0;
     const isCompleted = challenge.userProgress?.status === 'completed';
     const isActive = challenge.userProgress?.status === 'active';
-    const isSaving = typeof challenge.userProgress?.id === 'string' && challenge.userProgress.id.startsWith("uc_"); // Check for temporary ID from optimistic update
+    const isSaving = typeof challenge.userProgress?.id === 'string'; // Check for temporary ID from optimistic update
 
     const todayKey = new Date().toISOString().split('T')[0];
     const hasLoggedToday = challenge.userProgress?.last_logged_date === todayKey;

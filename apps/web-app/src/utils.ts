@@ -1,3 +1,4 @@
-// This file can be used for web-app specific utils.
-// For now, it just re-exports the core utils.
-export * from '../../../packages/core/src/utils';
+// This file is reserved for web-app specific utility functions.
+// Core utility functions have been moved to the `@mahyay/core` package.
+// For this stage, we only need to re-export `safeLocalStorage` for the prayers page.
+export { safeLocalStorage } from '@mahyay/core';

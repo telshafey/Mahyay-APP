@@ -1,5 +1,5 @@
-import { AppData, AppStats, UserChallenge, DailyAzkarCategory, PrayerStatus, DailyData, BaseChallenge } from './types';
-import { QURAN_TOTAL_PAGES, QURAN_SURAHS, AZKAR_DATA, CHALLENGES } from './constants';
+import { AppData, AppStats, UserChallenge, DailyAzkarCategory, PrayerStatus, DailyData } from './types';
+import { CHALLENGES, QURAN_TOTAL_PAGES, QURAN_SURAHS, AZKAR_DATA } from './constants';
 
 export const safeLocalStorage = {
     getItem(key: string): string | null {
@@ -44,6 +44,7 @@ export const getAbsolutePageApproximation = (position: { surah: number, ayah: nu
     
     const pagesInSurah = nextSurahInfo.startPage - surahInfo.startPage;
     
+    // For single-page surahs, or if ayahs count is 0, return start page.
     if (pagesInSurah <= 0 || surahInfo.ayahs === 0) {
         return surahInfo.startPage;
     }
@@ -55,7 +56,7 @@ export const getAbsolutePageApproximation = (position: { surah: number, ayah: nu
 };
 
 
-export const calculateStats = (appData: AppData, userChallenges: UserChallenge[], challenges: BaseChallenge[] = CHALLENGES): AppStats => {
+export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]): AppStats => {
     let totalPoints = 0;
     let weeklyPrayers = 0;
     let monthlyPrayers = 0;
@@ -72,6 +73,7 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
         if (!dayData) return;
         const date = new Date(dateKey);
         
+        // FIX: Add type annotation for `p` to resolve error.
         const prayersToday = Object.values(dayData.prayerData || {}).filter((p: PrayerStatus) => ['early', 'ontime'].includes(p.fard)).length;
         totalPoints += prayersToday * 10;
         
@@ -85,7 +87,7 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
         for (const categoryName of dailyAzkarCategories) {
             const categoryData = AZKAR_DATA.find(c => c.name === categoryName);
             if(categoryData) {
-                const userProgress = azkarStatusForDay[categoryName as DailyAzkarCategory];
+                const userProgress = azkarStatusForDay[categoryName];
                 if (userProgress && categoryData.items.every(item => (userProgress[item.id] || 0) >= item.repeat)) {
                     azkarCategoriesCompletedToday++;
                 }
@@ -102,7 +104,7 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
 
     userChallenges.forEach(uc => {
         if (uc.status === 'completed') {
-            const baseChallenge = challenges.find(c => c.id === uc.challenge_id);
+            const baseChallenge = CHALLENGES.find(c => c.id === uc.challenge_id);
             if (baseChallenge) totalPoints += baseChallenge.points;
         }
     });
@@ -112,26 +114,20 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
     if (reversedDates.length > 0) {
         const lastDate = new Date(reversedDates[0]);
         const diff = Math.floor((new Date().setHours(0,0,0,0) - lastDate.setHours(0,0,0,0)) / (1000 * 3600 * 24));
-        
-        // Only count streak if the last entry was today or yesterday
         if (diff <= 1) {
             for (let i = 0; i < reversedDates.length; i++) {
                 const dayData = appData[reversedDates[i]];
+                // FIX: Add type annotation for `p` to resolve error.
                 const prayers = Object.values(dayData?.prayerData || {}).filter((p: PrayerStatus) => ['early', 'ontime'].includes(p.fard)).length;
-                
-                // Streak condition: at least 3 prayers on time
                 if (prayers >= 3) {
                     streak++;
-                    // Check strict consecutiveness
                     if (i + 1 < reversedDates.length) {
                         const d1 = new Date(reversedDates[i]);
                         const d2 = new Date(reversedDates[i+1]);
                         const dayDiff = Math.round((d1.getTime() - d2.getTime()) / (1000 * 3600 * 24));
                         if (dayDiff > 1) break;
                     }
-                } else {
-                    break;
-                }
+                } else break;
             }
         }
     }
@@ -142,6 +138,14 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
     return { totalPoints, streak, weeklyPrayers, monthlyPrayers, quranPages, completedAzkar, khatmaProgress: { pagesReadInCurrent, percentage } };
 };
 
+
+/**
+ * Checks if a given Hijri year is a leap year.
+ * The formula is based on the algorithm used in common Hijri calendar implementations.
+ * A Hijri year is leap if (11 * year + 14) % 30 < 11.
+ * @param {number} year The Hijri year to check.
+ * @returns {boolean} True if the year is a leap year, false otherwise.
+ */
 export const isHijriLeapYear = (year: number): boolean => {
     return (11 * year + 14) % 30 < 11;
 };

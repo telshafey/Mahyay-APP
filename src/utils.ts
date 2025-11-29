@@ -87,7 +87,7 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
         for (const categoryName of dailyAzkarCategories) {
             const categoryData = AZKAR_DATA.find(c => c.name === categoryName);
             if(categoryData) {
-                const userProgress = azkarStatusForDay[categoryName as DailyAzkarCategory];
+                const userProgress = azkarStatusForDay[categoryName];
                 if (userProgress && categoryData.items.every(item => (userProgress[item.id] || 0) >= item.repeat)) {
                     azkarCategoriesCompletedToday++;
                 }
