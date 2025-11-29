@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { PRAYERS, PRAYER_NAMES_API_MAP, PRAYER_LOCATIONS, Prayer, PrayerTimeData, PrayerTimesContextType, Settings, ApiHijriDate } from '@mahyay/core';
 
@@ -44,8 +45,7 @@ export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHi
             setPrayerTimes(fallbackTimes);
         }
         setApiHijriDate(null);
-        // Important: Clear any visible error when fallback is successfully applied to avoid scaring the user
-        setLocationError(null); 
+        setLocationError(null);
     }, [settings.defaultLocationId, setApiHijriDate]);
 
     useEffect(() => {
@@ -104,7 +104,6 @@ export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHi
                 console.warn("Prayer times fetch failed (using fallback):", err);
                 if (isMounted) {
                     applyFallback();
-                    // Do NOT set locationError here. We want silent fallback.
                 }
             } finally {
                 if(isMounted) setIsPrayerTimesLoading(false);

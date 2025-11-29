@@ -4,7 +4,6 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppContext, useAppData, AuthProvider, useAuthContext, PrayerTimesContext, PrayerTimesContextType, AppContextType, useAppContext } from '@mahyay/core';
 import { usePrayerTimes } from './hooks/usePrayerTimes';
 
-import ScrollToTop from './components/ScrollToTop';
 import NotificationToast from './components/NotificationToast';
 import AdminLayout from './layouts/AdminLayout';
 import UserAppLayout from './layouts/UserAppLayout';
@@ -142,7 +141,7 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <HashRouter>
-        <ScrollToTop />
+        <NotificationToast />
         <AppRoutes />
       </HashRouter>
     </AuthProvider>
