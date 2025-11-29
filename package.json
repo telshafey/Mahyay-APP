@@ -4,9 +4,11 @@
   "scripts": {
     "web": "pnpm --filter web-app dev",
     "native": "pnpm --filter native-app start",
-    "build:web": "pnpm --filter web-app build"
+    "build:web": "pnpm --filter web-app build",
+    "build": "pnpm --filter web-app build && rm -rf dist && cp -r apps/web-app/dist dist"
   },
   "devDependencies": {
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "@vercel/node": "^3.0.0"
   }
 }

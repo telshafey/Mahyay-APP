@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { PRAYERS, PRAYER_NAMES_API_MAP, PRAYER_LOCATIONS } from '../constants';
-import { Prayer, PrayerTimeData, PrayerTimesContextType, Settings, ApiHijriDate } from '../types';
-import { Geolocation } from '@capacitor/geolocation';
+import { PRAYERS, PRAYER_NAMES_API_MAP, PRAYER_LOCATIONS } from '@mahyay/core';
+import { Prayer, PrayerTimeData, PrayerTimesContextType, Settings, ApiHijriDate } from '@mahyay/core';
 
 export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHijriDate | null) => void): Omit<PrayerTimesContextType, 'apiHijriDate'> => {
     const [prayerTimes, setPrayerTimes] = useState<{ [key: string]: string }>({});
@@ -11,36 +10,32 @@ export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHi
     const [countdown, setCountdown] = useState('');
 
     const detectLocation = useCallback(async () => {
-        const fallbackToManual = (message: string) => {
-             setLocationError(message);
-        };
+        if (!navigator.geolocation) {
+            setLocationError("المتصفح لا يدعم تحديد الموقع. سيتم استخدام الإعدادات اليدوية.");
+            return;
+        }
 
-        try {
-            let permissionStatus = await Geolocation.checkPermissions();
-            if (permissionStatus.location === 'prompt' || permissionStatus.location === 'prompt-with-rationale') {
-                permissionStatus = await Geolocation.requestPermissions();
-            }
-
-            if (permissionStatus.location === 'granted') {
-                const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
                 setCoordinates({
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                 });
                 setLocationError(null);
-            } else {
-                fallbackToManual("تم رفض إذن الوصول للموقع. سيتم استخدام الإعدادات اليدوية.");
+            },
+            (error) => {
+                let message = "لم نتمكن من تحديد موقعك. سيتم استخدام الإعدادات اليدوية.";
+                if (error.code === error.PERMISSION_DENIED) {
+                    message = "تم رفض إذن الوصول للموقع. يرجى تفعيله أو استخدام الإعدادات اليدوية.";
+                }
+                setLocationError(message);
             }
-        } catch (error) {
-            console.error("Geolocation error:", error);
-            fallbackToManual("لم نتمكن من تحديد موقعك. سيتم استخدام الإعدادات اليدوية.");
-        }
+        );
     }, []);
 
     useEffect(() => {
         detectLocation();
     }, [detectLocation]);
-
 
     useEffect(() => {
         const fetchPrayerTimes = async () => {
@@ -82,7 +77,7 @@ export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHi
                 
                 const formattedTimes = Object.fromEntries(
                     PRAYERS.map(p => {
-                        const apiName = PRAYER_NAMES_API_MAP[p.name];
+                        const apiName = (PRAYER_NAMES_API_MAP as any)[p.name];
                         return [p.name, timings[apiName]?.split(' ')[0] || '??:??'];
                     })
                 );
@@ -98,7 +93,7 @@ export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHi
                 if (fallbackLocation) {
                     const fallbackTimes = Object.fromEntries(
                         PRAYERS.map(p => {
-                            const apiName = PRAYER_NAMES_API_MAP[p.name];
+                            const apiName = (PRAYER_NAMES_API_MAP as any)[p.name];
                             return [p.name, fallbackLocation.times[apiName] || '??:??'];
                         })
                     );
