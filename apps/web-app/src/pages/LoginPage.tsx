@@ -38,6 +38,8 @@ const LoginPage: React.FC = () => {
                     setError("الرجاء تأكيد البريد الإلكتروني أولاً.");
                 } else if (authError.message.includes("already registered")) {
                     setError("هذا البريد الإلكتروني مسجل بالفعل.");
+                } else if (authError.message.includes("Password should be")) {
+                    setError("كلمة المرور ضعيفة. يجب أن تكون 6 أحرف على الأقل.");
                 } else {
                     setError(authError.message);
                 }
@@ -68,7 +70,7 @@ const LoginPage: React.FC = () => {
                 </h2>
                 
                 {error && (
-                    <div className="bg-red-500/20 border border-red-500/50 p-3 rounded-lg text-center text-sm mb-4 text-red-200">
+                    <div className="bg-red-500/20 border border-red-500/50 p-3 rounded-lg text-center text-sm mb-4 text-red-200 animate-pulse">
                         ⚠️ {error}
                     </div>
                 )}

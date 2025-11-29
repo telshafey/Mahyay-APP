@@ -1,5 +1,5 @@
 import { AppData, AppStats, UserChallenge, DailyAzkarCategory, PrayerStatus, DailyData, BaseChallenge } from './types';
-import { QURAN_TOTAL_PAGES, QURAN_SURAHS, AZKAR_DATA } from './constants';
+import { QURAN_TOTAL_PAGES, QURAN_SURAHS, AZKAR_DATA, CHALLENGES } from './constants';
 
 export const safeLocalStorage = {
     getItem(key: string): string | null {
@@ -55,7 +55,7 @@ export const getAbsolutePageApproximation = (position: { surah: number, ayah: nu
 };
 
 
-export const calculateStats = (appData: AppData, userChallenges: UserChallenge[], challenges: BaseChallenge[]): AppStats => {
+export const calculateStats = (appData: AppData, userChallenges: UserChallenge[], challenges: BaseChallenge[] = CHALLENGES): AppStats => {
     let totalPoints = 0;
     let weeklyPrayers = 0;
     let monthlyPrayers = 0;
