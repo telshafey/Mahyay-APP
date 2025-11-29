@@ -1,3 +1,4 @@
+
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -13,13 +14,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      // Force Vite to read the source files directly
       '@mahyay/core': path.resolve(__dirname, '../../packages/core/src'),
     },
   },
   server: {
     fs: {
-      // Allow serving files from one level up to the project root
       allow: ['..'],
     },
   },
