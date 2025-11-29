@@ -1,17 +1,14 @@
 import { AppData, AppStats, UserChallenge, DailyAzkarCategory, PrayerStatus, DailyData, BaseChallenge } from './types';
 import { QURAN_TOTAL_PAGES, QURAN_SURAHS, AZKAR_DATA } from './constants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Platform detection
-const isNative = typeof navigator !== 'undefined' && navigator.product === 'ReactNative';
-
+// Abstract storage to avoid importing native modules in web build
 export const storage = {
     async getItem(key: string): Promise<string | null> {
         try {
-            if (isNative) {
-                return await AsyncStorage.getItem(key);
+            if (typeof window !== 'undefined' && window.localStorage) {
+                return window.localStorage.getItem(key);
             }
-            return window.localStorage.getItem(key);
+            return null;
         } catch (e) {
             console.warn(`Could not get item from storage: ${key}`, e);
             return null;
@@ -19,9 +16,7 @@ export const storage = {
     },
     async setItem(key: string, value: string): Promise<void> {
         try {
-            if (isNative) {
-                await AsyncStorage.setItem(key, value);
-            } else {
+            if (typeof window !== 'undefined' && window.localStorage) {
                 window.localStorage.setItem(key, value);
             }
         } catch (e) {
@@ -30,9 +25,7 @@ export const storage = {
     },
     async removeItem(key: string): Promise<void> {
         try {
-            if (isNative) {
-                await AsyncStorage.removeItem(key);
-            } else {
+            if (typeof window !== 'undefined' && window.localStorage) {
                 window.localStorage.removeItem(key);
             }
         } catch (e) {

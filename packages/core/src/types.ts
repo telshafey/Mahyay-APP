@@ -131,6 +131,7 @@ export interface Settings {
   hijriDateAdjustment: number;
   city: string;
   country: string;
+  defaultLocationId?: string;
 }
 
 // Stats

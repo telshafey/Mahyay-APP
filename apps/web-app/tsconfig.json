@@ -8,6 +8,6 @@
       "@mahyay/core/*": ["../../packages/core/src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "../../packages/core/src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

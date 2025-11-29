@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppContext, useAppData, AuthProvider, useAuthContext, PrayerTimesContext, usePrayerTimes, PrayerTimesContextType, AppContextType, useAppContext } from '@mahyay/core';
+import { AppContext, useAppData, AuthProvider, useAuthContext, PrayerTimesContext, PrayerTimesContextType, AppContextType, useAppContext } from '@mahyay/core';
+import { usePrayerTimes } from './hooks/usePrayerTimes';
 
 import ScrollToTop from './components/ScrollToTop';
 import NotificationToast from './components/NotificationToast';

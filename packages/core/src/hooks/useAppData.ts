@@ -20,6 +20,7 @@ const initialSettings: Settings = {
     hijriDateAdjustment: 0,
     city: 'Cairo',
     country: 'Egypt',
+    defaultLocationId: 'cairo_egypt',
 };
 
 const initialDailyData = (): DailyData => ({

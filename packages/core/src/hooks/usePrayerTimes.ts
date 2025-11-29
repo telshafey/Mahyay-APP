@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { PRAYERS, PRAYER_NAMES_API_MAP, PRAYER_LOCATIONS } from '../constants';
 import { Prayer, PrayerTimeData, PrayerTimesContextType, Settings, ApiHijriDate } from '../types';
@@ -11,29 +12,34 @@ export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHi
     const [countdown, setCountdown] = useState('');
 
     const detectLocation = useCallback(async () => {
-        const fallbackToManual = (message: string) => {
-             setLocationError(message);
-        };
-
         try {
-            let permissionStatus = await Geolocation.checkPermissions();
-            if (permissionStatus.location === 'prompt' || permissionStatus.location === 'prompt-with-rationale') {
-                permissionStatus = await Geolocation.requestPermissions();
+            // Check if we are in a secure context or native app before asking for permissions
+            let permissionStatus;
+            try {
+                permissionStatus = await Geolocation.checkPermissions();
+            } catch (e) {
+                console.warn("Geolocation permission check failed", e);
+                permissionStatus = { location: 'prompt', coarseLocation: 'prompt' };
             }
 
-            if (permissionStatus.location === 'granted') {
-                const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
-                setCoordinates({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                });
-                setLocationError(null);
-            } else {
-                fallbackToManual("تم رفض إذن الوصول للموقع. سيتم استخدام الإعدادات اليدوية.");
+            if (permissionStatus.location === 'prompt' || permissionStatus.location === 'prompt-with-rationale') {
+                try {
+                    await Geolocation.requestPermissions();
+                } catch (e) {
+                    console.warn("Geolocation permission request failed", e);
+                }
             }
+
+            // Small delay to allow permission dialog to resolve if needed
+            const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 5000 });
+            setCoordinates({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            });
+            setLocationError(null);
         } catch (error) {
-            console.error("Geolocation error:", error);
-            fallbackToManual("لم نتمكن من تحديد موقعك. سيتم استخدام الإعدادات اليدوية.");
+            console.warn("Geolocation error:", error);
+            // Don't set error here immediately, wait for API fetch attempt
         }
     }, []);
 
@@ -41,87 +47,102 @@ export const usePrayerTimes = (settings: Settings, setApiHijriDate: (date: ApiHi
         detectLocation();
     }, [detectLocation]);
 
+    // Helper to apply fallback times
+    const applyFallback = useCallback(() => {
+        const fallbackLocation = PRAYER_LOCATIONS.find(loc => loc.id === (settings.defaultLocationId || 'cairo_egypt')) || PRAYER_LOCATIONS[0];
+        if (fallbackLocation) {
+            const fallbackTimes = Object.fromEntries(
+                PRAYERS.map(p => {
+                    const apiName = (PRAYER_NAMES_API_MAP as any)[p.name];
+                    return [p.name, fallbackLocation.times[apiName] || '??:??'];
+                })
+            );
+            setPrayerTimes(fallbackTimes);
+        }
+        setApiHijriDate(null);
+    }, [settings.defaultLocationId, setApiHijriDate]);
 
     useEffect(() => {
+        let isMounted = true;
+
         const fetchPrayerTimes = async () => {
             setIsPrayerTimesLoading(true);
             
+            // Build API URL
             let apiUrl = '';
             if (coordinates) {
                 apiUrl = `/api/prayer-times?lat=${coordinates.latitude}&lon=${coordinates.longitude}&method=${settings.prayerMethod}`;
             } else if (settings.city && settings.country) {
                 apiUrl = `/api/prayer-times?city=${encodeURIComponent(settings.city)}&country=${encodeURIComponent(settings.country)}&method=${settings.prayerMethod}`;
             } else {
-                 setLocationError("الرجاء تحديد موقعك أو إدخال المدينة والدولة في الإعدادات.");
-                 setIsPrayerTimesLoading(false);
+                 // No location data yet
+                 applyFallback();
+                 if (!coordinates && !settings.city) {
+                     setLocationError("الرجاء تحديد موقعك أو إدخال المدينة والدولة في الإعدادات.");
+                 }
+                 if(isMounted) setIsPrayerTimesLoading(false);
                  return;
             }
 
             try {
-                const response = await fetch(apiUrl);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+                const response = await fetch(apiUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
                 
                 if (!response.ok) {
-                    if (response.status === 404) {
-                        throw new Error("API_NOT_FOUND");
-                    }
-                    throw new Error(`HTTP Error: ${response.status}`);
+                    console.warn(`Prayer Times API returned status: ${response.status}`);
+                    applyFallback();
+                    if(isMounted) setLocationError("تعذر الاتصال بالخادم. يتم استخدام التوقيت الافتراضي.");
+                    return; 
                 }
 
                 const responseText = await response.text();
-                if (!responseText) throw new Error("Empty response");
-                
-                const data = JSON.parse(responseText);
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.warn("Failed to parse API response");
+                    applyFallback();
+                    if(isMounted) setLocationError("بيانات الخادم غير صالحة. يتم استخدام التوقيت الافتراضي.");
+                    return;
+                }
                 
                 if (data.code !== 200 || !data.data?.timings) {
-                     throw new Error('Invalid data format');
+                     console.warn("API returned invalid data code or structure");
+                     applyFallback();
+                     if(isMounted) setLocationError("تنسيق البيانات غير صحيح. يتم استخدام التوقيت الافتراضي.");
+                     return;
                 }
                 
-                setApiHijriDate(data.data.date.hijri);
-
-                const timings: PrayerTimeData = data.data.timings;
-                
-                const formattedTimes = Object.fromEntries(
-                    PRAYERS.map(p => {
-                        const apiName = PRAYER_NAMES_API_MAP[p.name];
-                        return [p.name, timings[apiName]?.split(' ')[0] || '??:??'];
-                    })
-                );
-                setPrayerTimes(formattedTimes);
-                if (!coordinates) setLocationError(null);
-
-            } catch (err) {
-                const message = err instanceof Error ? err.message : "Unknown error";
-                console.warn("Prayer Times Fetch Warning:", message);
-                
-                // Fallback to default Cairo times
-                const fallbackLocation = PRAYER_LOCATIONS.find(loc => loc.id === 'cairo_egypt');
-                if (fallbackLocation) {
-                    const fallbackTimes = Object.fromEntries(
+                if(isMounted) {
+                    setApiHijriDate(data.data.date.hijri);
+                    const timings: PrayerTimeData = data.data.timings;
+                    const formattedTimes = Object.fromEntries(
                         PRAYERS.map(p => {
-                            const apiName = PRAYER_NAMES_API_MAP[p.name];
-                            return [p.name, fallbackLocation.times[apiName] || '??:??'];
+                            const apiName = (PRAYER_NAMES_API_MAP as any)[p.name];
+                            return [p.name, timings[apiName]?.split(' ')[0] || '??:??'];
                         })
                     );
-                    setPrayerTimes(fallbackTimes);
+                    setPrayerTimes(formattedTimes);
+                    setLocationError(null);
                 }
 
-                if (message === "API_NOT_FOUND") {
-                    setLocationError("خدمة المواقيت غير متوفرة حالياً. تم استخدام توقيت القاهرة الافتراضي.");
-                } else {
-                    setLocationError(`تعذر جلب المواقيت الدقيقة. تم استخدام التوقيت الافتراضي.`);
-                }
-
-                setApiHijriDate(null);
+            } catch (err) {
+                console.warn("Prayer Times Fetch Error:", err);
+                applyFallback();
+                if(isMounted) setLocationError("تعذر جلب المواقيت (وضع غير متصل).");
             } finally {
-                setIsPrayerTimesLoading(false);
+                if(isMounted) setIsPrayerTimesLoading(false);
             }
         };
 
-        if (coordinates || (settings.city && settings.country)) {
-            fetchPrayerTimes();
-        }
+        fetchPrayerTimes();
 
-    }, [coordinates, settings.city, settings.country, settings.prayerMethod, setApiHijriDate]);
+        return () => { isMounted = false; };
+
+    }, [coordinates, settings.city, settings.country, settings.prayerMethod, settings.defaultLocationId, setApiHijriDate, applyFallback]);
 
     const nextPrayer = useMemo(() => {
         const now = new Date();

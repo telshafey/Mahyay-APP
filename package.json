@@ -1,6 +1,10 @@
 {
   "name": "mahyay-monorepo",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "web": "pnpm --filter web-app dev",
     "native": "pnpm --filter native-app start",
