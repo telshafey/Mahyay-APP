@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import HijriDate from 'hijri-date';
 import { 
     AppContextType, AppData, Settings, DailyData, AppStats,
-    BaseChallenge, IslamicOccasion, PrayerMethod, Prayer, Nawafil, AzkarCategory,
+    BaseChallenge, IslamicOccasion, PrayerMethod, Prayer, Nawafil,
     HijriMonthInfo, PrayerFardStatus
 } from '../types';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -55,6 +55,8 @@ export const useAppData = (): AppContextType => {
     const [challenges, setChallenges] = useState<BaseChallenge[]>(CHALLENGES_DATA);
     const [islamicOccasions, setIslamicOccasions] = useState<IslamicOccasion[]>(ISLAMIC_OCCASIONS_DATA);
     const [prayerMethods, setPrayerMethods] = useState<PrayerMethod[]>(PRAYER_METHODS_DATA);
+    
+    // Derived from constants directly as there is no state setter for these currently unused setters
     const prayers = PRAYERS_DATA;
     const nawafil = NAWAFIL_DATA;
     const azkarCategories = AZKAR_DATA;
