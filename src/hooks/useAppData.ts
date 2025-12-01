@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import HijriDate from 'hijri-date';
 import { 
     AppContextType, AppData, Settings, DailyData, AppStats,
-    BaseChallenge, IslamicOccasion, PrayerMethod, Prayer, Nawafil,
+    BaseChallenge, IslamicOccasion, PrayerMethod, Prayer, Nawafil, AzkarCategory,
     HijriMonthInfo, PrayerFardStatus
 } from '../types';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -15,7 +15,7 @@ import {
     CHALLENGES as CHALLENGES_DATA, 
     ISLAMIC_OCCASIONS as ISLAMIC_OCCASIONS_DATA,
     PRAYER_METHODS as PRAYER_METHODS_DATA,
-    HIJRI_MONTHS_INFO, AZKAR_DATA
+    HIJRI_MONTHS_INFO, AZKAR_DATA, DAILY_WISDOMS
 } from '../constants';
 import { MOCK_APP_DATA } from '../mockData';
 
@@ -23,7 +23,6 @@ import { MOCK_APP_DATA } from '../mockData';
 // Helper function to create initial daily data
 const createInitialDailyData = (prayers: Prayer[], nawafil: Nawafil[]): DailyData => {
     const prayerData = Object.fromEntries(
-        // FIX: Add type assertion to ensure 'fard' property matches 'PrayerFardStatus' type.
         prayers.map(p => [p.name, { fard: 'not_prayed' as PrayerFardStatus, sunnahBefore: false, sunnahAfter: false }])
     );
     const nawafilData = Object.fromEntries(
@@ -137,6 +136,15 @@ export const useAppData = (): AppContextType => {
     // Derived State
     const todayKey = useMemo(() => new Date().toISOString().split('T')[0], []);
     
+    // Select Daily Wisdom based on the day of the year
+    const dailyWisdom = useMemo(() => {
+        const start = new Date(new Date().getFullYear(), 0, 0);
+        const diff = (new Date().getTime() - start.getTime()) + ((start.getTimezoneOffset() - new Date().getTimezoneOffset()) * 60 * 1000);
+        const oneDay = 1000 * 60 * 60 * 24;
+        const dayOfYear = Math.floor(diff / oneDay);
+        return DAILY_WISDOMS[dayOfYear % DAILY_WISDOMS.length];
+    }, []);
+
     const dailyData = useMemo(() => {
         const data = appData[todayKey];
         if (data) {
@@ -277,7 +285,7 @@ export const useAppData = (): AppContextType => {
         currentHijriMonthInfo,
         nextIslamicOccasion,
         hijriYearInfo,
-        dailyWisdom: null, // AI features removed
+        dailyWisdom,
         userChallenges,
         ...userChallengesHandlers,
         personalGoals,
