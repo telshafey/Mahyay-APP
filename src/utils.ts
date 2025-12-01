@@ -55,6 +55,27 @@ export const getAbsolutePageApproximation = (position: { surah: number, ayah: nu
     return surahInfo.startPage + pageOffset;
 };
 
+export const getSurahFromPage = (page: number): { surah: number, ayah: number } => {
+    // Ensure page is within bounds
+    const validPage = Math.max(1, Math.min(page, QURAN_TOTAL_PAGES));
+    
+    // Find the Surah that starts on or before this page
+    // We iterate backwards or find the last surah where startPage <= validPage
+    let foundSurah = QURAN_SURAHS[0];
+    
+    for (let i = 0; i < QURAN_SURAHS.length; i++) {
+        if (QURAN_SURAHS[i].startPage <= validPage) {
+            foundSurah = QURAN_SURAHS[i];
+        } else {
+            // Since surahs are ordered, once we pass a startPage > validPage, we stop.
+            break;
+        }
+    }
+    
+    // Default to Ayah 1 of that Surah (approximate mapping for bookmarking purposes)
+    return { surah: foundSurah.id, ayah: 1 };
+};
+
 
 export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]): AppStats => {
     let totalPoints = 0;
