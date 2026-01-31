@@ -1,4 +1,4 @@
-import { AppData, AppStats, UserChallenge, DailyAzkarCategory, PrayerStatus, DailyData } from './types';
+import { AppData, AppStats, UserChallenge, DailyAzkarCategory, PrayerStatus } from './types';
 import { CHALLENGES, QURAN_TOTAL_PAGES, QURAN_SURAHS, AZKAR_DATA } from './constants';
 
 export const safeLocalStorage = {
