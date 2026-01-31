@@ -8,6 +8,7 @@ const AzkarScreen: React.FC = () => {
 
     const morningCategory = AZKAR_DATA.find(c => c.name === 'أذكار الصباح');
     const eveningCategory = AZKAR_DATA.find(c => c.name === 'أذكار المساء');
+    const postPrayerCategory = AZKAR_DATA.find(c => c.name === 'أذكار ما بعد الصلاة');
     
     const isCategoryComplete = (categoryName: DailyAzkarCategory) => {
         const category = AZKAR_DATA.find(c => c.name === categoryName);
@@ -21,6 +22,7 @@ const AzkarScreen: React.FC = () => {
 
     const morningAzkarDone = isCategoryComplete('أذكار الصباح');
     const eveningAzkarDone = isCategoryComplete('أذكار المساء');
+    const postPrayerAzkarDone = isCategoryComplete('أذكار ما بعد الصلاة');
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -33,6 +35,10 @@ const AzkarScreen: React.FC = () => {
                 <View style={styles.card}>
                     <Text style={styles.title}>{eveningCategory?.items.length ? '🌃 أذكار المساء' : ''}</Text>
                     <Text style={styles.text}>{eveningAzkarDone ? '✅ مكتمل' : 'غير مكتمل'}</Text>
+                </View>
+                <View style={styles.card}>
+                    <Text style={styles.title}>{postPrayerCategory?.items.length ? '🕌 أذكار ما بعد الصلاة' : ''}</Text>
+                    <Text style={styles.text}>{postPrayerAzkarDone ? '✅ مكتمل' : 'غير مكتمل'}</Text>
                 </View>
             </ScrollView>
         </SafeAreaView>

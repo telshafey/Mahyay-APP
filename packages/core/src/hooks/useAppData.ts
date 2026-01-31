@@ -31,7 +31,13 @@ const createInitialDailyData = (prayers: Prayer[], nawafil: Nawafil[]): DailyDat
     return {
         prayerData,
         nawafilData,
-        azkarStatus: { 'أذكار الصباح': {}, 'أذكار المساء': {}, 'أذكار النوم': {}, 'أذكار الاستيقاظ': {} },
+        azkarStatus: { 
+            'أذكار الصباح': {}, 
+            'أذكار المساء': {}, 
+            'أذكار النوم': {}, 
+            'أذكار الاستيقاظ': {},
+            'أذكار ما بعد الصلاة': {} // Added this line to fix the issue
+        },
         quranPagesRead: 0,
         dailyGoalProgress: {},
     };

@@ -1,4 +1,4 @@
-import { AppData, AppStats, UserChallenge, DailyAzkarCategory, PrayerStatus } from './types';
+import { AppData, AppStats, UserChallenge, DailyAzkarCategory, PrayerStatus, DailyData } from './types';
 import { CHALLENGES, QURAN_TOTAL_PAGES, QURAN_SURAHS, AZKAR_DATA } from './constants';
 
 export const safeLocalStorage = {
@@ -87,7 +87,7 @@ export const calculateStats = (appData: AppData, userChallenges: UserChallenge[]
     
     const sortedDates = Object.keys(appData).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
-    const dailyAzkarCategories: DailyAzkarCategory[] = ['أذكار الصباح', 'أذكار المساء', 'أذكار النوم', 'أذكار الاستيقاظ'];
+    const dailyAzkarCategories: DailyAzkarCategory[] = ['أذكار الصباح', 'أذكار المساء', 'أذكار النوم', 'أذكار الاستيقاظ', 'أذكار ما بعد الصلاة'];
 
     sortedDates.forEach(dateKey => {
         const dayData = appData[dateKey];

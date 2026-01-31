@@ -65,6 +65,7 @@ export type AppData = {
     azkarStatus?: { [key: string]: { [zikrId: number]: number } };
     nawafilData?: { [key: string]: NawafilStatus };
     quranPagesRead?: number;
+    dailyGoalProgress?: { [goalId: string]: boolean };
   };
 };
 
@@ -214,7 +215,7 @@ export interface PersonalGoalsContextType {
     toggleGoalArchivedStatus: (goalId: string) => Promise<boolean>;
 }
 
-export type DailyAzkarCategory = 'أذكار الصباح' | 'أذكار المساء' | 'أذكار النوم' | 'أذكار الاستيقاظ';
+export type DailyAzkarCategory = 'أذكار الصباح' | 'أذكار المساء' | 'أذكار النوم' | 'أذكار الاستيقاظ' | 'أذكار ما بعد الصلاة';
 
 export interface AppContextType extends PersonalGoalsContextType {
     settings: Settings;
@@ -283,6 +284,6 @@ export interface Zikr {
 }
 
 export interface AzkarCategory {
-    name: 'أذكار الصباح' | 'أذكار المساء' | 'أذكار النوم' | 'أذكار الاستيقاظ' | 'أذكار عامة';
+    name: 'أذكار الصباح' | 'أذكار المساء' | 'أذكار النوم' | 'أذكار الاستيقاظ' | 'أذكار عامة' | 'أذكار ما بعد الصلاة';
     items: Zikr[];
 }

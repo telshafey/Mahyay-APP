@@ -93,12 +93,14 @@ const AzkarPage: React.FC = () => {
         evening: eveningAzkar,
         sleep: sleepingAzkar,
         wakeup: wakingAzkar,
+        postPrayer: postPrayerAzkar,
         general: generalAzkar
     } = useMemo(() => ({
         morning: AZKAR_DATA.find(c => c.name === 'أذكار الصباح')!,
         evening: AZKAR_DATA.find(c => c.name === 'أذكار المساء')!,
         sleep: AZKAR_DATA.find(c => c.name === 'أذكار النوم')!,
         wakeup: AZKAR_DATA.find(c => c.name === 'أذكار الاستيقاظ')!,
+        postPrayer: AZKAR_DATA.find(c => c.name === 'أذكار ما بعد الصلاة')!,
         general: AZKAR_DATA.find(c => c.name === 'أذكار عامة')!
     }), []);
 
@@ -127,9 +129,10 @@ const AzkarPage: React.FC = () => {
     const dailyCategories = useMemo(() => [
         { name: morningAzkar.name, category: morningAzkar, icon: '🌅' },
         { name: eveningAzkar.name, category: eveningAzkar, icon: '🌃' },
+        { name: postPrayerAzkar.name, category: postPrayerAzkar, icon: '🕌' },
         { name: sleepingAzkar.name, category: sleepingAzkar, icon: '😴' },
         { name: wakingAzkar.name, category: wakingAzkar, icon: '🌤️' }
-    ], [morningAzkar, eveningAzkar, sleepingAzkar, wakingAzkar]);
+    ], [morningAzkar, eveningAzkar, postPrayerAzkar, sleepingAzkar, wakingAzkar]);
 
     const isCategoryComplete = (category: AzkarCategory) => {
         const categoryProgress = dailyData.azkarStatus[category.name as DailyAzkarCategory];
@@ -161,8 +164,13 @@ const AzkarPage: React.FC = () => {
             <h2 className="text-3xl font-bold text-white text-center font-amiri">📿 الأذكار والأدعية</h2>
 
             <GlassCard className="!p-2">
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-1">
-                    {dailyCategories.map(cat => (
+                <div className="grid grid-cols-3 sm:grid-cols-3 gap-1 mb-1">
+                     {dailyCategories.slice(0, 3).map(cat => (
+                         <TabButton key={cat.name} label={cat.name.replace('أذكار ', '')} icon={cat.icon} isActive={activeTab === cat.name} onClick={() => setActiveTab(cat.name)} />
+                    ))}
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-3 gap-1">
+                    {dailyCategories.slice(3).map(cat => (
                          <TabButton key={cat.name} label={cat.name.replace('أذكار ', '')} icon={cat.icon} isActive={activeTab === cat.name} onClick={() => setActiveTab(cat.name)} />
                     ))}
                     <TabButton label="عامة" icon="🤲" isActive={activeTab === 'أذكار عامة'} onClick={() => setActiveTab('أذكار عامة')} />
